@@ -154,8 +154,6 @@ if (!empty($config['ADLISTS_URL'])) {
         // Entries that no longer exist in remote list
         $removedEntries = array_diff($listsSimple, $contentsArray);
         if (!empty($removedEntries)) {
-            echo 'Disabling removed entries...' . PHP_EOL;
-
             // Disable entries instead of removing them
             foreach ($removedEntries as $removedEntryId => $removedEntryAddress) {
                 $sth = $pdo->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id');
@@ -178,11 +176,7 @@ if (!empty($config['ADLISTS_URL'])) {
 
                 if (!$entryExists) {
                     // Add entry if it doesn't exist
-                    $sth = $pdo->prepare(
-                        '
-						INSERT INTO `adlist` (address, enabled, comment) VALUES (:address, 1, :comment)
-					'
-                    );
+                    $sth = $pdo->prepare('INSERT INTO `adlist` (address, enabled, comment) VALUES (:address, 1, :comment)');
                     $sth->bindParam(':address', $entry);
                     $sth->bindParam(':comment', $config['COMMENT_STRING']);
 
@@ -269,8 +263,6 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             // Entries that no longer exist in remote list
             $removedEntries = array_diff($listsSimple, $contentsArray);
             if (!empty($removedEntries)) {
-                echo 'Disabling removed entries...' . PHP_EOL;
-
                 // Disable entries instead of removing them
                 foreach ($removedEntries as $removedEntryId => $removedEntryDomain) {
                     $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
@@ -285,28 +277,24 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             // All entries in the list
             foreach ($contentsArray as $entry) {
                 // Check whenever entry exists in the DB
-                $sth = $pdo->prepare('SELECT * FROM `domainlist` WHERE `domain` = :domain AND `type` = :type');
+                $sth = $pdo->prepare('SELECT * FROM `domainlist` WHERE `domain` = :domain');
                 $sth->bindParam(':domain', $entry);
-                $sth->bindParam(':type', $domainListsType);
 
                 if ($sth->execute()) {
                     $entryExists = $sth->fetch();
 
                     if (!$entryExists) {
                         // Add entry if it doesn't exist
-                        $sth = $pdo->prepare(
-                            '
-							INSERT INTO `domainlist` (domain, type, enabled, comment) VALUES (:domain, :type, 1, :comment)
-						'
-                        );
+                        $sth = $pdo->prepare('INSERT INTO `domainlist` (domain, type, enabled, comment) VALUES (:domain, :type, 1, :comment)');
                         $sth->bindParam(':domain', $entry);
                         $sth->bindParam(':type', $domainListsType);
                         $sth->bindParam(':comment', $config['COMMENT_STRING']);
 
+
                         if ($sth->execute()) {
                             echo 'Inserted: ' . $entry . PHP_EOL;
                         }
-                    } elseif ($entryExists['enabled'] != 1 && strpos($entryExists['comment'], $config['COMMENT_STRING']) !== false) {
+                    } elseif ($entryExists['type'] == $domainListsType && $entryExists['enabled'] != 1 && strpos($entryExists['comment'], $config['COMMENT_STRING']) !== false) {
                         // Enable existing entry but only if it's managed by this script
                         $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 1 WHERE `id` = :id');
                         $sth->bindParam(':id', $entryExists['id']);
@@ -314,7 +302,9 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                         if ($sth->execute()) {
                             echo 'Enabled: ' . $entry . PHP_EOL;
                         }
-                    }
+                    } elseif ($entryExists['type'] != $domainListsType) {
+						echo 'Duplicate: ' . $entry . PHP_EOL;
+					}
                 }
             }
 
