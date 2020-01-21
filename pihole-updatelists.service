@@ -1,0 +1,8 @@
+[Unit]
+Description=Update Pi-hole's lists from remote sources
+After=network-online.target multi-user.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/pihole-updatelists

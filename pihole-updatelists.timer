@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly update of Pi-hole's lists
+
+[Timer]
+OnCalendar=Sat *-*-* 00:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
