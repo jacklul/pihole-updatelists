@@ -7,12 +7,13 @@ fi
 
 [ -d "/etc/pihole" ] && [ -d "/opt/pihole" ] || { echo "Pi-hole doesn't seem to be installed."; exit 1; }
 command -v curl >/dev/null 2>&1 || { echo "This script requires cURL to run, install it with 'sudo apt install curl'."; exit 1; }
+dpkg -s php-cli >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, install it with 'sudo apt install php-cli'."; exit 1; }
 
 SPATH=$(dirname $0)
-REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists/master
+REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta
 
-if [ -f "$SPATH/pihole-updatelists.sh" ] && [ -f "$SPATH/pihole-updatelists.conf" ] && [ -f "$SPATH/pihole-updatelists.service" ] && [ -f "$SPATH/pihole-updatelists.timer" ]; then
-	cp -v $SPATH/pihole-updatelists.sh /usr/local/sbin/pihole-updatelists && \
+if [ -f "$SPATH/pihole-updatelists.php" ] && [ -f "$SPATH/pihole-updatelists.conf" ] && [ -f "$SPATH/pihole-updatelists.service" ] && [ -f "$SPATH/pihole-updatelists.timer" ]; then
+	cp -v $SPATH/pihole-updatelists.php /usr/local/sbin/pihole-updatelists && \
 	chmod +x /usr/local/sbin/pihole-updatelists
 	
 	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
@@ -22,7 +23,7 @@ if [ -f "$SPATH/pihole-updatelists.sh" ] && [ -f "$SPATH/pihole-updatelists.conf
 	cp -v $SPATH/pihole-updatelists.service /etc/systemd/system
 	cp -v $SPATH/pihole-updatelists.timer /etc/systemd/system
 elif [ "$REMOTE_URL" != "" ]; then
-	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/pihole-updatelists.sh" && \
+	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/pihole-updatelists.php" && \
 	chmod +x /usr/local/sbin/pihole-updatelists
 	
 	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
