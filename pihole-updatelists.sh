@@ -1,13 +1,10 @@
 #!/bin/bash
-####################################
-# Remote Lists updater for Pi-hole #
-#  by Jack'lul <jacklul.github.io> #
-#                                  #
-# github.com/jacklul/raspberry-pi  #
-#                                  #
-# This script fetches remote lists #
-# and merges them with local ones. #
-####################################
+#########################################
+#   Remote Lists updater for Pi-hole    #
+#    by Jack'lul <jacklul.github.io>    #
+#                                       #
+# github.com/jacklul/pihole-updatelists #
+#########################################
 
 if [[ $(/usr/bin/id -u) -ne 0 ]]; then
 	exec sudo -- "$0" "$@"
