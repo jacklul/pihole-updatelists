@@ -1,14 +1,11 @@
 #!/usr/bin/php
 <?php
-####################################
-# Remote Lists updater for Pi-hole #
-#  by Jack'lul <jacklul.github.io> #
-#                                  #
-# github.com/jacklul/raspberry-pi  #
-#                                  #
-# This script fetches remote lists #
-# and merges them into gravity.db. # 
-####################################
+#########################################
+#   Remote Lists updater for Pi-hole    #
+#    by Jack'lul <jacklul.github.io>    #
+#                                       #
+# github.com/jacklul/pihole-updatelists #
+#########################################
 
 // Check requirements
 checkDependencies();
@@ -104,7 +101,7 @@ print '
   Pi-hole Remote Lists Fetcher
     by Jack\'lul
 
-  https://github.com/jacklul/raspberry-pi
+  https://github.com/jacklul/pihole-updatelists
 ' . PHP_EOL;
 
 // Open the database
