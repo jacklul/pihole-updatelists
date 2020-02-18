@@ -115,14 +115,6 @@ try {
     exit(1);
 }
 
-// Optimize the database before doing anything
-echo 'Optimizing database...';
-if ($pdo->query('VACUUM')) {
-    echo ' done' . PHP_EOL . PHP_EOL;
-} else {
-    echo ' error' . PHP_EOL . PHP_EOL;
-}
-
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
     echo 'Downloading ADLISTS...';
@@ -336,7 +328,26 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
     }
 }
 
-// Unlock database
+// Close any prepared statements
+$sth = null;
+
+// Reduce database size
+echo 'Compacting database...';
+if ($pdo->query('VACUUM')) {
+    echo ' done' . PHP_EOL . PHP_EOL;
+} else {
+    echo ' error' . PHP_EOL . PHP_EOL;
+}
+
+// Optimize the database
+echo 'Optimizing database...';
+if ($pdo->query('PRAGMA optimize')) {
+    echo ' done' . PHP_EOL . PHP_EOL;
+} else {
+    echo ' error' . PHP_EOL . PHP_EOL;
+}
+
+// Close database
 $pdo = null;
 
 // Update gravity
