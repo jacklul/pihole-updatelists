@@ -437,7 +437,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                             echo 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                         }
                     } elseif ($entryExists['type'] !== $domainListsType) {
-                        echo 'Ignoring duplicate: ' . $entry . PHP_EOL;
+                        echo 'Duplicate: ' . $entry . ' (' . (array_search($entryExists['type'], $domainLists, false) ?: 'type=' . $entryExists['type']) . ')' . PHP_EOL;
                     }
                 }
             }
