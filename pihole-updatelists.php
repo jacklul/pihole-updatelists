@@ -275,6 +275,8 @@ if (!empty($config['ADLISTS_URL'])) {
                     $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
                 }
 
+                $sth->bindParam(':id', $removedEntryId);
+
                 if ($sth->execute()) {
                     echo 'Disabled: ' . $removedEntryAddress . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                 }
@@ -435,7 +437,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                             echo 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                         }
                     } elseif ($entryExists['type'] !== $domainListsType) {
-                        echo 'Duplicate: ' . $entry . PHP_EOL;
+                        echo 'Ignoring duplicate: ' . $entry . PHP_EOL;
                     }
                 }
             }
