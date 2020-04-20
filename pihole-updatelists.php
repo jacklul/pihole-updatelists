@@ -344,8 +344,8 @@ if (!empty($config['ADLISTS_URL'])) {
 // This array binds type of list to 'domainlist' table 'type' field, thanks to this we can use foreach loop instead of duplicating code
 $domainLists = [
     'WHITELIST'       => 0,
-    'BLACKLIST'       => 1,
     'REGEX_WHITELIST' => 2,
+    'BLACKLIST'       => 1,
     'REGEX_BLACKLIST' => 3,
 ];
 
