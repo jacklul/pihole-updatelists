@@ -11,7 +11,7 @@ Group association __is not supported__, it has to be done manually.
 ### Requirements
 
 - Pi-hole already installed
-- PHP >=7.2 with php-cli package (`sudo apt install php-cli`)
+- php-cli >=7.0 (`sudo apt install php-cli`)
 
 ### Install
 

@@ -83,14 +83,14 @@ function loadConfig($config_file, $config)
  */
 function checkDependencies()
 {
-    // Do not run on PHP lower than 7.2
-    if ((float)PHP_VERSION < 7.2) {
-        echo 'Minimum PHP 7.2 is required to run this script!' . PHP_EOL;
+    // Do not run on PHP lower than 7.0
+    if ((float)PHP_VERSION < 7.0) {
+        echo 'Minimum PHP 7.0 is required to run this script!' . PHP_EOL;
         exit(1);
     }
 
     // Windows is obviously not supported
-    if (PHP_OS_FAMILY === 'Windows') {
+    if (stripos(PHP_OS, 'WIN') === 0) {
         echo 'Windows is not supported!' . PHP_EOL;
         exit(1);
     }
