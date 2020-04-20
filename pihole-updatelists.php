@@ -233,7 +233,7 @@ $pdo = openDatabase($config['GRAVITY_DB']);
 if (!empty($config['ADLISTS_URL'])) {
     echo 'Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...';
 
-    if ($contents = @file_get_contents($config['ADLISTS_URL'])) {
+    if (($contents = @file_get_contents($config['ADLISTS_URL'])) !== false) {
         $contentsArray = textToArray($contents);
         echo ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
 
@@ -315,7 +315,7 @@ if (!empty($config['ADLISTS_URL'])) {
         $pdo->commit();
         echo PHP_EOL;
     } else {
-        echo ' failed' . PHP_EOL . 'Error: ' . error_get_last()['message'] . PHP_EOL . PHP_EOL;
+        echo ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
         $errors++;
     }
 } elseif ((bool)$config['REQUIRE_COMMENT'] === true) {
@@ -356,7 +356,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
     if (!empty($config[$url_key])) {
         echo 'Fetching ' . $domainListsEntry . ' from \'' . $config[$url_key] . '\'...';
 
-        if ($contents = @file_get_contents($config[$url_key])) {
+        if (($contents = @file_get_contents($config[$url_key])) !== false) {
             $contentsArray = textToArray($contents);
             echo ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
 
@@ -443,7 +443,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             $pdo->commit();
             echo PHP_EOL;
         } else {
-            echo ' failed' . PHP_EOL . 'Error: ' . error_get_last()['message'] . PHP_EOL . PHP_EOL;
+            echo ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
             $errors++;
         }
     } elseif ((bool)$config['REQUIRE_COMMENT'] === true) {
