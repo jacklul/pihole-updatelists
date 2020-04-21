@@ -1,4 +1,4 @@
-#!/usr/bin/php
+#!/usr/bin/env php
 <?php
 #########################################
 #   Remote Lists updater for Pi-hole    #
