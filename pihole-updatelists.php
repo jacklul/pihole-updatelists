@@ -10,10 +10,10 @@
 // Check requirements
 checkDependencies();
 
-// Let's begin
+// Needed variables
 $start = microtime(true);
 $errors = 0;
-printHeader();
+$duplicates = 0;
 
 // Default configuration
 $config = [
@@ -37,6 +37,8 @@ if (isset($argv[1]) && file_exists($argv[1])) {
     $config['CONFIG_FILE'] = $argv[1];
 }
 
+// Start
+printHeader();
 $config = loadConfig($config['CONFIG_FILE'], $config);
 
 /**
@@ -439,6 +441,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                         }
                     } elseif ($entryExists['type'] !== $domainListsType) {
                         echo 'Duplicate: ' . $entry . ' (' . (array_search($entryExists['type'], $domainLists, false) ?: 'type=' . $entryExists['type']) . ')' . PHP_EOL;
+                        $duplicates++;
                     }
                 }
             }
@@ -524,9 +527,24 @@ if ((bool)$config['VERBOSE'] === true) {
     echo 'Peak memory usage: ' . formatBytes(memory_get_peak_usage()) . PHP_EOL . PHP_EOL;
 }
 
+$result = '';
+
 if ($errors > 0) {
-    echo 'Finished with ' . $errors . ' error(s).' . PHP_EOL;
-    exit(1);
+    $result .= $errors . ' error(s)';
 }
 
-echo 'Finished successfully.' . PHP_EOL;
+if ($duplicates > 0) {
+    if ($result !== '') {
+        $result .= ' and ';
+    }
+
+    $result .= $duplicates . ' duplicated entries';
+}
+
+if ($result === '') {
+    echo 'Finished successfully.' . PHP_EOL;
+} else {
+    echo 'Finished with ' . $result . '.' . PHP_EOL;
+}
+
+$errors > 0 && exit(1);
