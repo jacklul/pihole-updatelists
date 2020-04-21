@@ -33,8 +33,13 @@ $config = [
 ];
 
 // Allow to override config file by first argument
-if (isset($argv[1]) && file_exists($argv[1])) {
-    $config['CONFIG_FILE'] = $argv[1];
+if (isset($argv[1])) {
+    if (file_exists($argv[1])) {
+        $config['CONFIG_FILE'] = $argv[1];
+    } else {
+        echo 'Invalid file: ' . $argv[1] . PHP_EOL;
+        exit(1);
+    }
 }
 
 // Start
@@ -61,8 +66,6 @@ function loadConfig($config_file, $config)
         $config = array_merge($config, $loadedConfig);
     }
 
-    $config['COMMENT_STRING_WILDCARD'] = '%' . trim($config['COMMENT_STRING']) . '%'; // Wildcard comment string for SQL queries
-
     if (empty($config['LOCK_FILE'])) {
         $config['LOCK_FILE'] = '/tmp/' . basename(__FILE__) . '-' . md5($config['CONFIG_FILE']) . '.lock';
     }
@@ -76,6 +79,8 @@ function loadConfig($config_file, $config)
 
         echo PHP_EOL;
     }
+
+    $config['COMMENT_STRING_WILDCARD'] = '%' . trim($config['COMMENT_STRING']) . '%'; // Wildcard comment string for SQL queries
 
     return $config;
 }
@@ -202,7 +207,7 @@ function printHeader()
   by Jack\'lul 
 
  github.com/jacklul/pihole-updatelists
-' . PHP_EOL . PHP_EOL;
+' . PHP_EOL;
 }
 
 /**
