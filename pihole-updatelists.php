@@ -246,7 +246,7 @@ if (!empty($config['ADLISTS_URL'])) {
         if ((bool)$config['REQUIRE_COMMENT'] === false) {
             $sth = $pdo->prepare($sql);
         } else {
-            $sth = $pdo->prepare($sql .= 'AND `comment` LIKE :comment');
+            $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
             $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
         }
 
@@ -271,7 +271,7 @@ if (!empty($config['ADLISTS_URL'])) {
                 if ((bool)$config['REQUIRE_COMMENT'] === false) {
                     $sth = $pdo->prepare($sql);
                 } else {
-                    $sth = $pdo->prepare($sql .= 'AND `comment` LIKE :comment');
+                    $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
                     $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
                 }
 
@@ -371,6 +371,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             if ((bool)$config['REQUIRE_COMMENT'] === false) {
                 $sth = $pdo->prepare($sql);
             } else {
+                $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
                 $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
             }
 
