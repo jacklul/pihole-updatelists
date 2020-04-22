@@ -164,10 +164,12 @@ function checkDependencies()
 function textToArray($text)
 {
     $array = preg_split('/\r\n|\r|\n/', $text);
-    foreach ($array as $var => $val) {
+    foreach ($array as $var => &$val) {
         if (empty($val) || strpos(trim($val), '#') === 0) {
             unset($array[$var]);
         }
+
+        $val = trim($val);
     }
 
     return $array;
