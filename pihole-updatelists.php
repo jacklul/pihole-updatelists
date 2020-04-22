@@ -32,17 +32,8 @@ $config = [
     'REGEX_BLACKLIST_URL' => '',
 ];
 
-// Allow to override config file by first argument
-if (isset($argv[1])) {
-    if (file_exists($argv[1])) {
-        $config['CONFIG_FILE'] = $argv[1];
-    } else {
-        echo 'Invalid file: ' . $argv[1] . PHP_EOL;
-        exit(1);
-    }
-}
-
 // Start
+parseParameters();
 printHeader();
 $config = loadConfig($config['CONFIG_FILE'], $config);
 
@@ -59,7 +50,7 @@ function loadConfig($config_file, $config)
     if (file_exists($config_file)) {
         $loadedConfig = parse_ini_file($config_file);
         if (!is_array($loadedConfig)) {
-            echo 'Failed to load configuration file!' . PHP_EOL;
+            print 'Failed to load configuration file!' . PHP_EOL;
             exit(1);
         }
 
@@ -71,18 +62,59 @@ function loadConfig($config_file, $config)
     }
 
     if ((bool)$config['VERBOSE'] === true) {
-        echo 'Configuration:' . PHP_EOL;
+        print 'Configuration:' . PHP_EOL;
 
         foreach ($config as $var => $val) {
-            echo ' ' . $var . ' = ' . $val . PHP_EOL;
+            print ' ' . $var . ' = ' . $val . PHP_EOL;
         }
 
-        echo PHP_EOL;
+        print PHP_EOL;
     }
 
     $config['COMMENT_STRING_WILDCARD'] = '%' . trim($config['COMMENT_STRING']) . '%'; // Wildcard comment string for SQL queries
 
     return $config;
+}
+
+/**
+ * Parse parameters given to script
+ */
+function parseParameters()
+{
+    $options = getopt(
+        'huc::',
+        [
+            'help',
+            'update',
+            'config::',
+        ]
+    );
+
+    if (!empty($options)) {
+        if (isset($options['help']) || isset($options['h'])) {
+            printHelp();
+        }
+
+        if (isset($options['update']) || isset($options['u'])) {
+            updateScript();
+        }
+
+        if (isset($options['config']) || isset($options['c'])) {
+            global $config;
+            isset($options['c']) && $options['config'] = $options['c'];
+
+            if (file_exists($options['config'])) {
+                $config['CONFIG_FILE'] = $options['config'];
+
+                return;
+            }
+
+            print 'Invalid file: ' . $options['config'] . PHP_EOL;
+            exit(1);
+        }
+
+        exit(0);
+    }
 }
 
 /**
@@ -92,13 +124,13 @@ function checkDependencies()
 {
     // Do not run on PHP lower than 7.0
     if ((float)PHP_VERSION < 7.0) {
-        echo 'Minimum PHP 7.0 is required to run this script!' . PHP_EOL;
+        print 'Minimum PHP 7.0 is required to run this script!' . PHP_EOL;
         exit(1);
     }
 
     // Windows is obviously not supported
     if (stripos(PHP_OS, 'WIN') === 0) {
-        echo 'Windows is not supported!' . PHP_EOL;
+        print 'Windows is not supported!' . PHP_EOL;
         exit(1);
     }
 
@@ -110,14 +142,14 @@ function checkDependencies()
     // Required PHP extensions
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
-            echo 'Missing PHP extension: ' . $extension . PHP_EOL;
+            print 'Missing PHP extension: ' . $extension . PHP_EOL;
             exit(1);
         }
     }
 
     // Require root privileges
-    if (posix_getuid() !== 0) {
-        echo 'This tool must be run as root!' . PHP_EOL;
+    if (function_exists('posix_getuid') && posix_getuid() !== 0) {
+        print 'This tool must be run as root!' . PHP_EOL;
         exit(1);
     }
 }
@@ -164,14 +196,18 @@ function acquireLock($lockfile)
     global $lock;
 
     if (empty($lockfile)) {
-        echo 'Lock file not defined!' . PHP_EOL;
+        print 'Lock file not defined!' . PHP_EOL;
         exit(1);
     }
 
-    $lock = fopen($lockfile, 'wb+');
-    if (!flock($lock, LOCK_EX | LOCK_NB)) {
-        echo 'Another process is already running!' . PHP_EOL;
-        exit(6);
+    if ($lock = @fopen($lockfile, 'wb+')) {
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            print 'Another process is already running!' . PHP_EOL;
+            exit(6);
+        }
+    } else {
+        print 'Unable to access path or lock file: ' . $lockfile. PHP_EOL;
+        exit(1);
     }
 }
 
@@ -188,11 +224,11 @@ function openDatabase($db_file)
         $pdo = new PDO('sqlite:' . $db_file);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        echo 'Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL . PHP_EOL;
+        print 'Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL . PHP_EOL;
 
         return $pdo;
     } catch (PDOException $e) {
-        echo $e->getMessage();
+        print $e->getMessage();
         exit(1);
     }
 }
@@ -208,6 +244,49 @@ function printHeader()
 
  github.com/jacklul/pihole-updatelists
 ' . PHP_EOL;
+}
+
+/**
+ * Show help message
+ */
+function printHelp()
+{
+    printHeader();
+
+    print ' Available options:
+  --help              - prints this help message
+  --update            - updates the script
+  --config=[FILE]     - overrides configuration file
+';
+}
+
+/**
+ * Update the script to newest version
+ */
+function updateScript()
+{
+    $remote = @file_get_contents('https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/pihole-updatelists.php');
+
+    if (empty($remote)) {
+        print 'Failed to fetch remote script!' . PHP_EOL;
+        exit(1);
+    }
+
+    if (md5($remote) !== md5_file(__FILE__)) {
+        if (copy(__FILE__, __FILE__ . '.old')) {
+            print 'Backed up current script to ' . __FILE__ . '.old' . PHP_EOL;
+        }
+
+        if (file_put_contents(__FILE__, $remote)) {
+            print 'Updated successfully!' . PHP_EOL;
+        } else {
+            print 'Update failed!' . PHP_EOL;
+        }
+
+        return;
+    }
+
+    print 'No need to update!' . PHP_EOL;
 }
 
 /**
@@ -230,7 +309,7 @@ function formatBytes($bytes, $precision = 2)
 
 acquireLock($config['LOCK_FILE']);
 if ((bool)$config['VERBOSE'] === true) {
-    echo 'Acquired process lock through file: ' . $config['LOCK_FILE'] . ')' . PHP_EOL;
+    print 'Acquired process lock through file: ' . $config['LOCK_FILE'] . ')' . PHP_EOL;
 }
 
 register_shutdown_function('shutdownHandler');
@@ -238,13 +317,13 @@ $pdo = openDatabase($config['GRAVITY_DB']);
 
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
-    echo 'Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...';
+    print 'Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...';
 
     if (($contents = @file_get_contents($config['ADLISTS_URL'])) !== false) {
         $contentsArray = textToArray($contents);
-        echo ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
+        print ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
 
-        echo 'Processing...' . PHP_EOL;
+        print 'Processing...' . PHP_EOL;
         $pdo->beginTransaction();
 
         // Get enabled adlists managed by this script from the DB
@@ -285,7 +364,7 @@ if (!empty($config['ADLISTS_URL'])) {
                 $sth->bindParam(':id', $removedEntryId);
 
                 if ($sth->execute()) {
-                    echo 'Disabled: ' . $removedEntryAddress . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                    print 'Disabled: ' . $removedEntryAddress . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                 }
             }
         }
@@ -307,7 +386,7 @@ if (!empty($config['ADLISTS_URL'])) {
                     $sth->bindParam(':comment', $config['COMMENT_STRING']);
 
                     if ($sth->execute()) {
-                        echo 'Inserted: ' . $entry . PHP_EOL;
+                        print 'Inserted: ' . $entry . PHP_EOL;
                     }
                 } elseif ((int)$entryExists['enabled'] !== 1 && ((bool)$config['REQUIRE_COMMENT'] === false || $entryIsOwned)) {
                     // Enable existing entry but only if it's managed by this script
@@ -315,16 +394,16 @@ if (!empty($config['ADLISTS_URL'])) {
                     $sth->bindParam(':id', $entryExists['id']);
 
                     if ($sth->execute()) {
-                        echo 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                        print 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                     }
                 }
             }
         }
 
         $pdo->commit();
-        echo PHP_EOL;
+        print PHP_EOL;
     } else {
-        echo ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
+        print ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
         $errors++;
     }
 } elseif ((bool)$config['REQUIRE_COMMENT'] === true) {
@@ -333,20 +412,20 @@ if (!empty($config['ADLISTS_URL'])) {
     $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
 
     if ($sth->execute() && count($sth->fetchAll()) > 0) {
-        echo 'No remote list set for ADLISTS, disabling orphaned entries in the database...';
+        print 'No remote list set for ADLISTS, disabling orphaned entries in the database...';
 
         $pdo->beginTransaction();
         $sth = $pdo->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `comment` LIKE :comment');
         $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
 
         if ($sth->execute()) {
-            echo ' ok' . PHP_EOL;
+            print ' ok' . PHP_EOL;
         } else {
-            echo ' fail' . PHP_EOL;
+            print ' fail' . PHP_EOL;
         }
 
         $pdo->commit();
-        echo PHP_EOL;
+        print PHP_EOL;
     }
 }
 
@@ -363,13 +442,13 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
     $url_key = $domainListsEntry . '_URL';
 
     if (!empty($config[$url_key])) {
-        echo 'Fetching ' . $domainListsEntry . ' from \'' . $config[$url_key] . '\'...';
+        print 'Fetching ' . $domainListsEntry . ' from \'' . $config[$url_key] . '\'...';
 
         if (($contents = @file_get_contents($config[$url_key])) !== false) {
             $contentsArray = textToArray($contents);
-            echo ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
+            print ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
 
-            echo 'Processing...' . PHP_EOL;
+            print 'Processing...' . PHP_EOL;
             $pdo->beginTransaction();
 
             // Get enabled domains of this type managed by this script from the DB
@@ -407,7 +486,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                     $sth->bindParam(':id', $removedEntryId);
 
                     if ($sth->execute()) {
-                        echo 'Disabled: ' . $removedEntryDomain . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                        print 'Disabled: ' . $removedEntryDomain . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                     }
                 }
             }
@@ -430,7 +509,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                         $sth->bindParam(':comment', $config['COMMENT_STRING']);
 
                         if ($sth->execute()) {
-                            echo 'Inserted: ' . $entry . PHP_EOL;
+                            print 'Inserted: ' . $entry . PHP_EOL;
                         }
                     } elseif (
                         $entryExists['type'] === $domainListsType &&
@@ -442,19 +521,19 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                         $sth->bindParam(':id', $entryExists['id']);
 
                         if ($sth->execute()) {
-                            echo 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                            print 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                         }
                     } elseif ($entryExists['type'] !== $domainListsType) {
-                        echo 'Duplicate: ' . $entry . ' (' . (array_search($entryExists['type'], $domainLists, false) ?: 'type=' . $entryExists['type']) . ')' . PHP_EOL;
+                        print 'Duplicate: ' . $entry . ' (' . (array_search($entryExists['type'], $domainLists, false) ?: 'type=' . $entryExists['type']) . ')' . PHP_EOL;
                         $duplicates++;
                     }
                 }
             }
 
             $pdo->commit();
-            echo PHP_EOL;
+            print PHP_EOL;
         } else {
-            echo ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
+            print ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
             $errors++;
         }
     } elseif ((bool)$config['REQUIRE_COMMENT'] === true) {
@@ -464,7 +543,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
         $sth->bindParam(':type', $domainListsType);
 
         if ($sth->execute() && count($sth->fetchAll()) > 0) {
-            echo 'No remote list set for ' . $domainListsEntry . ', disabling orphaned entries in the database...';
+            print 'No remote list set for ' . $domainListsEntry . ', disabling orphaned entries in the database...';
 
             $pdo->beginTransaction();
             $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `comment` LIKE :comment AND `type` = :type');
@@ -472,13 +551,13 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             $sth->bindParam(':type', $domainListsType);
 
             if ($sth->execute()) {
-                echo ' ok' . PHP_EOL;
+                print ' ok' . PHP_EOL;
             } else {
-                echo ' fail' . PHP_EOL;
+                print ' fail' . PHP_EOL;
             }
 
             $pdo->commit();
-            echo PHP_EOL;
+            print PHP_EOL;
         }
     }
 }
@@ -488,22 +567,22 @@ if ((bool)$config['OPTIMIZE_DB']) {
     $sth = null;
 
     // Reduce database size
-    echo 'Compacting database...';
+    print 'Compacting database...';
     if ($pdo->query('VACUUM')) {
-        echo ' done' . PHP_EOL;
+        print ' done' . PHP_EOL;
     }
 
     // Optimize the database
-    echo 'Optimizing database...';
+    print 'Optimizing database...';
     if ($pdo->query('PRAGMA optimize')) {
-        echo ' done' . PHP_EOL;
+        print ' done' . PHP_EOL;
     }
 
     if ((bool)$config['VERBOSE'] === true) {
-        echo 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
+        print 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
     }
 
-    echo PHP_EOL;
+    print PHP_EOL;
 }
 
 if ((bool)$config['UPDATE_GRAVITY']) {
@@ -511,25 +590,25 @@ if ((bool)$config['UPDATE_GRAVITY']) {
     $pdo = null;
 
     // Update gravity
-    echo 'Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL;
+    print 'Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL;
 
     passthru('pihole updateGravity', $return);
     if ($return !== 0) {
-        echo 'Error occurred while updating gravity!' . PHP_EOL;
+        print 'Error occurred while updating gravity!' . PHP_EOL;
         exit(1);
     }
 
-    echo PHP_EOL . 'Done in ' . round(microtime(true) - $start, 2) . 's' . PHP_EOL;
+    print PHP_EOL . 'Done in ' . round(microtime(true) - $start, 2) . 's' . PHP_EOL;
 
     if ((bool)$config['VERBOSE'] === true) {
-        echo 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
+        print 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
     }
 
-    echo PHP_EOL;
+    print PHP_EOL;
 }
 
 if ((bool)$config['VERBOSE'] === true) {
-    echo 'Peak memory usage: ' . formatBytes(memory_get_peak_usage()) . PHP_EOL . PHP_EOL;
+    print 'Peak memory usage: ' . formatBytes(memory_get_peak_usage()) . PHP_EOL . PHP_EOL;
 }
 
 $result = '';
@@ -547,9 +626,9 @@ if ($duplicates > 0) {
 }
 
 if ($result === '') {
-    echo 'Finished successfully.' . PHP_EOL;
+    print 'Finished successfully.' . PHP_EOL;
 } else {
-    echo 'Finished with ' . $result . '.' . PHP_EOL;
+    print 'Finished with ' . $result . '.' . PHP_EOL;
 }
 
 $errors > 0 && exit(1);

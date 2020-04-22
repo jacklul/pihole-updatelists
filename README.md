@@ -27,9 +27,9 @@ You should disable `pihole updateGravity` entry in `/etc/cron.d/pihole` as this 
 
 Configuration file is located in `/etc/pihole-updatelists.conf`.
 
-You can specify alternative config file by passing the path to the script: `pihole-updatelists /etc/pihole-updatelists2.conf` - this combined with changed `COMMENT_STRING` can allow multiple script configurations for the same Pi-hole instance.
+You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/etc/pihole-updatelists2.conf` - this combined with changed `COMMENT_STRING` can allow multiple script configurations for the same Pi-hole instance.
 
-#### Configuration variables
+##### Configuration variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -47,6 +47,18 @@ You can specify alternative config file by passing the path to the script: `piho
 String values should be put between `" "`, otherwise weird things might happen.
 
 You can also give paths to local files instead of URL, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file.
+
+### Manual execution
+
+Run `sudo pihole-updatelists` or `sudo systemctl start pihole-updatelists.service`.
+
+##### Optional parameters:
+
+| Parameter | Description |
+|-----------|-------------|
+| --help | Prints help message |
+| --update | Updates the script to the latest version available in the repository (`master` branch) |
+| --config=[FILE] | Overrides configuration file |
 
 ### Changing the time script runs
 
@@ -82,7 +94,7 @@ To fix this you wan to go to **Pi-hole -> Group management -> Domains** and sear
 
 For example:
 
-```bash
+```
 Fetching WHITELIST from 'https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt'... done (194 entries)
 Processing...
 Duplicate: cdnjs.cloudflare.com (BLACKLIST)
