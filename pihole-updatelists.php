@@ -3,9 +3,9 @@
 /**
  * Update Pi-hole lists from remote sources
  *
- * @author Jack'lul <jacklul.github.io>
+ * @author  Jack'lul <jacklul.github.io>
  * @license MIT
- * @link https://github.com/jacklul/pihole-updatelists
+ * @link    https://github.com/jacklul/pihole-updatelists
  */
 
 /**
@@ -184,7 +184,7 @@ function acquireLock($lockfile)
             exit(6);
         }
     } else {
-        print 'Unable to access path or lock file: ' . $lockfile. PHP_EOL;
+        print 'Unable to access path or lock file: ' . $lockfile . PHP_EOL;
         exit(1);
     }
 }
@@ -221,7 +221,7 @@ function printHeader()
   by Jack\'lul 
 
  github.com/jacklul/pihole-updatelists
-' . PHP_EOL;
+' . PHP_EOL . PHP_EOL;
 }
 
 /**
@@ -300,7 +300,7 @@ $config = [
     'COMMENT_STRING'      => 'Managed by pihole-updatelists',
     'REQUIRE_COMMENT'     => true,
     'UPDATE_GRAVITY'      => true,
-    'OPTIMIZE_DB'         => true,
+    'VACUUM_DATABASE'     => true,
     'VERBOSE'             => false,
     'ADLISTS_URL'         => '',
     'WHITELIST_URL'       => '',
@@ -573,19 +573,13 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
     }
 }
 
-if ($config['OPTIMIZE_DB']) {
+if ($config['VACUUM_DATABASE']) {
     // Close any prepared statements to allow unprepared queries
     $sth = null;
 
     // Reduce database size
-    print 'Compacting database...';
+    print 'Vacuuming database...';
     if ($pdo->query('VACUUM')) {
-        print ' done' . PHP_EOL;
-    }
-
-    // Optimize the database
-    print 'Optimizing database...';
-    if ($pdo->query('PRAGMA optimize')) {
         print ' done' . PHP_EOL;
     }
 
