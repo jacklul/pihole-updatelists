@@ -193,16 +193,17 @@ function acquireLock($lockfile)
  * Open the database
  *
  * @param string $db_file
+ * @param bool   $print
  *
  * @return PDO
  */
-function openDatabase($db_file)
+function openDatabase($db_file, $print = true)
 {
     try {
         $pdo = new PDO('sqlite:' . $db_file);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        print 'Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL . PHP_EOL;
+        $print && print 'Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL . PHP_EOL;
 
         return $pdo;
     } catch (PDOException $e) {
@@ -573,14 +574,17 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
     }
 }
 
-if ($config['VACUUM_DATABASE']) {
-    // Close any prepared statements to allow unprepared queries
-    $sth = null;
+// Close any database handles
+$sth = null;
+$pdo = null;
 
-    // Reduce database size
-    print 'Vacuuming database...';
-    if ($pdo->query('VACUUM')) {
-        print ' done' . PHP_EOL;
+if ($config['UPDATE_GRAVITY']) {
+    print 'Updating Pi-hole\'s gravity:' . PHP_EOL . PHP_EOL;
+
+    passthru('pihole updateGravity', $return);
+    if ($return !== 0) {
+        print 'Error occurred while updating gravity!' . PHP_EOL;
+        exit(1);
     }
 
     if ($config['VERBOSE'] === true) {
@@ -590,17 +594,12 @@ if ($config['VACUUM_DATABASE']) {
     print PHP_EOL;
 }
 
-if ($config['UPDATE_GRAVITY']) {
-    // Close database handle to unlock it for gravity update
-    $pdo = null;
+if ($config['VACUUM_DATABASE']) {
+    $pdo = openDatabase($config['GRAVITY_DB'], false);
 
-    // Update gravity
-    print 'Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL;
-
-    passthru('pihole updateGravity', $return);
-    if ($return !== 0) {
-        print 'Error occurred while updating gravity!' . PHP_EOL;
-        exit(1);
+    print 'Vacuuming database...';
+    if ($pdo->query('VACUUM')) {
+        print ' done' . PHP_EOL;
     }
 
     if ($config['VERBOSE'] === true) {
