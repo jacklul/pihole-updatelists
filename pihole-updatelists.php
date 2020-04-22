@@ -9,91 +9,6 @@
  */
 
 /**
- * Load config file, if exists
- *
- * @param string $config_file
- * @param array  $config
- *
- * @return array
- */
-function loadConfig($config_file, $config)
-{
-    if (file_exists($config_file)) {
-        $loadedConfig = @parse_ini_file($config_file, false, INI_SCANNER_TYPED);
-        if ($loadedConfig === false) {
-            print 'Failed to load configuration file!' . PHP_EOL;
-            exit(1);
-        }
-
-        $config = array_merge($config, $loadedConfig);
-    }
-
-    if (empty($config['LOCK_FILE'])) {
-        $config['LOCK_FILE'] = '/tmp/' . basename(__FILE__) . '-' . md5($config['CONFIG_FILE']) . '.lock';
-    }
-
-    if (empty($config['COMMENT_STRING'])) {
-        print 'Configuration variable COMMENT_STRING cannot be empty!' . PHP_EOL;
-        exit(1);
-    }
-
-    if ($config['VERBOSE'] === true) {
-        print 'Configuration:' . PHP_EOL;
-
-        foreach ($config as $var => $val) {
-            print ' ' . $var . ' = ' . $val . PHP_EOL;
-        }
-
-        print PHP_EOL;
-    }
-
-    $config['COMMENT_STRING_WILDCARD'] = '%' . trim($config['COMMENT_STRING']) . '%'; // Wildcard comment string for SQL queries
-
-    return $config;
-}
-
-/**
- * Parse parameters given to script
- */
-function parseParameters()
-{
-    $options = getopt(
-        'huc::',
-        [
-            'help',
-            'update',
-            'config::',
-        ]
-    );
-
-    if (!empty($options)) {
-        if (isset($options['help']) || isset($options['h'])) {
-            printHelp();
-        }
-
-        if (isset($options['update']) || isset($options['u'])) {
-            updateScript();
-        }
-
-        if (isset($options['config']) || isset($options['c'])) {
-            global $config;
-            isset($options['c']) && $options['config'] = $options['c'];
-
-            if (file_exists($options['config'])) {
-                $config['CONFIG_FILE'] = $options['config'];
-
-                return;
-            }
-
-            print 'Invalid file: ' . $options['config'] . PHP_EOL;
-            exit(1);
-        }
-
-        exit(0);
-    }
-}
-
-/**
  * Check for required stuff
  */
 function checkDependencies()
@@ -131,37 +46,86 @@ function checkDependencies()
 }
 
 /**
- * Convert text files from one-entry-per-line to array
+ * Load config file, if exists
  *
- * @param string $text
- *
- * @return array|false|string[]
+ * @return array
  */
-function textToArray($text)
+function loadConfig()
 {
-    $array = preg_split('/\r\n|\r|\n/', $text);
-    foreach ($array as $var => &$val) {
-        if (empty($val) || strpos(trim($val), '#') === 0) {
-            unset($array[$var]);
+    // Default configuration
+    $config = [
+        'LOCK_FILE'           => '',
+        'CONFIG_FILE'         => '/etc/pihole-updatelists.conf',
+        'GRAVITY_DB'          => '/etc/pihole/gravity.db',
+        'COMMENT_STRING'      => 'Managed by pihole-updatelists',
+        'REQUIRE_COMMENT'     => true,
+        'UPDATE_GRAVITY'      => true,
+        'VACUUM_DATABASE'     => true,
+        'VERBOSE'             => false,
+        'ADLISTS_URL'         => '',
+        'WHITELIST_URL'       => '',
+        'REGEX_WHITELIST_URL' => '',
+        'BLACKLIST_URL'       => '',
+        'REGEX_BLACKLIST_URL' => '',
+    ];
+
+    $options = getopt(
+        'c::',
+        [
+            'config::',
+        ]
+    );
+
+    if (!empty($options) && (isset($options['config']) || isset($options['c']))) {
+        empty($options['config'] ) && !empty($options['c']) && $options['config'] = $options['c'];
+
+        if (!file_exists($options['config'])) {
+            print 'Invalid file: ' . $options['config'] . PHP_EOL;
+            exit(1);
         }
 
-        $val = trim($val);
+        $config['CONFIG_FILE'] = $options['config'];
     }
 
-    return $array;
+    if (file_exists($config['CONFIG_FILE'])) {
+        $loadedConfig = @parse_ini_file($config['CONFIG_FILE'], false, INI_SCANNER_TYPED);
+        if ($loadedConfig === false) {
+            print 'Failed to load configuration file!' . PHP_EOL;
+            exit(1);
+        }
+
+        $config = array_merge($config, $loadedConfig);
+    }
+
+    if (empty($config['LOCK_FILE'])) {
+        $config['LOCK_FILE'] = '/tmp/' . basename(__FILE__) . '-' . md5($config['CONFIG_FILE']) . '.lock';
+    }
+
+    if (empty($config['COMMENT_STRING'])) {
+        print 'Configuration variable COMMENT_STRING cannot be empty!' . PHP_EOL;
+        exit(1);
+    }
+
+    if ($config['VERBOSE'] === true) {
+        print 'Configuration: ';
+        var_dump($config);
+        print PHP_EOL;
+    }
+
+    return $config;
 }
 
 /**
- * Handle script shutdown - cleanup, lock file unlock
+ * Header text of the script
  */
-function shutdownHandler()
+function printHeader()
 {
-    global $config, $lock;
+    print '
+ Pi-hole Remote Lists Fetcher and Updater
+  by Jack\'lul 
 
-    flock($lock, LOCK_UN);
-    fclose($lock);
-
-    unlink($config['LOCK_FILE']);
+ github.com/jacklul/pihole-updatelists
+' . PHP_EOL . PHP_EOL;
 }
 
 /**
@@ -190,6 +154,19 @@ function acquireLock($lockfile)
 }
 
 /**
+ * Handle script shutdown - cleanup, lock file unlock
+ */
+function shutdownHandler()
+{
+    global $config, $lock;
+
+    flock($lock, LOCK_UN);
+    fclose($lock);
+
+    unlink($config['LOCK_FILE']);
+}
+
+/**
  * Open the database
  *
  * @param string $db_file
@@ -213,58 +190,24 @@ function openDatabase($db_file, $print = true)
 }
 
 /**
- * Header text of the script
+ * Convert text files from one-entry-per-line to array
+ *
+ * @param string $text
+ *
+ * @return array|false|string[]
  */
-function printHeader()
+function textToArray($text)
 {
-    print '
- Pi-hole Remote Lists Fetcher and Updater
-  by Jack\'lul 
-
- github.com/jacklul/pihole-updatelists
-' . PHP_EOL . PHP_EOL;
-}
-
-/**
- * Show help message
- */
-function printHelp()
-{
-    printHeader();
-
-    print ' Available options:
-  --help              - prints this help message
-  --update            - updates the script
-  --config=[FILE]     - overrides configuration file
-' . PHP_EOL;
-}
-
-/**
- * Update the script to newest version
- */
-function updateScript()
-{
-    $base_uri = 'https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta';
-    $remote = @file_get_contents($base_uri . '/pihole-updatelists.php');
-
-    if (empty($remote)) {
-        print 'Failed to fetch remote script!' . PHP_EOL;
-        exit(1);
-    }
-
-    if (md5($remote) !== md5_file(__FILE__)) {
-        passthru('wget -q -O - ' . $base_uri . '/install.sh | bash', $return);
-        if ($return !== 0) {
-            print 'Update failed!' . PHP_EOL;
-            exit(1);
+    $array = preg_split('/\r\n|\r|\n/', $text);
+    foreach ($array as $var => &$val) {
+        if (empty($val) || strpos(trim($val), '#') === 0) {
+            unset($array[$var]);
         }
 
-        print 'Updated successfully!' . PHP_EOL;
-
-        return;
+        $val = trim($val);
     }
 
-    print 'No need to update!' . PHP_EOL;
+    return $array;
 }
 
 /**
@@ -285,35 +228,20 @@ function formatBytes($bytes, $precision = 2)
     return round($bytes, $precision) . ' ' . $units[$pow];
 }
 
-// PROCEDURAL CODE STARTS HERE
+/** PROCEDURAL CODE STARTS HERE */
 // Check script requirements
 checkDependencies();
 
 // Needed variables
 $errors = 0;
 $duplicates = 0;
+$comment_wildcard = '';
 
-// Default configuration
-$config = [
-    'LOCK_FILE'           => '',
-    'CONFIG_FILE'         => '/etc/pihole-updatelists.conf',
-    'GRAVITY_DB'          => '/etc/pihole/gravity.db',
-    'COMMENT_STRING'      => 'Managed by pihole-updatelists',
-    'REQUIRE_COMMENT'     => true,
-    'UPDATE_GRAVITY'      => true,
-    'VACUUM_DATABASE'     => true,
-    'VERBOSE'             => false,
-    'ADLISTS_URL'         => '',
-    'WHITELIST_URL'       => '',
-    'REGEX_WHITELIST_URL' => '',
-    'BLACKLIST_URL'       => '',
-    'REGEX_BLACKLIST_URL' => '',
-];
+// Load config
+$config = loadConfig();
+$comment_wildcard = '%' . trim($config['COMMENT_STRING']) . '%'; // Wildcard comment string for SQL queries
 
-// Parse parameters (if any), show header and load config
-parseParameters();
 printHeader();
-$config = loadConfig($config['CONFIG_FILE'], $config);
 
 // Make sure this is the only instance
 acquireLock($config['LOCK_FILE']);
@@ -582,16 +510,16 @@ if ($config['UPDATE_GRAVITY']) {
     print 'Updating Pi-hole\'s gravity:' . PHP_EOL . PHP_EOL;
 
     passthru('pihole updateGravity', $return);
+    print PHP_EOL;
+
     if ($return !== 0) {
-        print 'Error occurred while updating gravity!' . PHP_EOL;
-        exit(1);
+        print 'Error occurred while updating gravity!' . PHP_EOL . PHP_EOL;
+        $errors++;
     }
 
     if ($config['VERBOSE'] === true) {
-        print 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
+        print 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL . PHP_EOL;
     }
-
-    print PHP_EOL;
 }
 
 if ($config['VACUUM_DATABASE']) {
@@ -613,24 +541,13 @@ if ($config['VERBOSE'] === true) {
     print 'Peak memory usage: ' . formatBytes(memory_get_peak_usage()) . PHP_EOL . PHP_EOL;
 }
 
-$result = '';
+if ($duplicates > 0) {
+    print 'You have ' . $duplicates . ' duplicated entries across your lists.'. PHP_EOL;
+}
 
 if ($errors > 0) {
-    $result .= $errors . ' error(s)';
+    print 'Finished with ' . $errors . ' error(s)';
+    exit(1);
 }
 
-if ($duplicates > 0) {
-    if ($result !== '') {
-        $result .= ' and ';
-    }
-
-    $result .= $duplicates . ' duplicated entries';
-}
-
-if ($result === '') {
-    print 'Finished successfully.' . PHP_EOL;
-} else {
-    print 'Finished with ' . $result . '.' . PHP_EOL;
-}
-
-$errors > 0 && exit(1);
+print 'Finished successfully.' . PHP_EOL;
