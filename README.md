@@ -70,9 +70,7 @@ Run `sudo pihole-updatelists` or `sudo systemctl start pihole-updatelists.servic
 
 ### Changing the time script runs
 
-By default it runs at 00:00 Friday->Saturday.
-
-Override systemd timer unit file.
+By default it runs at 00:00 Friday->Saturday, to change it you have to override timer unit file:
  
 `sudo systemctl edit pihole-updatelists.timer`
 
@@ -83,6 +81,19 @@ OnCalendar=Sat *-*-* 00:00:00
 ```
 
 [Timers configuration reference](https://www.freedesktop.org/software/systemd/man/systemd.timer.html).
+
+### Running custom commands before/after
+
+Override service unit file:
+
+`sudo systemctl edit pihole-updatelists.service`
+
+```
+[Service]
+Type=oneshot
+ExecStartPre=echo "before"
+ExecStartPost=echo "after"
+```
 
 #### Running without systemd:
 
