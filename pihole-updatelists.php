@@ -189,7 +189,7 @@ function shutdownHandler()
 }
 
 /**
- * Aquire process lock
+ * Acquire process lock
  *
  * @param string $lockfile
  */
