@@ -1,4 +1,4 @@
-# Pi-hole - update lists from remote servers
+# Update Pi-hole lists from remote sources
 
 **This branch is for Pi-hole v5 beta only!**
 

@@ -1,41 +1,12 @@
 #!/usr/bin/env php
 <?php
-#########################################
-#   Remote Lists updater for Pi-hole    #
-#    by Jack'lul <jacklul.github.io>    #
-#                                       #
-# github.com/jacklul/pihole-updatelists #
-#########################################
-
-// Check requirements
-checkDependencies();
-
-// Needed variables
-$start = microtime(true);
-$errors = 0;
-$duplicates = 0;
-
-// Default configuration
-$config = [
-    'LOCK_FILE'           => '',
-    'CONFIG_FILE'         => '/etc/pihole-updatelists.conf',
-    'GRAVITY_DB'          => '/etc/pihole/gravity.db',
-    'COMMENT_STRING'      => 'Managed by pihole-updatelists',
-    'REQUIRE_COMMENT'     => true,
-    'UPDATE_GRAVITY'      => true,
-    'OPTIMIZE_DB'         => true,
-    'VERBOSE'             => false,
-    'ADLISTS_URL'         => '',
-    'WHITELIST_URL'       => '',
-    'REGEX_WHITELIST_URL' => '',
-    'BLACKLIST_URL'       => '',
-    'REGEX_BLACKLIST_URL' => '',
-];
-
-// Start
-parseParameters();
-printHeader();
-$config = loadConfig($config['CONFIG_FILE'], $config);
+/**
+ * Update Pi-hole lists from remote sources
+ *
+ * @author Jack'lul <jacklul.github.io>
+ * @license MIT
+ * @link https://github.com/jacklul/pihole-updatelists
+ */
 
 /**
  * Load config file, if exists
@@ -309,12 +280,47 @@ function formatBytes($bytes, $precision = 2)
     return round($bytes, $precision) . ' ' . $units[$pow];
 }
 
+// PROCEDURAL CODE STARTS HERE
+// Check script requirements
+checkDependencies();
+
+// Needed variables
+$start = microtime(true);
+$errors = 0;
+$duplicates = 0;
+
+// Default configuration
+$config = [
+    'LOCK_FILE'           => '',
+    'CONFIG_FILE'         => '/etc/pihole-updatelists.conf',
+    'GRAVITY_DB'          => '/etc/pihole/gravity.db',
+    'COMMENT_STRING'      => 'Managed by pihole-updatelists',
+    'REQUIRE_COMMENT'     => true,
+    'UPDATE_GRAVITY'      => true,
+    'OPTIMIZE_DB'         => true,
+    'VERBOSE'             => false,
+    'ADLISTS_URL'         => '',
+    'WHITELIST_URL'       => '',
+    'REGEX_WHITELIST_URL' => '',
+    'BLACKLIST_URL'       => '',
+    'REGEX_BLACKLIST_URL' => '',
+];
+
+// Parse parameters (if any), show header and load config
+parseParameters();
+printHeader();
+$config = loadConfig($config['CONFIG_FILE'], $config);
+
+// Make sure this is the only instance
 acquireLock($config['LOCK_FILE']);
 if ((bool)$config['VERBOSE'] === true) {
     print 'Acquired process lock through file: ' . $config['LOCK_FILE'] . ')' . PHP_EOL;
 }
 
+// Handle process interruption
 register_shutdown_function('shutdownHandler');
+
+// Open the database
 $pdo = openDatabase($config['GRAVITY_DB']);
 
 // Fetch ADLISTS
