@@ -19,8 +19,8 @@
 function loadConfig($config_file, $config)
 {
     if (file_exists($config_file)) {
-        $loadedConfig = parse_ini_file($config_file);
-        if (!is_array($loadedConfig)) {
+        $loadedConfig = @parse_ini_file($config_file, false, INI_SCANNER_TYPED);
+        if ($loadedConfig === false) {
             print 'Failed to load configuration file!' . PHP_EOL;
             exit(1);
         }
@@ -32,7 +32,12 @@ function loadConfig($config_file, $config)
         $config['LOCK_FILE'] = '/tmp/' . basename(__FILE__) . '-' . md5($config['CONFIG_FILE']) . '.lock';
     }
 
-    if ((bool)$config['VERBOSE'] === true) {
+    if (empty($config['COMMENT_STRING'])) {
+        print 'Configuration variable COMMENT_STRING cannot be empty!' . PHP_EOL;
+        exit(1);
+    }
+
+    if ($config['VERBOSE'] === true) {
         print 'Configuration:' . PHP_EOL;
 
         foreach ($config as $var => $val) {
@@ -230,7 +235,7 @@ function printHelp()
   --help              - prints this help message
   --update            - updates the script
   --config=[FILE]     - overrides configuration file
-';
+' . PHP_EOL;
 }
 
 /**
@@ -238,7 +243,8 @@ function printHelp()
  */
 function updateScript()
 {
-    $remote = @file_get_contents('https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/pihole-updatelists.php');
+    $base_uri = 'https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta';
+    $remote = @file_get_contents($base_uri . '/pihole-updatelists.php');
 
     if (empty($remote)) {
         print 'Failed to fetch remote script!' . PHP_EOL;
@@ -246,15 +252,13 @@ function updateScript()
     }
 
     if (md5($remote) !== md5_file(__FILE__)) {
-        if (copy(__FILE__, __FILE__ . '.old')) {
-            print 'Backed up current script to ' . __FILE__ . '.old' . PHP_EOL;
+        passthru('wget -q -O - ' . $base_uri . '/install.sh | bash', $return);
+        if ($return !== 0) {
+            print 'Update failed!' . PHP_EOL;
+            exit(1);
         }
 
-        if (file_put_contents(__FILE__, $remote)) {
-            print 'Updated successfully!' . PHP_EOL;
-        } else {
-            print 'Update failed!' . PHP_EOL;
-        }
+        print 'Updated successfully!' . PHP_EOL;
 
         return;
     }
@@ -285,7 +289,6 @@ function formatBytes($bytes, $precision = 2)
 checkDependencies();
 
 // Needed variables
-$start = microtime(true);
 $errors = 0;
 $duplicates = 0;
 
@@ -313,7 +316,7 @@ $config = loadConfig($config['CONFIG_FILE'], $config);
 
 // Make sure this is the only instance
 acquireLock($config['LOCK_FILE']);
-if ((bool)$config['VERBOSE'] === true) {
+if ($config['VERBOSE'] === true) {
     print 'Acquired process lock through file: ' . $config['LOCK_FILE'] . ')' . PHP_EOL;
 }
 
@@ -337,7 +340,7 @@ if (!empty($config['ADLISTS_URL'])) {
         // Get enabled adlists managed by this script from the DB
         $sql = 'SELECT * FROM `adlist` WHERE `enabled` = 1';
 
-        if ((bool)$config['REQUIRE_COMMENT'] === false) {
+        if ($config['REQUIRE_COMMENT'] === false) {
             $sth = $pdo->prepare($sql);
         } else {
             $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
@@ -362,7 +365,7 @@ if (!empty($config['ADLISTS_URL'])) {
                 $entryIsOwned = isset($lists[$removedEntryId]) && strpos($lists[$removedEntryId]['comment'], $config['COMMENT_STRING']) !== false;
 
                 $sql = 'UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id';
-                if ((bool)$config['REQUIRE_COMMENT'] === false) {
+                if ($config['REQUIRE_COMMENT'] === false) {
                     $sth = $pdo->prepare($sql);
                 } else {
                     $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
@@ -385,7 +388,7 @@ if (!empty($config['ADLISTS_URL'])) {
 
             if ($sth->execute()) {
                 $entryExists = $sth->fetch();
-                $entryIsOwned = strpos($entryExists['comment'], $config['COMMENT_STRING']) !== false;
+                $entryIsOwned = strpos($entryExists['comment'] ?? '', $config['COMMENT_STRING']) !== false;
 
                 if (!$entryExists) {
                     // Add entry if it doesn't exist
@@ -396,7 +399,7 @@ if (!empty($config['ADLISTS_URL'])) {
                     if ($sth->execute()) {
                         print 'Inserted: ' . $entry . PHP_EOL;
                     }
-                } elseif ((int)$entryExists['enabled'] !== 1 && ((bool)$config['REQUIRE_COMMENT'] === false || $entryIsOwned)) {
+                } elseif ((int)$entryExists['enabled'] !== 1 && ($config['REQUIRE_COMMENT'] === false || $entryIsOwned)) {
                     // Enable existing entry but only if it's managed by this script
                     $sth = $pdo->prepare('UPDATE `adlist` SET `enabled` = 1 WHERE `id` = :id');
                     $sth->bindParam(':id', $entryExists['id']);
@@ -414,7 +417,7 @@ if (!empty($config['ADLISTS_URL'])) {
         print ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
         $errors++;
     }
-} elseif ((bool)$config['REQUIRE_COMMENT'] === true) {
+} elseif ($config['REQUIRE_COMMENT'] === true) {
     // In case user decides to unset the URL - disable previously added entries
     $sth = $pdo->prepare('SELECT id FROM `adlist` WHERE `comment` LIKE :comment AND `enabled` = 1 LIMIT 1');
     $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
@@ -462,7 +465,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             // Get enabled domains of this type managed by this script from the DB
             $sql = 'SELECT * FROM `domainlist` WHERE `enabled` = 1 AND `type` = :type';
 
-            if ((bool)$config['REQUIRE_COMMENT'] === false) {
+            if ($config['REQUIRE_COMMENT'] === false) {
                 $sth = $pdo->prepare($sql);
             } else {
                 $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
@@ -507,7 +510,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
 
                 if ($sth->execute()) {
                     $entryExists = $sth->fetch();
-                    $entryIsOwned = strpos($entryExists['comment'], $config['COMMENT_STRING']) !== false;
+                    $entryIsOwned = strpos($entryExists['comment'] ?? '', $config['COMMENT_STRING']) !== false;
 
                     if (!$entryExists) {
                         // Add entry if it doesn't exist
@@ -522,7 +525,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                     } elseif (
                         $entryExists['type'] === $domainListsType &&
                         (int)$entryExists['enabled'] !== 1 &&
-                        ((bool)$config['REQUIRE_COMMENT'] === false || $entryIsOwned)
+                        ($config['REQUIRE_COMMENT'] === false || $entryIsOwned)
                     ) {
                         // Enable existing entry but only if it's managed by this script
                         $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 1 WHERE `id` = :id');
@@ -544,7 +547,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             print ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
             $errors++;
         }
-    } elseif ((bool)$config['REQUIRE_COMMENT'] === true) {
+    } elseif ($config['REQUIRE_COMMENT'] === true) {
         // In case user decides to unset the URL - disable previously added entries
         $sth = $pdo->prepare('SELECT id FROM `domainlist` WHERE `comment` LIKE :comment AND `enabled` = 1 AND `type` = :type LIMIT 1');
         $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
@@ -570,7 +573,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
     }
 }
 
-if ((bool)$config['OPTIMIZE_DB']) {
+if ($config['OPTIMIZE_DB']) {
     // Close any prepared statements to allow unprepared queries
     $sth = null;
 
@@ -586,14 +589,14 @@ if ((bool)$config['OPTIMIZE_DB']) {
         print ' done' . PHP_EOL;
     }
 
-    if ((bool)$config['VERBOSE'] === true) {
+    if ($config['VERBOSE'] === true) {
         print 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
     }
 
     print PHP_EOL;
 }
 
-if ((bool)$config['UPDATE_GRAVITY']) {
+if ($config['UPDATE_GRAVITY']) {
     // Close database handle to unlock it for gravity update
     $pdo = null;
 
@@ -606,16 +609,14 @@ if ((bool)$config['UPDATE_GRAVITY']) {
         exit(1);
     }
 
-    print PHP_EOL . 'Done in ' . round(microtime(true) - $start, 2) . 's' . PHP_EOL;
-
-    if ((bool)$config['VERBOSE'] === true) {
+    if ($config['VERBOSE'] === true) {
         print 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
     }
 
     print PHP_EOL;
 }
 
-if ((bool)$config['VERBOSE'] === true) {
+if ($config['VERBOSE'] === true) {
     print 'Peak memory usage: ' . formatBytes(memory_get_peak_usage()) . PHP_EOL . PHP_EOL;
 }
 
