@@ -29,7 +29,7 @@ Configuration file is located in `/etc/pihole-updatelists.conf`.
 
 You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/etc/pihole-updatelists2.conf` - this combined with changed `COMMENT_STRING` can allow multiple script configurations for the same Pi-hole instance.
 
-##### Configuration variables:
+#### Configuration variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -48,11 +48,19 @@ String values should be put between `" "`, otherwise weird things might happen.
 
 You can also give paths to local files instead of URL, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file.
 
+#### Recommended lists:
+
+| List | Value | Description |
+|----------|-------------|-------------|
+| ADLISTS_URL | "https://v.firebog.net/hosts/lists.php?type=tick" | https://firebog.net - safe lists only |
+| WHITELIST_URL | "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt" | https://github.com/anudeepND/whitelist - commonly whitelisted |
+| REGEX_BLACKLIST_URL | "https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list" | https://github.com/mmotti/pihole-regex - basic regex rules |
+
 ### Manual execution
 
 Run `sudo pihole-updatelists` or `sudo systemctl start pihole-updatelists.service`.
 
-##### Optional parameters:
+#### Optional parameters:
 
 | Parameter | Description |
 |-----------|-------------|
