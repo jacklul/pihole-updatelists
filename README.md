@@ -70,8 +70,8 @@ Override systemd timer unit file.
 
 ```
 [Timer]
+OnCalendar=
 OnCalendar=Sat *-*-* 00:00:00
-Persistent=true
 ```
 
 [Timers configuration reference](https://www.freedesktop.org/software/systemd/man/systemd.timer.html).
