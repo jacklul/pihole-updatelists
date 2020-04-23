@@ -116,27 +116,14 @@ function loadConfig()
 }
 
 /**
- * Header text of the script
- */
-function printHeader()
-{
-    print '
- Pi-hole Remote Lists Fetcher and Updater
-  by Jack\'lul 
-
- github.com/jacklul/pihole-updatelists
-' . PHP_EOL . PHP_EOL;
-}
-
-/**
  * Acquire process lock
  *
  * @param string $lockfile
+ *
+ * @return resource
  */
 function acquireLock($lockfile)
 {
-    global $lock;
-
     if (empty($lockfile)) {
         print 'Lock file not defined!' . PHP_EOL;
         exit(1);
@@ -147,23 +134,12 @@ function acquireLock($lockfile)
             print 'Another process is already running!' . PHP_EOL;
             exit(6);
         }
-    } else {
-        print 'Unable to access path or lock file: ' . $lockfile . PHP_EOL;
-        exit(1);
+
+        return $lock;
     }
-}
 
-/**
- * Handle script shutdown - cleanup, lock file unlock
- */
-function shutdownHandler()
-{
-    global $config, $lock;
-
-    flock($lock, LOCK_UN);
-    fclose($lock);
-
-    unlink($config['LOCK_FILE']);
+    print 'Unable to access path or lock file: ' . $lockfile . PHP_EOL;
+    exit(1);
 }
 
 /**
@@ -229,28 +205,40 @@ function formatBytes($bytes, $precision = 2)
 }
 
 /** PROCEDURAL CODE STARTS HERE */
-// Check script requirements
-checkDependencies();
+checkDependencies();    // Check script requirements
 
-// Needed variables
-$errors = 0;
-$duplicates = 0;
-$comment_wildcard = '';
-
-// Load config
+// Set needed variables
 $config = loadConfig();
-$comment_wildcard = '%' . trim($config['COMMENT_STRING']) . '%'; // Wildcard comment string for SQL queries
+$lock = acquireLock($config['LOCK_FILE']);
+$wildcardedCommentString = '%' . trim($config['COMMENT_STRING']) . '%'; // Wildcard comment string for SQL queries
+$stat = [
+    'errors'   => 0,
+    'invalid'  => 0,
+    'conflict' => 0,
+];
 
-printHeader();
+// Print script header
+print '
+ Pi-hole Remote Lists Fetcher and Updater
+  by Jack\'lul 
+
+ github.com/jacklul/pihole-updatelists
+' . PHP_EOL . PHP_EOL;
 
 // Make sure this is the only instance
-acquireLock($config['LOCK_FILE']);
 if ($config['VERBOSE'] === true) {
     print 'Acquired process lock through file: ' . $config['LOCK_FILE'] . ')' . PHP_EOL;
 }
 
-// Handle process interruption
-register_shutdown_function('shutdownHandler');
+// Handle process interruption and cleanup after script exits
+register_shutdown_function(
+    static function () use ($config, &$lock) {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+
+        unlink($config['LOCK_FILE']);
+    }
+);
 
 // Open the database
 $pdo = openDatabase($config['GRAVITY_DB']);
@@ -260,8 +248,8 @@ if (!empty($config['ADLISTS_URL'])) {
     print 'Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...';
 
     if (($contents = @file_get_contents($config['ADLISTS_URL'])) !== false) {
-        $contentsArray = textToArray($contents);
-        print ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
+        $adlists = textToArray($contents);
+        print ' done (' . count($adlists) . ' entries)' . PHP_EOL;
 
         print 'Processing...' . PHP_EOL;
         $pdo->beginTransaction();
@@ -273,74 +261,90 @@ if (!empty($config['ADLISTS_URL'])) {
             $sth = $pdo->prepare($sql);
         } else {
             $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
-            $sth->bindParam(':comment', $comment_wildcard);
+            $sth->bindParam(':comment', $wildcardedCommentString, PDO::PARAM_STR);
         }
 
-        $listsSimple = [];
+        $enabledLists = [];
         if ($sth->execute()) {
-            $lists = $sth->fetchAll();
+            $enabledLists = [];
 
-            $listsSimple = [];
-            foreach ($lists as $list) {
-                $listsSimple[$list['id']] = $list['address'];
+            foreach ($sth->fetchAll() as $list) {
+                $enabledLists[$list['id']] = $list['address'];
             }
         }
 
         // Entries that no longer exist in remote list
-        $removedEntries = array_diff($listsSimple, $contentsArray);
-        if (!empty($removedEntries)) {
+        $removedLists = array_diff($enabledLists, $adlists);
+        if (!empty($removedLists)) {
             // Disable entries instead of removing them
-            foreach ($removedEntries as $removedEntryId => $removedEntryAddress) {
-                $entryIsOwned = isset($lists[$removedEntryId]) && strpos($lists[$removedEntryId]['comment'], $config['COMMENT_STRING']) !== false;
+            foreach ($removedLists as $id => $url) {
+                $isTouchable = isset($lists[$id]) && strpos($lists[$id]['comment'], $config['COMMENT_STRING']) !== false;
 
                 $sql = 'UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id';
                 if ($config['REQUIRE_COMMENT'] === false) {
                     $sth = $pdo->prepare($sql);
                 } else {
                     $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
-                    $sth->bindParam(':comment', $comment_wildcard);
+                    $sth->bindParam(':comment', $wildcardedCommentString, PDO::PARAM_STR);
                 }
 
-                $sth->bindParam(':id', $removedEntryId);
+                $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
                 if ($sth->execute()) {
-                    print 'Disabled: ' . $removedEntryAddress . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                    print 'Disabled: ' . $url . ($isTouchable ? '' : ' *') . PHP_EOL;
                 }
             }
         }
 
         // All entries in the list
-        foreach ($contentsArray as $entry) {
+        foreach ($adlists as $url) {
+            // Check from `scripts/pi-hole/php/groups.php` 'add_adlist'
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                print 'Invalid: ' . $url . PHP_EOL;
+
+                if (!isset($stat['invalids']) || !in_array($url, $stat['invalids'], true)) {
+                    $stat['invalid']++;
+                    $stat['invalids'][] = $url;
+                }
+
+                continue;
+            }
+
             // Check whenever entry exists in the DB
             $sth = $pdo->prepare('SELECT * FROM `adlist` WHERE `address` = :address');
-            $sth->bindParam(':address', $entry);
+            $sth->bindParam(':address', $url, PDO::PARAM_STR);
 
             if ($sth->execute()) {
-                $entryExists = $sth->fetch();
-                $entryIsOwned = strpos($entryExists['comment'] ?? '', $config['COMMENT_STRING']) !== false;
+                $adlistExists = $sth->fetch();
+                $isTouchable = strpos($entryExists['comment'] ?? '', $config['COMMENT_STRING']) !== false;
 
-                if (!$entryExists) {
+                isset($adlistExists['enabled']) && $adlistExists['enabled'] = (bool)$adlistExists['enabled'];
+
+                if ($adlistExists === false) {
                     // Add entry if it doesn't exist
                     $sth = $pdo->prepare('INSERT INTO `adlist` (address, enabled, comment) VALUES (:address, 1, :comment)');
-                    $sth->bindParam(':address', $entry);
-                    $sth->bindParam(':comment', $config['COMMENT_STRING']);
+                    $sth->bindParam(':address', $url, PDO::PARAM_STR);
+                    $sth->bindParam(':comment', $config['COMMENT_STRING'], PDO::PARAM_STR);
 
                     if ($sth->execute()) {
-                        print 'Inserted: ' . $entry . PHP_EOL;
+                        print 'Inserted: ' . $url . PHP_EOL;
                     }
-                } elseif ((int)$entryExists['enabled'] !== 1 && ($config['REQUIRE_COMMENT'] === false || $entryIsOwned)) {
+                } elseif (
+                    $adlistExists['enabled'] !== true &&
+                    ($config['REQUIRE_COMMENT'] === false || $isTouchable === true)
+                ) {
                     // Enable existing entry but only if it's managed by this script
                     $sth = $pdo->prepare('UPDATE `adlist` SET `enabled` = 1 WHERE `id` = :id');
-                    $sth->bindParam(':id', $entryExists['id']);
+                    $sth->bindParam(':id', $adlistExists['id'], PDO::PARAM_INT);
 
                     if ($sth->execute()) {
-                        print 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                        print 'Enabled: ' . $url . ($isTouchable ? '' : ' *') . PHP_EOL;
                     }
                 } elseif ($config['VERBOSE'] === true) {
-                    if ($entryExists && $entryIsOwned) {
-                        print 'Exists: ' . $entry . PHP_EOL;
-                    } elseif (!$entryIsOwned) {
-                        print 'Ignored: ' . $entry . PHP_EOL;
+                    if ($adlistExists === true && $isTouchable === true) {
+                        print 'Exists: ' . $url . PHP_EOL;
+                    } elseif (!$isTouchable) {
+                        print 'Ignored: ' . $url . PHP_EOL;
                     }
                 }
             }
@@ -350,24 +354,23 @@ if (!empty($config['ADLISTS_URL'])) {
         print PHP_EOL;
     } else {
         print ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
-        $errors++;
+
+        $stat['errors']++;
     }
 } elseif ($config['REQUIRE_COMMENT'] === true) {
     // In case user decides to unset the URL - disable previously added entries
     $sth = $pdo->prepare('SELECT id FROM `adlist` WHERE `comment` LIKE :comment AND `enabled` = 1 LIMIT 1');
-    $sth->bindParam(':comment', $comment_wildcard);
+    $sth->bindParam(':comment', $wildcardedCommentString, PDO::PARAM_STR);
 
     if ($sth->execute() && count($sth->fetchAll()) > 0) {
         print 'No remote list set for ADLISTS, disabling orphaned entries in the database...';
 
         $pdo->beginTransaction();
         $sth = $pdo->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `comment` LIKE :comment');
-        $sth->bindParam(':comment', $comment_wildcard);
+        $sth->bindParam(':comment', $wildcardedCommentString, PDO::PARAM_STR);
 
         if ($sth->execute()) {
             print ' ok' . PHP_EOL;
-        } else {
-            print ' fail' . PHP_EOL;
         }
 
         $pdo->commit();
@@ -376,7 +379,7 @@ if (!empty($config['ADLISTS_URL'])) {
 }
 
 // This array binds type of list to 'domainlist' table 'type' field, thanks to this we can use foreach loop instead of duplicating code
-$domainLists = [
+$domainListTypes = [
     'WHITELIST'       => 0,
     'REGEX_WHITELIST' => 2,
     'BLACKLIST'       => 1,
@@ -384,15 +387,15 @@ $domainLists = [
 ];
 
 // Fetch WHITELISTS AND BLACKLISTS (both exact and regex)
-foreach ($domainLists as $domainListsEntry => $domainListsType) {
-    $url_key = $domainListsEntry . '_URL';
+foreach ($domainListTypes as $typeName => $typeId) {
+    $url_key = $typeName . '_URL';
 
     if (!empty($config[$url_key])) {
-        print 'Fetching ' . $domainListsEntry . ' from \'' . $config[$url_key] . '\'...';
+        print 'Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...';
 
         if (($contents = @file_get_contents($config[$url_key])) !== false) {
-            $contentsArray = textToArray($contents);
-            print ' done (' . count($contentsArray) . ' entries)' . PHP_EOL;
+            $list = textToArray($contents);
+            print ' done (' . count($list) . ' entries)' . PHP_EOL;
 
             print 'Processing...' . PHP_EOL;
             $pdo->beginTransaction();
@@ -404,79 +407,98 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                 $sth = $pdo->prepare($sql);
             } else {
                 $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
-                $sth->bindParam(':comment', $comment_wildcard);
+                $sth->bindParam(':comment', $wildcardedCommentString, PDO::PARAM_STR);
             }
 
-            $sth->bindParam(':type', $domainListsType);
+            $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
-            $listsSimple = [];
+            $enabledDomains = [];
             if ($sth->execute()) {
-                $lists = $sth->fetchAll();
+                $enabledDomains = [];
 
-                $listsSimple = [];
-                foreach ($lists as $list) {
-                    if (strpos(trim($list['domain']), '#') !== 0) {
-                        $listsSimple[$list['id']] = $list['domain'];
+                foreach ($sth->fetchAll() as $domain) {
+                    if (strpos(trim($domain['domain']), '#') !== 0) {
+                        $enabledDomains[$domain['id']] = $domain['domain'];
                     }
                 }
             }
 
             // Entries that no longer exist in remote list
-            $removedEntries = array_diff($listsSimple, $contentsArray);
-            if (!empty($removedEntries)) {
+            $removedDomains = array_diff($enabledDomains, $list);
+            if (!empty($removedDomains)) {
                 // Disable entries instead of removing them
-                foreach ($removedEntries as $removedEntryId => $removedEntryDomain) {
-                    $entryIsOwned = isset($lists[$removedEntryId]) && strpos($lists[$removedEntryId]['comment'], $config['COMMENT_STRING']) !== false;
+                foreach ($removedDomains as $id => $domain) {
+                    $isTouchable = isset($lists[$id]) && strpos($lists[$id]['comment'], $config['COMMENT_STRING']) !== false;
 
                     $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
-                    $sth->bindParam(':id', $removedEntryId);
+                    $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
                     if ($sth->execute()) {
-                        print 'Disabled: ' . $removedEntryDomain . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                        print 'Disabled: ' . $domain . ($isTouchable ? '' : ' *') . PHP_EOL;
                     }
                 }
             }
 
             // All entries in the list
-            foreach ($contentsArray as $entry) {
+            foreach ($list as $domain) {
+                $domain = strtolower(extension_loaded('intl') ? idn_to_ascii($domain) : $domain);
+
+                // Check from `scripts/pi-hole/php/groups.php` 'add_domain'
+                if (strpos($typeName, 'REGEX_') === false && filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
+                    print 'Invalid: ' . $domain . PHP_EOL;
+
+                    if (!isset($stat['invalids']) || !in_array($domain, $stat['invalids'], true)) {
+                        $stat['invalid']++;
+                        $stat['invalids'][] = $domain;
+                    }
+
+                    continue;
+                }
+
                 // Check whenever entry exists in the DB
                 $sth = $pdo->prepare('SELECT * FROM `domainlist` WHERE `domain` = :domain');
-                $sth->bindParam(':domain', $entry);
+                $sth->bindParam(':domain', $domain, PDO::PARAM_STR);
 
                 if ($sth->execute()) {
-                    $entryExists = $sth->fetch();
-                    $entryIsOwned = strpos($entryExists['comment'] ?? '', $config['COMMENT_STRING']) !== false;
+                    $domainExists = $sth->fetch();
+                    $isTouchable = strpos($entryExists['comment'] ?? '', $config['COMMENT_STRING']) !== false;
 
-                    if (!$entryExists) {
+                    isset($domainExists['type']) && $domainExists['type'] = (int)$domainExists['type'];
+                    isset($domainExists['enabled']) && $domainExists['enabled'] = (bool)$domainExists['enabled'];
+
+                    if ($domainExists === false) {
                         // Add entry if it doesn't exist
                         $sth = $pdo->prepare('INSERT INTO `domainlist` (domain, type, enabled, comment) VALUES (:domain, :type, 1, :comment)');
-                        $sth->bindParam(':domain', $entry);
-                        $sth->bindParam(':type', $domainListsType);
-                        $sth->bindParam(':comment', $config['COMMENT_STRING']);
+                        $sth->bindParam(':domain', $domain, PDO::PARAM_STR);
+                        $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
+                        $sth->bindParam(':comment', $config['COMMENT_STRING'], PDO::PARAM_STR);
 
                         if ($sth->execute()) {
-                            print 'Inserted: ' . $entry . PHP_EOL;
+                            print 'Inserted: ' . $domain . PHP_EOL;
                         }
                     } elseif (
-                        $entryExists['type'] === $domainListsType &&
-                        (int)$entryExists['enabled'] !== 1 &&
-                        ($config['REQUIRE_COMMENT'] === false || $entryIsOwned)
+                        $domainExists['type'] === $typeId &&
+                        $domainExists['enabled'] !== true &&
+                        ($config['REQUIRE_COMMENT'] === false || $isTouchable === true)
                     ) {
                         // Enable existing entry but only if it's managed by this script
                         $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 1 WHERE `id` = :id');
-                        $sth->bindParam(':id', $entryExists['id']);
+                        $sth->bindParam(':id', $domainExists['id'], PDO::PARAM_INT);
 
                         if ($sth->execute()) {
-                            print 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
+                            print 'Enabled: ' . $domain . ($isTouchable ? '' : ' *') . PHP_EOL;
                         }
-                    } elseif ($entryExists['type'] !== $domainListsType) {
-                        print 'Duplicate: ' . $entry . ' (' . (array_search($entryExists['type'], $domainLists, false) ?: 'type=' . $entryExists['type']) . ')' . PHP_EOL;
-                        $duplicates++;
+                    } elseif ($domainExists['type'] !== $typeId) {
+                        print 'Conflict: ' . $domain . ' (' . (array_search($domainExists['type'], $domainListTypes, true) ?: 'type=' . $domainExists['type']) . ')' . PHP_EOL;
+                        if (!isset($stat['conflicts']) || !in_array($domain, $stat['conflicts'], true)) {
+                            $stat['conflict']++;
+                            $stat['conflicts'][] = $domain;
+                        }
                     } elseif ($config['VERBOSE'] === true) {
-                        if ($entryExists && $entryIsOwned) {
-                            print 'Exists: ' . $entry . PHP_EOL;
-                        } elseif (!$entryIsOwned) {
-                            print 'Ignored: ' . $entry . PHP_EOL;
+                        if ($domainExists === true && $isTouchable === true) {
+                            print 'Exists: ' . $domain . PHP_EOL;
+                        } elseif (!$isTouchable) {
+                            print 'Ignored: ' . $domain . PHP_EOL;
                         }
                     }
                 }
@@ -486,26 +508,25 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
             print PHP_EOL;
         } else {
             print ' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL;
-            $errors++;
+
+            $stat['errors']++;
         }
     } elseif ($config['REQUIRE_COMMENT'] === true) {
         // In case user decides to unset the URL - disable previously added entries
         $sth = $pdo->prepare('SELECT id FROM `domainlist` WHERE `comment` LIKE :comment AND `enabled` = 1 AND `type` = :type LIMIT 1');
-        $sth->bindParam(':comment', $comment_wildcard);
-        $sth->bindParam(':type', $domainListsType);
+        $sth->bindParam(':comment', $wildcardedCommentString, PDO::PARAM_STR);
+        $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
         if ($sth->execute() && count($sth->fetchAll()) > 0) {
-            print 'No remote list set for ' . $domainListsEntry . ', disabling orphaned entries in the database...';
+            print 'No remote list set for ' . $typeName . ', disabling orphaned entries in the database...';
 
             $pdo->beginTransaction();
             $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `comment` LIKE :comment AND `type` = :type');
-            $sth->bindParam(':comment', $comment_wildcard);
-            $sth->bindParam(':type', $domainListsType);
+            $sth->bindParam(':comment', $wildcardedCommentString, PDO::PARAM_STR);
+            $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
             if ($sth->execute()) {
                 print ' ok' . PHP_EOL;
-            } else {
-                print ' fail' . PHP_EOL;
             }
 
             $pdo->commit();
@@ -526,7 +547,7 @@ if ($config['UPDATE_GRAVITY']) {
 
     if ($return !== 0) {
         print 'Error occurred while updating gravity!' . PHP_EOL . PHP_EOL;
-        $errors++;
+        $stat['errors']++;
     }
 
     if ($config['VERBOSE'] === true) {
@@ -555,12 +576,16 @@ if ($config['VERBOSE'] === true) {
     print 'Peak memory usage: ' . formatBytes(memory_get_peak_usage()) . PHP_EOL . PHP_EOL;
 }
 
-if ($duplicates > 0) {
-    print 'You have ' . $duplicates . ' duplicated entries across your lists.' . PHP_EOL;
+if ($stat['invalid'] > 0) {
+    print 'Did not insert ' . $stat['invalid'] . ' invalid ' . ($stat['invalid'] === 1 ? 'entry' : 'entries') . '.' . PHP_EOL;
 }
 
-if ($errors > 0) {
-    print 'Finished with ' . $errors . ' error(s)';
+if ($stat['conflict'] > 0) {
+    print 'Found ' . $stat['conflict'] . ' conflicting ' . ($stat['conflict'] === 1 ? 'entry' : 'entries') . ' across all your lists.' . PHP_EOL;
+}
+
+if ($stat['errors'] > 0) {
+    print 'Finished with ' . $stat['errors'] . ' error(s).' . PHP_EOL;
     exit(1);
 }
 

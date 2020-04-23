@@ -15,6 +15,8 @@ Group association __is not supported__, it has to be done manually.
 
 ### Install
 
+This will install this script globally as `pihole-updatelists` and add systemd service and timer.
+
 ```bash
 wget -q -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta/install.sh | sudo bash
 ```
@@ -25,11 +27,9 @@ You should disable `pihole updateGravity` entry in `/etc/cron.d/pihole` as this 
 
 ### Configuration
 
-Configuration file is located in `/etc/pihole-updatelists.conf`.
+Configuration file is located in `/etc/pihole-updatelists.conf`, install script does not overwrite it when it exists.
 
-You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/etc/pihole-updatelists2.conf` - this combined with changed `COMMENT_STRING` can allow multiple script configurations for the same Pi-hole instance.
-
-#### Configuration variables:
+#### Available variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -46,7 +46,9 @@ You can specify alternative config file by passing the path to the script throug
 
 String values should be put between `" "`, otherwise weird things might happen.
 
-You can also give paths to local files instead of URL, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file.
+You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/etc/pihole-updatelists2.conf` - this combined with changed `COMMENT_STRING` can allow multiple script configurations for the same Pi-hole instance.
+
+You can also give paths to local files instead of URL, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
 
 #### Recommended lists:
 
@@ -56,27 +58,20 @@ You can also give paths to local files instead of URL, for example setting `WHIT
 | WHITELIST_URL | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
 | REGEX_BLACKLIST_URL | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
-### Manual execution
+### Changing the schedule
 
-Run `sudo pihole-updatelists` or `sudo systemctl start pihole-updatelists.service`.
-
-### Changing the time script runs
-
-By default it runs at 00:00 Friday->Saturday, to change it you have to override timer unit file:
+By default, the script runs at 00:00 Friday->Saturday, to change it you'll have to override [timer unit](https://www.freedesktop.org/software/systemd/man/systemd.timer.html) file:
  
 `sudo systemctl edit pihole-updatelists.timer`
-
 ```
 [Timer]
 OnCalendar=
 OnCalendar=Sat *-*-* 00:00:00
 ```
 
-[Timers configuration reference](https://www.freedesktop.org/software/systemd/man/systemd.timer.html).
+### Running custom commands before and/or after
 
-### Running custom commands before/after
-
-Override service unit file:
+Override [service unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html) file:
 
 `sudo systemctl edit pihole-updatelists.service`
 
@@ -86,32 +81,6 @@ Type=oneshot
 ExecStartPre=echo "before"
 ExecStartPost=echo "after"
 ```
-
-#### Running without systemd:
-
-If your system does not use systemd you can use cron daemon of your choice.
-
-Just add cron entry for `/usr/local/sbin/pihole-updatelists`.
-
-```
-0 0 * * SAT     /usr/local/sbin/pihole-updatelists
-```
-
-### Duplicated entries
-
-Sometimes you can see that script notifies you about duplicates, this happens when specific domain exists on other list which prevents it from being added, this will have to be resolved manually from the web interface.
-
-To fix this you wan to go to **Pi-hole -> Group management -> Domains** and search for the domain and change it to the correct type.
-
-For example:
-
-```
-Fetching WHITELIST from 'https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt'... done (194 entries)
-Processing...
-Duplicate: cdnjs.cloudflare.com (BLACKLIST)
-```
-
-This means you will have to change type of `cdnjs.cloudflare.com` domain from `Exact blacklist` to `Exact whitelist`.
 
 ## License
 
