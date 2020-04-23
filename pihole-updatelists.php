@@ -77,7 +77,7 @@ function loadConfig()
     );
 
     if (!empty($options) && (isset($options['config']) || isset($options['c']))) {
-        empty($options['config'] ) && !empty($options['c']) && $options['config'] = $options['c'];
+        empty($options['config']) && !empty($options['c']) && $options['config'] = $options['c'];
 
         if (!file_exists($options['config'])) {
             print 'Invalid file: ' . $options['config'] . PHP_EOL;
@@ -273,7 +273,7 @@ if (!empty($config['ADLISTS_URL'])) {
             $sth = $pdo->prepare($sql);
         } else {
             $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
-            $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
+            $sth->bindParam(':comment', $comment_wildcard);
         }
 
         $listsSimple = [];
@@ -298,7 +298,7 @@ if (!empty($config['ADLISTS_URL'])) {
                     $sth = $pdo->prepare($sql);
                 } else {
                     $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
-                    $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
+                    $sth->bindParam(':comment', $comment_wildcard);
                 }
 
                 $sth->bindParam(':id', $removedEntryId);
@@ -355,14 +355,14 @@ if (!empty($config['ADLISTS_URL'])) {
 } elseif ($config['REQUIRE_COMMENT'] === true) {
     // In case user decides to unset the URL - disable previously added entries
     $sth = $pdo->prepare('SELECT id FROM `adlist` WHERE `comment` LIKE :comment AND `enabled` = 1 LIMIT 1');
-    $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
+    $sth->bindParam(':comment', $comment_wildcard);
 
     if ($sth->execute() && count($sth->fetchAll()) > 0) {
         print 'No remote list set for ADLISTS, disabling orphaned entries in the database...';
 
         $pdo->beginTransaction();
         $sth = $pdo->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `comment` LIKE :comment');
-        $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
+        $sth->bindParam(':comment', $comment_wildcard);
 
         if ($sth->execute()) {
             print ' ok' . PHP_EOL;
@@ -404,7 +404,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                 $sth = $pdo->prepare($sql);
             } else {
                 $sth = $pdo->prepare($sql .= ' AND `comment` LIKE :comment');
-                $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
+                $sth->bindParam(':comment', $comment_wildcard);
             }
 
             $sth->bindParam(':type', $domainListsType);
@@ -491,7 +491,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
     } elseif ($config['REQUIRE_COMMENT'] === true) {
         // In case user decides to unset the URL - disable previously added entries
         $sth = $pdo->prepare('SELECT id FROM `domainlist` WHERE `comment` LIKE :comment AND `enabled` = 1 AND `type` = :type LIMIT 1');
-        $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
+        $sth->bindParam(':comment', $comment_wildcard);
         $sth->bindParam(':type', $domainListsType);
 
         if ($sth->execute() && count($sth->fetchAll()) > 0) {
@@ -499,7 +499,7 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
 
             $pdo->beginTransaction();
             $sth = $pdo->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `comment` LIKE :comment AND `type` = :type');
-            $sth->bindParam(':comment', $config['COMMENT_STRING_WILDCARD']);
+            $sth->bindParam(':comment', $comment_wildcard);
             $sth->bindParam(':type', $domainListsType);
 
             if ($sth->execute()) {
@@ -554,7 +554,7 @@ if ($config['VERBOSE'] === true) {
 }
 
 if ($duplicates > 0) {
-    print 'You have ' . $duplicates . ' duplicated entries across your lists.'. PHP_EOL;
+    print 'You have ' . $duplicates . ' duplicated entries across your lists.' . PHP_EOL;
 }
 
 if ($errors > 0) {
