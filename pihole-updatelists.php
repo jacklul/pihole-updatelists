@@ -542,6 +542,8 @@ if ($config['VACUUM_DATABASE']) {
         print ' done' . PHP_EOL;
     }
 
+    $pdo = null;
+
     if ($config['VERBOSE'] === true) {
         print 'Database size: ' . formatBytes(filesize($config['GRAVITY_DB'])) . PHP_EOL;
     }
