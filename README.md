@@ -60,14 +60,6 @@ You can also give paths to local files instead of URL, for example setting `WHIT
 
 Run `sudo pihole-updatelists` or `sudo systemctl start pihole-updatelists.service`.
 
-#### Optional parameters:
-
-| Parameter | Description |
-|-----------|-------------|
-| --help | Prints help message |
-| --update | Updates the script to the latest version available in the repository (`master` branch) |
-| --config=[FILE] | Overrides configuration file |
-
 ### Changing the time script runs
 
 By default it runs at 00:00 Friday->Saturday, to change it you have to override timer unit file:
