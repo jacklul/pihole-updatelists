@@ -40,8 +40,8 @@ You can specify alternative config file by passing the path to the script throug
 | REGEX_BLACKLIST_URL | " " | Remote list URL with regex rules for blacklisting |
 | REQUIRE_COMMENT | true | Require specific comment in entries for script to touch them, disabling this will let script enable and disable any entry in the database |
 | COMMENT_STRING | "Managed by pihole-updatelists" | The default comment for entries created by this script (should not be changed after script was executed) |
-| OPTIMIZE_DB | true | Optimize database after script is done? (runs `VACUUM` and `PRAGMA optimize` SQLite commands) |
-| UPDATE_GRAVITY | true | Update gravity after script is done? (runs `pihole updateGravity`) |
+| UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) |
+| VACUUM_DATABASE | true | Vacuum database at the end? (runs `VACUUM` SQLite command) |
 | VERBOSE | false | Print extra information while script is running, for debugging purposes |
 
 String values should be put between `" "`, otherwise weird things might happen.
@@ -50,11 +50,11 @@ You can also give paths to local files instead of URL, for example setting `WHIT
 
 #### Recommended lists:
 
-| List | Value | Description |
+| List | URL | Description |
 |----------|-------------|-------------|
-| ADLISTS_URL | "https://v.firebog.net/hosts/lists.php?type=tick" | https://firebog.net - safe lists only |
-| WHITELIST_URL | "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt" | https://github.com/anudeepND/whitelist - commonly whitelisted |
-| REGEX_BLACKLIST_URL | "https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list" | https://github.com/mmotti/pihole-regex - basic regex rules |
+| ADLISTS_URL | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
+| WHITELIST_URL | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
+| REGEX_BLACKLIST_URL | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
 ### Manual execution
 

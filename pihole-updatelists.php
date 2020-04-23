@@ -336,6 +336,12 @@ if (!empty($config['ADLISTS_URL'])) {
                     if ($sth->execute()) {
                         print 'Enabled: ' . $entry . ($entryIsOwned ? '' : ' *') . PHP_EOL;
                     }
+                } elseif ($config['VERBOSE'] === true) {
+                    if ($entryExists && $entryIsOwned) {
+                        print 'Exists: ' . $entry . PHP_EOL;
+                    } elseif (!$entryIsOwned) {
+                        print 'Ignored: ' . $entry . PHP_EOL;
+                    }
                 }
             }
         }
@@ -466,6 +472,12 @@ foreach ($domainLists as $domainListsEntry => $domainListsType) {
                     } elseif ($entryExists['type'] !== $domainListsType) {
                         print 'Duplicate: ' . $entry . ' (' . (array_search($entryExists['type'], $domainLists, false) ?: 'type=' . $entryExists['type']) . ')' . PHP_EOL;
                         $duplicates++;
+                    } elseif ($config['VERBOSE'] === true) {
+                        if ($entryExists && $entryIsOwned) {
+                            print 'Exists: ' . $entry . PHP_EOL;
+                        } elseif (!$entryIsOwned) {
+                            print 'Ignored: ' . $entry . PHP_EOL;
+                        }
                     }
                 }
             }
