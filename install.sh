@@ -27,6 +27,8 @@ if [ -f "$SPATH/pihole-updatelists.php" ] && [ -f "$SPATH/pihole-updatelists.con
     cp -v $SPATH/pihole-updatelists.service /etc/systemd/system
 	  cp -v $SPATH/pihole-updatelists.timer /etc/systemd/system
 	fi
+
+	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
 elif [ "$REMOTE_URL" != "" ]; then
 	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/pihole-updatelists.php" && \
 	chmod +x /usr/local/sbin/pihole-updatelists

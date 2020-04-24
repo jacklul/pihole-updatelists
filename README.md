@@ -1,18 +1,16 @@
-# Update Pi-hole lists from remote sources
+# Update Pi-hole's lists from remote sources
 
 **This branch is for Pi-hole v5 beta only!**
 
-This script will update your lists using remote ones.
+When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) or [this](https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt) it's a hassle to manually check for changes and update, this script will do that for you.
 
-It will automatically merge with existing entries on the lists and disable entries that have been removed from the remote list. Nothing will be ever deleted by this script to prevent data loss or database corruption.
-
-Group association __is not supported__, it has to be done manually.
+Entries that were removed from the remote list will be disabled instead of removed, this is to prevent database corruption.
 
 ### Requirements
 
 - Pi-hole already installed
 - php-cli >=7.0 and sqlite3 extension (`sudo apt install php-cli php-sqlite3`)
-- systemd is optional but recommended
+- systemd distro is optional but recommended
 
 ### Install
 
@@ -24,30 +22,35 @@ wget -q -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta/i
 
 Alternatively you can clone this repo and `sudo bash ./install.sh`.
 
+When configuration file already exists this script will not overwrite it so it's safe to update at any time.
+
 You should disable `pihole updateGravity` entry in `/etc/cron.d/pihole` as this script already runs it, unless you're planning on disabling this with setting `UPDATE_GRAVITY` set to `false`.
 
 ### Configuration
 
-Configuration file is in `/etc/pihole-updatelists.conf`, install script does not overwrite it when it exists.
+Default configuration file is `/etc/pihole-updatelists.conf`.
 
 #### Available variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | ADLISTS_URL | " " | Remote list URL containing adlists |
-| WHITELIST_URL | " " | Remote list URL with exact domains to whitelist |
-| REGEX_WHITELIST_URL | " " | Remote list URL with regex rules for whitelisting |
-| BLACKLIST_URL | " " | Remote list URL with exact domains to blacklist |
-| REGEX_BLACKLIST_URL | " " | Remote list URL with regex rules for blacklisting |
-| REQUIRE_COMMENT | true | Require specific comment in entries for script to touch them, disabling this will let script enable and disable any entry in the database |
-| COMMENT_STRING | "Managed by pihole-updatelists" | The default comment for entries created by this script (should not be changed after script was executed) |
-| UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) |
+| WHITELIST_URL | " " | Remote list URL containing exact domains to whitelist |
+| REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
+| BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist |
+| REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
+| COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script |
+| GROUP_ID | 0 | All inserted adlists and domains will have this additional group ID assigned (0 = disabled) |
+| REQUIRE_COMMENT | true | Prevents touching entries not created by this script by comparing comment field |
+| UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`, when disabled will invoke lists reload instead) |
 | VACUUM_DATABASE | true | Vacuum database at the end? (runs `VACUUM` SQLite command) |
-| VERBOSE | false | Print extra information while script is running, for debugging purposes |
+| VERBOSE | false | Print additional informations while script is running? (for debugging purposes) |
+| GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
+| LOCK_FILE | "/tmp/pihole-updatelists.lock" | Path to lock file to prevent multiple instances of the script (automatically changes when `--config` is used), you shouldn't change it, unless `/tmp` is unavailable |
 
 String values should be put between `" "`, otherwise weird things might happen.
 
-You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/etc/pihole-updatelists2.conf` - this combined with changed `COMMENT_STRING` can allow multiple script configurations for the same Pi-hole instance.
+You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/etc/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
 
 You can also give paths to local files instead of URL, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
 
