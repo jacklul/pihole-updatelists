@@ -12,6 +12,7 @@ Group association __is not supported__, it has to be done manually.
 
 - Pi-hole already installed
 - php-cli >=7.0 and sqlite3 extension (`sudo apt install php-cli php-sqlite3`)
+- systemd is optional but recommended
 
 ### Install
 
@@ -27,13 +28,13 @@ You should disable `pihole updateGravity` entry in `/etc/cron.d/pihole` as this 
 
 ### Configuration
 
-Configuration file is located in `/etc/pihole-updatelists.conf`, install script does not overwrite it when it exists.
+Configuration file is in `/etc/pihole-updatelists.conf`, install script does not overwrite it when it exists.
 
 #### Available variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| ADLISTS_URL | " " | Remote list URL containing blocklists |
+| ADLISTS_URL | " " | Remote list URL containing adlists |
 | WHITELIST_URL | " " | Remote list URL with exact domains to whitelist |
 | REGEX_WHITELIST_URL | " " | Remote list URL with regex rules for whitelisting |
 | BLACKLIST_URL | " " | Remote list URL with exact domains to blacklist |
@@ -69,7 +70,7 @@ OnCalendar=
 OnCalendar=Sat *-*-* 00:00:00
 ```
 
-### Running custom commands before and/or after
+### Running custom commands before/after scheduled run
 
 Override [service unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html) file:
 
