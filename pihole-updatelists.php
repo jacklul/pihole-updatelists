@@ -25,7 +25,7 @@ function checkDependencies()
         exit(1);
     }
 
-    if (!function_exists('posix_getuid') || !function_exists('posix_kill')) {
+    if ((!function_exists('posix_getuid') || !function_exists('posix_kill')) && empty(getenv('IGNORE_OS_CHECK'))) {
         printAndLog('Make sure PHP\'s functions \'posix_getuid\' and \'posix_kill\' are available!' . PHP_EOL, 'ERROR');
         exit(1);
     }
@@ -253,7 +253,7 @@ function registerPDOLogger()
  *
  * @param string $text
  *
- * @return array|false|string[]
+ * @return array
  */
 function textToArray($text)
 {
@@ -332,14 +332,19 @@ function printDebugHeader($config)
     printAndLog('PHP: ' . PHP_VERSION . (ZEND_THREAD_SAFE ? '' : ' NTS') . PHP_EOL, 'DEBUG');
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
 
-    $piholeVersions = file_get_contents('/etc/pihole/localversions');
+    $piholeVersions = @file_get_contents('/etc/pihole/localversions') ?? '';
     $piholeVersions = explode(' ', $piholeVersions);
-    $piholeBranches = file_get_contents('/etc/pihole/localbranches');
+    $piholeBranches = @file_get_contents('/etc/pihole/localbranches') ?? '';
     $piholeBranches = explode(' ', $piholeBranches);
 
-    printAndLog('Pi-hole: ' . $piholeVersions[0] . ' (' . $piholeBranches[0] . ')' . PHP_EOL, 'DEBUG');
-    printAndLog('Web: ' . $piholeVersions[1] . ' (' . $piholeBranches[1] . ')' . PHP_EOL, 'DEBUG');
-    printAndLog('FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
+    if (count($piholeVersions) === 3 && count($piholeBranches) === 3) {
+        printAndLog('Pi-hole: ' . $piholeVersions[0] . ' (' . $piholeBranches[0] . ')' . PHP_EOL, 'DEBUG');
+        printAndLog('Web: ' . $piholeVersions[1] . ' (' . $piholeBranches[1] . ')' . PHP_EOL, 'DEBUG');
+        printAndLog('FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
+    } else {
+        printAndLog('Pi-hole: version info unavailable!' . PHP_EOL, 'WARNING');
+        printAndLog('Make sure /etc/pihole/localversions and /etc/pihole/localbranches exist and are valid!' . PHP_EOL, 'WARNING');
+    }
 
     ob_start();
     var_dump($config);
@@ -565,12 +570,16 @@ if (!empty($config['ADLISTS_URL'])) {
         }
 
         $dbh->commit();
-        print PHP_EOL;
     } else {
-        printAndLog(' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL, 'ERROR');
+        $lastError = error_get_last();
+        $error = preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? 'unknown error'));
+
+        printAndLog(' ' . $error . PHP_EOL, 'ERROR');
 
         $stat['errors']++;
     }
+
+    print PHP_EOL;
 } elseif ($config['REQUIRE_COMMENT'] === true) {        // In case user decides to unset the URL - disable previously added entries
     $sth = $dbh->prepare('SELECT `id` FROM `adlist` WHERE `comment` LIKE :comment AND `enabled` = 1 LIMIT 1');
     $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
@@ -587,6 +596,7 @@ if (!empty($config['ADLISTS_URL'])) {
         }
 
         $dbh->commit();
+
         print PHP_EOL;
     }
 }
@@ -750,12 +760,16 @@ foreach ($domainListTypes as $typeName => $typeId) {
             }
 
             $dbh->commit();
-            print PHP_EOL;
         } else {
-            printAndLog(' failed' . PHP_EOL . 'Error: ' . (error_get_last()['message'] ?: 'Unknown') . PHP_EOL . PHP_EOL, 'ERROR');
+            $lastError = error_get_last();
+            $error = preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? 'unknown error'));
+
+            printAndLog(' ' . $error . PHP_EOL, 'ERROR');
 
             $stat['errors']++;
         }
+
+        print PHP_EOL;
     } elseif ($config['REQUIRE_COMMENT'] === true) {        // In case user decides to unset the URL - disable previously added entries
         $sth = $dbh->prepare('SELECT id FROM `domainlist` WHERE `comment` LIKE :comment AND `enabled` = 1 AND `type` = :type LIMIT 1');
         $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
@@ -774,6 +788,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             }
 
             $dbh->commit();
+
             print PHP_EOL;
         }
     }
@@ -818,7 +833,7 @@ if ($config['VACUUM_DATABASE'] === true) {
 if ($config['UPDATE_GRAVITY'] === false) {
     printAndLog('Sending reload signal to Pi-hole\'s DNS server...', 'INFO');
 
-    exec('pidof pihole-FTL', $return);
+    exec('pidof pihole-FTL 2>/dev/null', $return);
     if (isset($return[0])) {
         $pid = $return[0];
 
