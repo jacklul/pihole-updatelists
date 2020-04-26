@@ -405,7 +405,7 @@ $config = loadConfig();     // Load config and process variables
 
 // Exception handler, always log detailed information
 set_exception_handler(
-    static function(Exception $e) use ($config) {
+    static function (Exception $e) use (&$config) {
         if ($config['DEBUG'] === false) {
             print 'Exception: ' . $e->getMessage() . PHP_EOL;
         }
@@ -433,7 +433,7 @@ $config['DEBUG'] === true && printAndLog('Acquired process lock through file: ' 
 
 // Handle process interruption and cleanup after script exits
 register_shutdown_function(
-    static function () use ($config, &$lock) {
+    static function () use (&$config, &$lock) {
         flock($lock, LOCK_UN);
         fclose($lock);
 
@@ -445,7 +445,7 @@ register_shutdown_function(
 $dbh = openDatabase($config['GRAVITY_DB'], true, $config['DEBUG']);
 
 // Helper function that checks if comment field matches when required
-$checkIfTouchable = static function ($array) use ($config) {
+$checkIfTouchable = static function ($array) use (&$config) {
     return $config['REQUIRE_COMMENT'] === false || strpos($array['comment'] ?? '', $config['COMMENT']) !== false;
 };
 
