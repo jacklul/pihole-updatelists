@@ -781,16 +781,15 @@ foreach ($domainListTypes as $typeName => $typeId) {
     }
 }
 
-// Close any database handles
-$sth = null;
-$dbh = null;
-
-if ($config['DEBUG'] === true) {
-    printAndLog('Closed database handles.' . PHP_EOL . PHP_EOL, 'DEBUG');
-}
-
 // Update gravity (run `pihole updateGravity`)
 if ($config['UPDATE_GRAVITY'] === true) {
+    // Close any database handles
+    $sth = $dbh = null;
+
+    if ($config['DEBUG'] === true) {
+        printAndLog('Closed database handles.' . PHP_EOL, 'DEBUG');
+    }
+
     printAndLog('Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL, 'INFO');
 
     passthru('pihole updateGravity', $return);
@@ -806,7 +805,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
 
 // Vacuum database (run `VACUUM` command)
 if ($config['VACUUM_DATABASE'] === true) {
-    $dbh = openDatabase($config['GRAVITY_DB'], $config['DEBUG'], $config['DEBUG']);
+    $dbh === null && $dbh = openDatabase($config['GRAVITY_DB'], $config['DEBUG'], $config['DEBUG']);
 
     printAndLog('Vacuuming database...', 'INFO');
     if ($dbh->query('VACUUM')) {
