@@ -40,13 +40,15 @@ Default configuration file is `/etc/pihole-updatelists.conf`.
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
 | COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script |
-| GROUP_ID | 0 | All inserted adlists and domains will have this additional group ID assigned (0 = disabled) |
-| REQUIRE_COMMENT | true | Prevents touching entries not created by this script by comparing comment field |
+| GROUP_ID | 0 | All inserted adlists and domains will have this additional group ID assigned (`0` is the default group to which all entries are added anyway) |
+| REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`, when disabled will invoke lists reload instead) |
 | VACUUM_DATABASE | true | Vacuum database at the end? (runs `VACUUM` SQLite command) |
-| VERBOSE | false | Print additional informations while script is running? (for debugging purposes) |
+| VERBOSE | false | Print more information while script is running? |
+| DEBUG | false | Print even more information for debugging purposes |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
-| LOCK_FILE | "/tmp/pihole-updatelists.lock" | Path to lock file to prevent multiple instances of the script (automatically changes when `--config` is used), you shouldn't change it, unless `/tmp` is unavailable |
+| LOG_FILE | " " | Log console output to file (put `-` before path to overwrite file instead of appending to it) |
+| LOCK_FILE | "/tmp/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script, you shouldn't change it - unless `/tmp` is unavailable |
 
 String values should be put between `" "`, otherwise weird things might happen.
 
