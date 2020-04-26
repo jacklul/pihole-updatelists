@@ -8,6 +8,9 @@
  * @link    https://github.com/jacklul/pihole-updatelists
  */
 
+define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists');
+define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta');
+
 /**
  * Check for required stuff
  */
@@ -169,7 +172,7 @@ function openDatabase($db_file, $verbose = true, $debug = false)
 {
     $dbh = new PDO('sqlite:' . $db_file);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $dbh->exec( 'PRAGMA foreign_keys = ON;');   // Require foreign key constraints
+    $dbh->exec('PRAGMA foreign_keys = ON;');   // Require foreign key constraints
 
     if ($debug) {
         !class_exists('LoggedPDOStatement') && registerPDOLogger();
@@ -195,7 +198,7 @@ function registerPDOLogger()
         {
             $this->queryParameters[$parameter] = [
                 'value' => $value,
-                'type'  => $data_type
+                'type'  => $data_type,
             ];
 
             return parent::bindValue($parameter, $value, $data_type);
@@ -205,7 +208,7 @@ function registerPDOLogger()
         {
             $this->queryParameters[$parameter] = [
                 'value' => $variable,
-                'type'  => $data_type
+                'type'  => $data_type,
             ];
 
             return parent::bindParam($parameter, $variable, $data_type, $length, $driver_options);
@@ -293,7 +296,7 @@ function formatBytes($bytes, $precision = 2)
 function printHeader()
 {
     $header[] = 'Pi-hole\'s Lists Updater by Jack\'lul';
-    $header[] = 'https://github.com/jacklul/pihole-updatelists';
+    $header[] = GITHUB_LINK;
     $offset = ' ';
 
     $maxLen = 0;
@@ -342,8 +345,7 @@ function printDebugHeader($config)
         printAndLog('Web: ' . $piholeVersions[1] . ' (' . $piholeBranches[1] . ')' . PHP_EOL, 'DEBUG');
         printAndLog('FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
     } else {
-        printAndLog('Pi-hole: version info unavailable!' . PHP_EOL, 'WARNING');
-        printAndLog('Make sure /etc/pihole/localversions and /etc/pihole/localbranches exist and are valid!' . PHP_EOL, 'WARNING');
+        printAndLog('Pi-hole: version info unavailable, make sure files `localversions` and `localbranches` exist in `/etc/pihole` and are valid!' . PHP_EOL, 'WARNING');
     }
 
     printAndLog('Script checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
@@ -365,7 +367,7 @@ function printDebugHeader($config)
 function printAndLog($str, $channel = 'MAIN', $logOnly = false)
 {
     global $config;
-    
+
     if (!empty($config['LOG_FILE'])) {
         $append = FILE_APPEND;
 
@@ -380,7 +382,7 @@ function printAndLog($str, $channel = 'MAIN', $logOnly = false)
 
         $lines = preg_split('/\r\n|\r|\n/', ucfirst(trim($str)));
         foreach ($lines as &$line) {
-            $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($channel) .'] ' . $line;
+            $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($channel) . '] ' . $line;
         }
         unset($line);
 
