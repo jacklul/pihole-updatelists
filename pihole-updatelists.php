@@ -339,9 +339,12 @@ function printDebugHeader($config)
 
     $piholeVersions = file_get_contents('/etc/pihole/localversions');
     $piholeVersions = explode(' ', $piholeVersions);
-    printAndLog('Pi-hole: ' . $piholeVersions[0] . PHP_EOL, 'DEBUG');
-    printAndLog('Web: ' . $piholeVersions[1] . PHP_EOL, 'DEBUG');
-    printAndLog('FTL: ' . $piholeVersions[2] . PHP_EOL, 'DEBUG');
+    $piholeBranches = file_get_contents('/etc/pihole/localbranches');
+    $piholeBranches = explode(' ', $piholeBranches);
+
+    printAndLog('Pi-hole: ' . $piholeVersions[0] . ' (' . $piholeBranches[0] . ')' . PHP_EOL, 'DEBUG');
+    printAndLog('Web: ' . $piholeVersions[1] . ' (' . $piholeBranches[1] . ')' . PHP_EOL, 'DEBUG');
+    printAndLog('FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
 
     ob_start();
     var_dump($config);
