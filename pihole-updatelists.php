@@ -167,23 +167,18 @@ function acquireLock($lockfile)
  */
 function openDatabase($db_file, $verbose = true, $debug = false)
 {
-    try {
-        $dbh = new PDO('sqlite:' . $db_file);
-        $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $dbh->exec( 'PRAGMA foreign_keys = ON;');   // Require foreign key constraints
+    $dbh = new PDO('sqlite:' . $db_file);
+    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $dbh->exec( 'PRAGMA foreign_keys = ON;');   // Require foreign key constraints
 
-        if ($debug) {
-            !class_exists('LoggedPDOStatement') && registerPDOLogger();
-            $dbh->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['LoggedPDOStatement']);
-        }
-
-        $verbose && printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL, 'INFO');
-
-        return $dbh;
-    } catch (PDOException $e) {
-        print $e->getMessage();
-        exit(1);
+    if ($debug) {
+        !class_exists('LoggedPDOStatement') && registerPDOLogger();
+        $dbh->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['LoggedPDOStatement']);
     }
+
+    $verbose && printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL, 'INFO');
+
+    return $dbh;
 }
 
 /**
