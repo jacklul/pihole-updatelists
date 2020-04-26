@@ -509,7 +509,7 @@ if (!empty($config['ADLISTS_URL'])) {
         }
 
         // Helper function to check whenever adlist already exists
-        $checkAdlistExists = static function ($address) use ($adlistsAll) {
+        $checkAdlistExists = static function ($address) use (&$adlistsAll) {
             $result = array_filter(
                 $adlistsAll,
                 static function ($array) use ($address) {
@@ -540,6 +540,13 @@ if (!empty($config['ADLISTS_URL'])) {
                 $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
 
                 if ($sth->execute()) {
+                    // Insert this adlist into cached list of all adlists to prevent future duplicate errors
+                    $adlistsAll[] = [
+                        'address' => $address,
+                        'enabled' => true,
+                        'comment' => $config['COMMENT'],
+                    ];
+
                     if ($config['GROUP_ID'] > 0 && $lastInsertId = $dbh->lastInsertId()) {      // Assign to group ID
                         $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
                         $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
@@ -618,7 +625,7 @@ if (($sth = $dbh->prepare('SELECT * FROM `domainlist`'))->execute()) {
 }
 
 // Helper function to check whenever domain already exists
-$checkDomainExists = static function ($domain) use ($domainsAll) {
+$checkDomainExists = static function ($domain) use (&$domainsAll) {
     $result = array_filter(
         $domainsAll,
         static function ($array) use ($domain) {
@@ -723,6 +730,14 @@ foreach ($domainListTypes as $typeName => $typeId) {
                     $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
 
                     if ($sth->execute()) {
+                        // Insert this domain into cached list of all domains to prevent future duplicate errors
+                        $domainsAll[] = [
+                            'domain'  => $domain,
+                            'type'    => $typeId,
+                            'enabled' => true,
+                            'comment' => $config['COMMENT'],
+                        ];
+
                         if ($config['GROUP_ID'] > 0 && $lastInsertId = $dbh->lastInsertId()) {      // Assign to group ID
                             $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
                             $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
