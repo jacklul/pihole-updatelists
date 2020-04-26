@@ -346,6 +346,8 @@ function printDebugHeader($config)
         printAndLog('Make sure /etc/pihole/localversions and /etc/pihole/localbranches exist and are valid!' . PHP_EOL, 'WARNING');
     }
 
+    printAndLog('Script checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
+
     ob_start();
     var_dump($config);
     printAndLog('Configuration: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()) . PHP_EOL, 'DEBUG');
