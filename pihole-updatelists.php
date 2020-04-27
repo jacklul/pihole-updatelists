@@ -266,15 +266,17 @@ function registerPDOLogger()
 function textToArray($text)
 {
     $array = preg_split('/\r\n|\r|\n/', $text);
+
     foreach ($array as $var => &$val) {
         if (empty($val) || strpos(trim($val), '#') === 0) {
             unset($array[$var]);
         }
 
-        $val = trim($val);
+        $val = strtolower(trim($val));
     }
+    unset($val);
 
-    return $array;
+    return array_values($array);
 }
 
 /**
@@ -599,39 +601,38 @@ if (!empty($config['ADLISTS_URL'])) {
         }
 
         // Fetch all adlists
+        $adlistsAll = [];
+        if (($sth = $dbh->prepare('SELECT * FROM `adlist`'))->execute()) {
+            $adlistsAll = $sth->fetchAll(PDO::FETCH_ASSOC);
+
+            $tmp = [];
+            foreach ($adlistsAll as $key => $value) {
+                $tmp[$value['id']] = $value;
+            }
+
+            $adlistsAll = $tmp;
+            unset($tmp);
+        }
+
+        // Fetch all enabled touchable adlists
         $enabledLists = [];
         if ($sth->execute()) {
-            $enabledLists = [];
-
-            foreach ($sth->fetchAll() as $list) {
-                $enabledLists[$list['id']] = $list['address'];
+            foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $adlist) {
+                $enabledLists[$adlist['id']] = trim($adlist['address']);
             }
         }
 
         // Entries that no longer exist in remote list
         $removedLists = array_diff($enabledLists, $adlists);
-        if (!empty($removedLists)) {
-            foreach ($removedLists as $id => $address) {        // Disable entries instead of removing them
-                $sql = 'UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id';
+        foreach ($removedLists as $id => $address) {        // Disable entries instead of removing them
+            $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id');
+            $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
-                if ($config['REQUIRE_COMMENT'] === true) {
-                    $sth = $dbh->prepare($sql .= ' AND `comment` LIKE :comment');
-                    $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
-                } else {
-                    $sth = $dbh->prepare($sql);
-                }
+            if ($sth->execute()) {
+                $adlistsAll[$id]['enabled'] = false;
 
-                $sth->bindParam(':id', $id, PDO::PARAM_INT);
-
-                if ($sth->execute()) {
-                    printAndLog('Disabled: ' . $address . PHP_EOL);
-                }
+                printAndLog('Disabled: ' . $address . PHP_EOL);
             }
-        }
-
-        $adlistsAll = [];
-        if (($sth = $dbh->prepare('SELECT * FROM `adlist`'))->execute()) {
-            $adlistsAll = $sth->fetchAll();
         }
 
         // Helper function to check whenever adlist already exists
@@ -666,14 +667,17 @@ if (!empty($config['ADLISTS_URL'])) {
                 $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
 
                 if ($sth->execute()) {
+                    $lastInsertId = $dbh->lastInsertId();
+
                     // Insert this adlist into cached list of all adlists to prevent future duplicate errors
-                    $adlistsAll[] = [
+                    $adlistsAll[$lastInsertId] = [
+                        'id'      => $lastInsertId,
                         'address' => $address,
                         'enabled' => true,
                         'comment' => $config['COMMENT'],
                     ];
 
-                    if ($config['GROUP_ID'] > 0 && $lastInsertId = $dbh->lastInsertId()) {      // Assign to group ID
+                    if ($config['GROUP_ID'] > 0) {      // Assign to group ID
                         $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
                         $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
                         $sth->bindParam(':group_id', $config['GROUP_ID'], PDO::PARAM_INT);
@@ -692,6 +696,8 @@ if (!empty($config['ADLISTS_URL'])) {
                     $sth->bindParam(':id', $adlistUrl['id'], PDO::PARAM_INT);
 
                     if ($sth->execute()) {
+                        $adlistsAll[$adlistUrl['id']]['enabled'] = true;
+
                         printAndLog('Enabled: ' . $address . PHP_EOL);
                     }
                 } elseif ($config['VERBOSE'] === true) {        // Show other entry states only in verbose mode
@@ -744,7 +750,15 @@ $domainListTypes = [
 // Fetch all domains from domainlist
 $domainsAll = [];
 if (($sth = $dbh->prepare('SELECT * FROM `domainlist`'))->execute()) {
-    $domainsAll = $sth->fetchAll();
+    $domainsAll = $sth->fetchAll(PDO::FETCH_ASSOC);
+
+    $tmp = [];
+    foreach ($domainsAll as $key => $value) {
+        $tmp[$value['id']] = $value;
+    }
+
+    $domainsAll = $tmp;
+    unset($tmp);
 }
 
 // Helper function to check whenever domain already exists
@@ -767,8 +781,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
         printAndLog('Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...');
 
         if (($contents = @file_get_contents($config[$url_key], false, $streamContext)) !== false) {
-            $list = textToArray($contents);
-            printAndLog(' done (' . count($list) . ' entries)' . PHP_EOL);
+            $domainlist = textToArray($contents);
+            printAndLog(' done (' . count($domainlist) . ' entries)' . PHP_EOL);
 
             printAndLog('Processing...' . PHP_EOL);
             $dbh->beginTransaction();
@@ -785,33 +799,29 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
             $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
+            // Fetch all enabled touchable domainlists
             $enabledDomains = [];
             if ($sth->execute()) {
-                $enabledDomains = [];
-
-                foreach ($sth->fetchAll() as $domain) {
-                    if (strpos(trim($domain['domain']), '#') !== 0) {
-                        $enabledDomains[$domain['id']] = $domain['domain'];
-                    }
+                foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $domain) {
+                    $enabledDomains[$domain['id']] = trim($domain['domain']);
                 }
             }
 
             // Entries that no longer exist in remote list
-            $removedDomains = array_diff($enabledDomains, $list);
-            if (!empty($removedDomains)) {
-                foreach ($removedDomains as $id => $domain) {       // Disable entries instead of removing them
-                    $isTouchable = isset($lists[$id]) && strpos($lists[$id]['comment'], $config['COMMENT']) !== false;
+            $removedDomains = array_diff($enabledDomains, $domainlist);
 
-                    $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
-                    $sth->bindParam(':id', $id, PDO::PARAM_INT);
+            foreach ($removedDomains as $id => $domain) {       // Disable entries instead of removing them
+                $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
+                $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
-                    if ($sth->execute()) {
-                        printAndLog('Disabled: ' . $domain . PHP_EOL);
-                    }
+                if ($sth->execute()) {
+                    $domainsAll[$id]['enabled'] = false;
+
+                    printAndLog('Disabled: ' . $domain . PHP_EOL);
                 }
             }
 
-            foreach ($list as $domain) {
+            foreach ($domainlist as $domain) {
                 $domain = strtolower($domain);
 
                 if (strpos($typeName, 'REGEX_') === false) {
@@ -853,15 +863,18 @@ foreach ($domainListTypes as $typeName => $typeId) {
                     $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
 
                     if ($sth->execute()) {
+                        $lastInsertId = $dbh->lastInsertId();
+
                         // Insert this domain into cached list of all domains to prevent future duplicate errors
-                        $domainsAll[] = [
+                        $domainsAll[$lastInsertId] = [
+                            'id'      => $lastInsertId,
                             'domain'  => $domain,
                             'type'    => $typeId,
                             'enabled' => true,
                             'comment' => $config['COMMENT'],
                         ];
 
-                        if ($config['GROUP_ID'] > 0 && $lastInsertId = $dbh->lastInsertId()) {      // Assign to group ID
+                        if ($config['GROUP_ID'] > 0) {      // Assign to group ID
                             $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
                             $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
                             $sth->bindParam(':group_id', $config['GROUP_ID'], PDO::PARAM_INT);
@@ -881,6 +894,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
                         $sth->bindParam(':id', $domainlistDomain['id'], PDO::PARAM_INT);
 
                         if ($sth->execute()) {
+                            $domainsAll[$domainlistDomain['id']]['enabled'] = true;
+
                             printAndLog('Enabled: ' . $domain . PHP_EOL);
                         }
                     } elseif ($domainlistDomain['type'] !== $typeId) {
