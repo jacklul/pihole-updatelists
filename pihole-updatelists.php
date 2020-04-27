@@ -297,10 +297,8 @@ function formatBytes($bytes, $precision = 2)
 
 /**
  * Just print the header
- *
- * @param bool $debug
  */
-function printHeader($debug = false)
+function printHeader()
 {
     $header[] = 'Pi-hole\'s Lists Updater by Jack\'lul';
     $header[] = GITHUB_LINK;
@@ -329,17 +327,6 @@ function printHeader($debug = false)
 
     printAndLog(trim($header[0]) . ' started' . PHP_EOL, 'INFO', true);
     print PHP_EOL . implode(PHP_EOL, $header) . PHP_EOL . PHP_EOL;
-
-    $isUpToDate = isUpToDate($debug);
-    if ($isUpToDate === null) {
-        printAndLog('Error while checking latest version: ' . parseLastError() . PHP_EOL, 'WARNING', $debug === false);
-    } elseif ($isUpToDate) {
-        printAndLog('You\'re running latest version of the script!' . PHP_EOL, $debug === false);
-    } else {
-        printAndLog('You\'re running different version of the script than the latest available!' . PHP_EOL, 'WARNING');
-    }
-
-    print PHP_EOL;
 }
 
 /**
@@ -359,52 +346,59 @@ function parseLastError($default = 'Unknown error')
 /**
  * Check if script is up to date
  *
- * @param bool $debug
- *
  * @return bool|null
  */
-function isUpToDate($debug = false)
+function isUpToDate()
 {
     $md5Self = md5_file(__FILE__);
     $cacheFile = sys_get_temp_dir() . '/pihole-updatelists.latest';
-    $cacheTime = $debug ? 60 : 3600;
+    $cache = false;
 
-    if (file_exists($cacheFile) && filemtime($cacheFile) + $cacheTime > time()) {
+    if (file_exists($cacheFile) && filemtime($cacheFile) + 300 > time()) {
         $cachedData = file_get_contents($cacheFile);
         $cachedData = json_decode($cachedData, true);
 
         if (isset($cachedData['md5']) && $cachedData['md5'] === $md5Self) {
-            $debug === true && printAndLog('Getting latest version information from cached file...' . PHP_EOL, 'DEBUG');
-
-            return $cachedData['result'];
+            $cache = true;
+            $result = $cachedData['result'];
         }
     }
 
-    $debug === true && printAndLog('Getting latest version information from remote file...' . PHP_EOL, 'DEBUG');
+    if (!isset($result)) {
+        $remote = @file_get_contents(
+            GITHUB_LINK_RAW . '/pihole-updatelists.php',
+            false,
+            stream_context_create(
+                [
+                    'http' => [
+                        'timeout' => 10,
+                    ],
+                ]
+            )
+        );
 
-    $remote = @file_get_contents(
-        GITHUB_LINK_RAW . '/pihole-updatelists.php',
-        false,
-        stream_context_create(
-            [
-                'http' => [
-                    'timeout' => 10,
-                ],
-            ]
-        )
-    );
-
-    if ($remote === false) {
-        $result = null;
-    } elseif ($md5Self !== md5($remote)) {
-        $result = false;
-    } else {
-        $result = true;
+        if ($remote === false) {
+            $result = null;
+        } elseif ($md5Self !== md5($remote)) {
+            $result = false;
+        } else {
+            $result = true;
+        }
     }
 
-    @file_put_contents($cacheFile, json_encode(['result' => $result, 'md5' => $md5Self]));
+    if ($result === null) {
+        $output = 'error - ' . parseLastError();
+    } elseif ($result === false) {
+        $output = 'outdated or checksum mismatch';
+    } else {
+        $output = 'up to date';
+    }
 
-    return $result;
+    $cache === true && $output .= ' (cache)';
+
+    $result !== null && @file_put_contents($cacheFile, json_encode(['result' => $result, 'md5' => $md5Self]));
+
+    return $output;
 }
 
 /**
@@ -414,7 +408,8 @@ function isUpToDate($debug = false)
  */
 function printDebugHeader($config)
 {
-    printAndLog('MD5: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
+    printAndLog('Script version: ' . isUpToDate() . PHP_EOL, 'DEBUG');
+    printAndLog('Checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
     printAndLog('OS: ' . php_uname() . PHP_EOL, 'DEBUG');
     printAndLog('PHP: ' . PHP_VERSION . (ZEND_THREAD_SAFE ? '' : ' NTS') . PHP_EOL, 'DEBUG');
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
@@ -553,7 +548,7 @@ $stat = [
 ];
 
 // Hi
-printHeader($config['DEBUG']);
+printHeader();
 
 // Show warning when php-intl isn't installed
 if (!extension_loaded('intl')) {
