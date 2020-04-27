@@ -346,7 +346,7 @@ function parseLastError($default = 'Unknown error')
 /**
  * Check if script is up to date
  *
- * @return bool|null
+ * @return string
  */
 function isUpToDate()
 {
@@ -408,7 +408,7 @@ function isUpToDate()
  */
 function printDebugHeader($config)
 {
-    printAndLog('Script version: ' . isUpToDate() . PHP_EOL, 'DEBUG');
+    //printAndLog('Script version: ' . isUpToDate() . PHP_EOL, 'DEBUG');
     printAndLog('Checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
     printAndLog('OS: ' . php_uname() . PHP_EOL, 'DEBUG');
     printAndLog('PHP: ' . PHP_VERSION . (ZEND_THREAD_SAFE ? '' : ' NTS') . PHP_EOL, 'DEBUG');
