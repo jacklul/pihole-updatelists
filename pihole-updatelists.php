@@ -101,7 +101,7 @@ function loadConfig()
     if (file_exists($config['CONFIG_FILE'])) {
         $loadedConfig = @parse_ini_file($config['CONFIG_FILE'], false, INI_SCANNER_TYPED);
         if ($loadedConfig === false) {
-            printAndLog('Failed to load configuration file!' . PHP_EOL, 'ERROR');
+            printAndLog('Failed to load configuration file: ' . parseLastError() . PHP_EOL, 'ERROR');
             exit(1);
         }
 
@@ -349,6 +349,7 @@ function parseLastError($default = 'Unknown error')
  * Check if script is up to date
  *
  * @return string
+ * @noinspection PhpUnused
  */
 function isUpToDate()
 {
