@@ -471,10 +471,10 @@ function printAndLog($str, $channel = 'INFO', $logOnly = false)
                 $flags | LOCK_EX
             );
         }
+    }
 
-        if ($logOnly) {
-            return;
-        }
+    if ($logOnly) {
+        return;
     }
 
     print $str;
