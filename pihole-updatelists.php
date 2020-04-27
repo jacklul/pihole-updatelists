@@ -351,7 +351,7 @@ function parseLastError($default = 'Unknown error')
 function isUpToDate()
 {
     $md5Self = md5_file(__FILE__);
-    $cacheFile = sys_get_temp_dir() . '/pihole-updatelists.latest';
+    $cacheFile = sys_get_temp_dir() . '/pihole-updatelists.versioncheck';
     $cache = false;
 
     if (file_exists($cacheFile) && filemtime($cacheFile) + 300 > time()) {
