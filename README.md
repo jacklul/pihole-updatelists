@@ -47,8 +47,8 @@ Default configuration file is `/etc/pihole-updatelists.conf`.
 | VERBOSE | false | Print more information while script is running? |
 | DEBUG | false | Print even more information for debugging purposes |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
-| LOCK_FILE | "/tmp/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script, you shouldn't change it - unless `/tmp` is unavailable |
-| LOG_FILE | " " | Log console output to file (put `-` before path to overwrite file instead of appending to it) |
+| LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script, you shouldn't change it - unless `/var/lock` is unavailable |
+| LOG_FILE | " " | Log console output to file (put `-` before path to overwrite file instead of appending to it), typically `/var/log/pihole-updatelists.log` is good |
 
 String values should be put between `" "`, otherwise weird things might happen.
 

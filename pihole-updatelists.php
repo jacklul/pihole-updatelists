@@ -42,6 +42,7 @@ function checkDependencies()
     $extensions = [
         'pdo',
         'pdo_sqlite',
+        'json',
     ];
 
     // Required PHP extensions
@@ -64,7 +65,7 @@ function loadConfig()
     $config = [
         'CONFIG_FILE'         => '/etc/pihole-updatelists.conf',
         'GRAVITY_DB'          => '/etc/pihole/gravity.db',
-        'LOCK_FILE'           => '/tmp/' . basename(__FILE__) . '.lock',
+        'LOCK_FILE'           => '/var/lock/pihole-updatelists.lock',
         'LOG_FILE'            => '',
         'ADLISTS_URL'         => '',
         'WHITELIST_URL'       => '',
@@ -136,10 +137,11 @@ function validateConfig($config)
  * Acquire process lock
  *
  * @param string $lockfile
+ * @param bool   $debug
  *
  * @return resource
  */
-function acquireLock($lockfile)
+function acquireLock($lockfile, $debug = false)
 {
     if (empty($lockfile)) {
         printAndLog('Lock file not defined!' . PHP_EOL, 'ERROR');
@@ -151,6 +153,8 @@ function acquireLock($lockfile)
             printAndLog('Another process is already running!' . PHP_EOL, 'ERROR');
             exit(6);
         }
+
+        $debug === true && printAndLog('Acquired process lock through file: ' . $lockfile . PHP_EOL, 'DEBUG');
 
         return $lock;
     }
@@ -179,7 +183,7 @@ function openDatabase($db_file, $verbose = true, $debug = false)
         $dbh->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['LoggedPDOStatement']);
     }
 
-    $verbose && printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL, 'INFO');
+    $verbose && printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL);
 
     return $dbh;
 }
@@ -292,8 +296,10 @@ function formatBytes($bytes, $precision = 2)
 
 /**
  * Just print the header
+ *
+ * @param bool $debug
  */
-function printHeader()
+function printHeader($debug = false)
 {
     $header[] = 'Pi-hole\'s Lists Updater by Jack\'lul';
     $header[] = GITHUB_LINK;
@@ -322,6 +328,83 @@ function printHeader()
 
     printAndLog(trim($header[0]) . ' started' . PHP_EOL, 'INFO', true);
     print PHP_EOL . implode(PHP_EOL, $header) . PHP_EOL . PHP_EOL;
+
+    $isUpToDate = isUpToDate($debug);
+    if ($isUpToDate === null) {
+        printAndLog('Error while checking latest version: ' . parseLastError() . PHP_EOL, 'WARNING', $debug === false);
+    } elseif ($isUpToDate) {
+        printAndLog('You\'re running latest version of the script!' . PHP_EOL, $debug === false);
+    } else {
+        printAndLog('You\'re running different version of the script than the latest available!' . PHP_EOL, 'WARNING');
+    }
+
+    print PHP_EOL;
+}
+
+/**
+ * Parse last error from error_get_last()
+ *
+ * @param string $default
+ *
+ * @return string
+ */
+function parseLastError($default = 'Unknown error')
+{
+    $lastError = error_get_last();
+
+    return preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? $default));
+}
+
+/**
+ * Check if script is up to date
+ *
+ * @param bool $debug
+ *
+ * @return bool|null
+ */
+function isUpToDate($debug = false)
+{
+    $md5Self = md5_file(__FILE__);
+    $cacheFile = sys_get_temp_dir() . '/pihole-updatelists.latest';
+    $cacheTime = $debug ? 60 : 3600;
+
+    if (file_exists($cacheFile) && filemtime($cacheFile) + $cacheTime > time()) {
+
+        $cachedData = file_get_contents($cacheFile);
+        $cachedData = json_decode($cachedData, true);
+
+        if (isset($cachedData['md5']) && $cachedData['md5'] === $md5Self) {
+            $debug === true && printAndLog('Getting latest version information from cached file...' . PHP_EOL, 'DEBUG');
+
+            return $cachedData['result'];
+        }
+    }
+
+    $debug === true && printAndLog('Getting latest version information from remote file...' . PHP_EOL, 'DEBUG');
+
+    $remote = @file_get_contents(
+        GITHUB_LINK_RAW . '/pihole-updatelists.php',
+        false,
+        stream_context_create(
+            [
+                'http' => [
+                    'timeout' => 10,
+                ],
+            ]
+        )
+    );
+
+    if ($remote === false) {
+        $result = null;
+    } elseif ($md5Self !== md5($remote)) {
+        $result = false;
+    } else {
+        $result = true;
+    }
+
+    @file_put_contents($cacheFile, json_encode(['result' => $result, 'md5' => $md5Self]));
+
+    return $result;
 }
 
 /**
@@ -331,6 +414,7 @@ function printHeader()
  */
 function printDebugHeader($config)
 {
+    printAndLog('MD5: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
     printAndLog('OS: ' . php_uname() . PHP_EOL, 'DEBUG');
     printAndLog('PHP: ' . PHP_VERSION . (ZEND_THREAD_SAFE ? '' : ' NTS') . PHP_EOL, 'DEBUG');
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
@@ -348,8 +432,6 @@ function printDebugHeader($config)
         printAndLog('Pi-hole: version info unavailable, make sure files `localversions` and `localbranches` exist in `/etc/pihole` and are valid!' . PHP_EOL, 'WARNING');
     }
 
-    printAndLog('Script checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
-
     ob_start();
     var_dump($config);
     printAndLog('Configuration: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()) . PHP_EOL, 'DEBUG');
@@ -364,33 +446,36 @@ function printDebugHeader($config)
  *
  * @throws RuntimeException
  */
-function printAndLog($str, $channel = 'MAIN', $logOnly = false)
+function printAndLog($str, $channel = 'INFO', $logOnly = false)
 {
-    global $config;
+    global $config, $lock;
 
     if (!empty($config['LOG_FILE'])) {
-        $append = FILE_APPEND;
+        $flags = FILE_APPEND;
 
         if (strpos($config['LOG_FILE'], '-') === 0) {
-            $append = 0;
+            $flags = 0;
             $config['LOG_FILE'] = substr($config['LOG_FILE'], 1);
         }
 
-        if (!file_exists($config['LOG_FILE']) && !@touch($config['LOG_FILE'])) {
-            throw new RuntimeException('Unable to create log file: ' . $config['LOG_FILE']);
-        }
+        // Do not overwrite log files until we have a lock (this could mess up log file if another instance is already running)
+        if ($flags !== null || $lock !== null) {
+            if (!file_exists($config['LOG_FILE']) && !@touch($config['LOG_FILE'])) {
+                throw new RuntimeException('Unable to create log file: ' . $config['LOG_FILE']);
+            }
 
-        $lines = preg_split('/\r\n|\r|\n/', ucfirst(trim($str)));
-        foreach ($lines as &$line) {
-            $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($channel) . '] ' . $line;
-        }
-        unset($line);
+            $lines = preg_split('/\r\n|\r|\n/', ucfirst(trim($str)));
+            foreach ($lines as &$line) {
+                $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($channel) . '] ' . $line;
+            }
+            unset($line);
 
-        file_put_contents(
-            $config['LOG_FILE'],
-            implode(PHP_EOL, $lines) . PHP_EOL,
-            $append
-        );
+            file_put_contents(
+                $config['LOG_FILE'],
+                implode(PHP_EOL, $lines) . PHP_EOL,
+                $flags | LOCK_EX
+            );
+        }
 
         if ($logOnly) {
             return;
@@ -398,6 +483,20 @@ function printAndLog($str, $channel = 'MAIN', $logOnly = false)
     }
 
     print $str;
+}
+
+/**
+ * Shutdown related tasks
+ */
+function shutdownCleanup()
+{
+    global $config, $lock;
+
+    if ($config['DEBUG'] === true) {
+        printAndLog('Releasing lock and removing lockfile: ' . $config['LOCK_FILE'] . PHP_EOL, 'DEBUG');
+    }
+
+    flock($lock, LOCK_UN) && fclose($lock) && unlink($config['LOCK_FILE']);
 }
 
 /** PROCEDURAL CODE STARTS HERE */
@@ -417,31 +516,52 @@ set_exception_handler(
     }
 );
 
-$lock = acquireLock($config['LOCK_FILE']);  // Make sure this is the only instance
+$lock = acquireLock($config['LOCK_FILE'], $config['DEBUG']);  // Make sure this is the only instance
+register_shutdown_function('shutdownCleanup');  // Cleanup when script finishes
+
+// Handle script interruption / termination
+if (function_exists('pcntl_signal')) {
+    declare(ticks=1);
+
+    function signalHandler($signo)
+    {
+        $definedConstants = get_defined_constants(true);
+        $signame = null;
+
+        if (isset($definedConstants['pcntl'])) {
+            foreach ($definedConstants['pcntl'] as $name => $num) {
+                if ($num === $signo && strpos($name, 'SIG') === 0 && $name[3] !== '_') {
+                    $signame = $name;
+                }
+            }
+        }
+
+        printAndLog(PHP_EOL . 'Interrupted by ' . ($signame ?? $signo) . PHP_EOL, 'WARNING');
+        exit(130);
+    }
+
+    pcntl_signal(SIGHUP, 'signalHandler');
+    pcntl_signal(SIGTERM, 'signalHandler');
+    pcntl_signal(SIGINT, 'signalHandler');
+}
+
+// This array holds some state data
 $stat = [
     'errors'   => 0,
     'invalid'  => 0,
     'conflict' => 0,
 ];
 
-printHeader();
+// Hi
+printHeader($config['DEBUG']);
 
+// Show warning when php-intl isn't installed
 if (!extension_loaded('intl')) {
     printAndLog('Missing recommended PHP extension: intl' . PHP_EOL . PHP_EOL, 'WARNING');
 }
 
+// Show initial debug messages
 $config['DEBUG'] === true && printDebugHeader($config);
-$config['DEBUG'] === true && printAndLog('Acquired process lock through file: ' . $config['LOCK_FILE'] . PHP_EOL, 'DEBUG');
-
-// Handle process interruption and cleanup after script exits
-register_shutdown_function(
-    static function () use (&$config, &$lock) {
-        flock($lock, LOCK_UN);
-        fclose($lock);
-
-        unlink($config['LOCK_FILE']);
-    }
-);
 
 // Open the database
 $dbh = openDatabase($config['GRAVITY_DB'], true, $config['DEBUG']);
@@ -455,13 +575,13 @@ print PHP_EOL;
 
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
-    printAndLog('Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...', 'INFO');
+    printAndLog('Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...');
 
     if (($contents = @file_get_contents($config['ADLISTS_URL'])) !== false) {
         $adlists = textToArray($contents);
-        printAndLog(' done (' . count($adlists) . ' entries)' . PHP_EOL, 'INFO');
+        printAndLog(' done (' . count($adlists) . ' entries)' . PHP_EOL);
 
-        printAndLog('Processing...' . PHP_EOL, 'INFO');
+        printAndLog('Processing...' . PHP_EOL);
         $dbh->beginTransaction();
 
         // Get enabled adlists managed by this script from the DB
@@ -500,7 +620,7 @@ if (!empty($config['ADLISTS_URL'])) {
                 $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
                 if ($sth->execute()) {
-                    printAndLog('Disabled: ' . $address . PHP_EOL, 'INFO');
+                    printAndLog('Disabled: ' . $address . PHP_EOL);
                 }
             }
         }
@@ -525,7 +645,7 @@ if (!empty($config['ADLISTS_URL'])) {
         foreach ($adlists as $address) {
             // Check 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_adlist'
             if (!filter_var($address, FILTER_VALIDATE_URL) || preg_match('/[^a-zA-Z0-9$\\-_.+!*\'(),;\/?:@=&%]/', $address) !== 0) {
-                printAndLog('Invalid: ' . $address . PHP_EOL, 'INFO');
+                printAndLog('Invalid: ' . $address . PHP_EOL);
 
                 if (!isset($stat['invalids']) || !in_array($address, $stat['invalids'], true)) {
                     $stat['invalid']++;
@@ -556,7 +676,7 @@ if (!empty($config['ADLISTS_URL'])) {
                         $sth->execute();
                     }
 
-                    printAndLog('Inserted: ' . $address . PHP_EOL, 'INFO');
+                    printAndLog('Inserted: ' . $address . PHP_EOL);
                 }
             } else {
                 $isTouchable = $checkIfTouchable($adlistUrl);
@@ -568,13 +688,13 @@ if (!empty($config['ADLISTS_URL'])) {
                     $sth->bindParam(':id', $adlistUrl['id'], PDO::PARAM_INT);
 
                     if ($sth->execute()) {
-                        printAndLog('Enabled: ' . $address . PHP_EOL, 'INFO');
+                        printAndLog('Enabled: ' . $address . PHP_EOL);
                     }
                 } elseif ($config['VERBOSE'] === true) {        // Show other entry states only in verbose mode
                     if ($adlistUrl !== false && $isTouchable === true) {
-                        printAndLog('Exists: ' . $address . PHP_EOL, 'INFO');
+                        printAndLog('Exists: ' . $address . PHP_EOL);
                     } elseif ($isTouchable === false) {
-                        printAndLog('Ignored: ' . $address . PHP_EOL, 'INFO');
+                        printAndLog('Ignored: ' . $address . PHP_EOL);
                     }
                 }
             }
@@ -582,10 +702,7 @@ if (!empty($config['ADLISTS_URL'])) {
 
         $dbh->commit();
     } else {
-        $lastError = error_get_last();
-        $error = preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? 'unknown error'));
-
-        printAndLog(' ' . $error . PHP_EOL, 'ERROR');
+        printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
 
         $stat['errors']++;
     }
@@ -596,14 +713,14 @@ if (!empty($config['ADLISTS_URL'])) {
     $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
 
     if ($sth->execute() && count($sth->fetchAll()) > 0) {
-        printAndLog('No remote list set for ADLISTS, disabling orphaned entries in the database...', 'INFO');
+        printAndLog('No remote list set for ADLISTS, disabling orphaned entries in the database...');
 
         $dbh->beginTransaction();
         $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `comment` LIKE :comment');
         $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
 
         if ($sth->execute()) {
-            printAndLog(' ok' . PHP_EOL, 'INFO');
+            printAndLog(' ok' . PHP_EOL);
         }
 
         $dbh->commit();
@@ -643,13 +760,13 @@ foreach ($domainListTypes as $typeName => $typeId) {
     $url_key = $typeName . '_URL';
 
     if (!empty($config[$url_key])) {
-        printAndLog('Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...', 'INFO');
+        printAndLog('Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...');
 
         if (($contents = @file_get_contents($config[$url_key])) !== false) {
             $list = textToArray($contents);
-            printAndLog(' done (' . count($list) . ' entries)' . PHP_EOL, 'INFO');
+            printAndLog(' done (' . count($list) . ' entries)' . PHP_EOL);
 
-            printAndLog('Processing...' . PHP_EOL, 'INFO');
+            printAndLog('Processing...' . PHP_EOL);
             $dbh->beginTransaction();
 
             // Get enabled domains of this type managed by this script from the DB
@@ -685,7 +802,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                     $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
                     if ($sth->execute()) {
-                        printAndLog('Disabled: ' . $domain . PHP_EOL, 'INFO');
+                        printAndLog('Disabled: ' . $domain . PHP_EOL);
                     }
                 }
             }
@@ -713,7 +830,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
                     // Check 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_domain'
                     if (filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
-                        printAndLog('Invalid: ' . $domain . PHP_EOL, 'INFO');
+                        printAndLog('Invalid: ' . $domain . PHP_EOL);
 
                         if (!isset($stat['invalids']) || !in_array($domain, $stat['invalids'], true)) {
                             $stat['invalid']++;
@@ -747,7 +864,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             $sth->execute();
                         }
 
-                        printAndLog('Inserted: ' . $domain . PHP_EOL, 'INFO');
+                        printAndLog('Inserted: ' . $domain . PHP_EOL);
                     }
                 } else {
                     $isTouchable = $checkIfTouchable($domainlistDomain);
@@ -760,7 +877,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                         $sth->bindParam(':id', $domainlistDomain['id'], PDO::PARAM_INT);
 
                         if ($sth->execute()) {
-                            printAndLog('Enabled: ' . $domain . PHP_EOL, 'INFO');
+                            printAndLog('Enabled: ' . $domain . PHP_EOL);
                         }
                     } elseif ($domainlistDomain['type'] !== $typeId) {
                         printAndLog('Conflict: ' . $domain . ' (' . (array_search($domainlistDomain['type'], $domainListTypes, true) ?: 'type=' . $domainlistDomain['type']) . ')' . PHP_EOL, 'WARNING');
@@ -770,9 +887,9 @@ foreach ($domainListTypes as $typeName => $typeId) {
                         }
                     } elseif ($config['VERBOSE'] === true) {        // Show other entry states only in verbose mode
                         if ($domainlistDomain !== false && $isTouchable === true) {
-                            printAndLog('Exists: ' . $domain . PHP_EOL, 'INFO');
+                            printAndLog('Exists: ' . $domain . PHP_EOL);
                         } elseif ($isTouchable === false) {
-                            printAndLog('Ignored: ' . $domain . PHP_EOL, 'INFO');
+                            printAndLog('Ignored: ' . $domain . PHP_EOL);
                         }
                     }
                 }
@@ -780,10 +897,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
             $dbh->commit();
         } else {
-            $lastError = error_get_last();
-            $error = preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? 'unknown error'));
-
-            printAndLog(' ' . $error . PHP_EOL, 'ERROR');
+            printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
 
             $stat['errors']++;
         }
@@ -795,7 +909,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
         $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
         if ($sth->execute() && count($sth->fetchAll()) > 0) {
-            printAndLog('No remote list set for ' . $typeName . ', disabling orphaned entries in the database...', 'INFO');
+            printAndLog('No remote list set for ' . $typeName . ', disabling orphaned entries in the database...');
 
             $dbh->beginTransaction();
             $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `comment` LIKE :comment AND `type` = :type');
@@ -803,7 +917,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
             if ($sth->execute()) {
-                printAndLog(' ok' . PHP_EOL, 'INFO');
+                printAndLog(' ok' . PHP_EOL);
             }
 
             $dbh->commit();
@@ -822,7 +936,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
         printAndLog('Closed database handles.' . PHP_EOL, 'DEBUG');
     }
 
-    printAndLog('Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL, 'INFO');
+    printAndLog('Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL);
 
     passthru('pihole updateGravity', $return);
     print PHP_EOL;
@@ -839,9 +953,9 @@ if ($config['UPDATE_GRAVITY'] === true) {
 if ($config['VACUUM_DATABASE'] === true) {
     $dbh === null && $dbh = openDatabase($config['GRAVITY_DB'], $config['DEBUG'], $config['DEBUG']);
 
-    printAndLog('Vacuuming database...', 'INFO');
+    printAndLog('Vacuuming database...');
     if ($dbh->query('VACUUM')) {
-        printAndLog(' done (' . formatBytes(filesize($config['GRAVITY_DB'])) . ')' . PHP_EOL, 'INFO');
+        printAndLog(' done (' . formatBytes(filesize($config['GRAVITY_DB'])) . ')' . PHP_EOL);
     }
 
     $dbh = null;
@@ -850,7 +964,7 @@ if ($config['VACUUM_DATABASE'] === true) {
 
 // Sends signal to pihole-FTl to reload lists
 if ($config['UPDATE_GRAVITY'] === false) {
-    printAndLog('Sending reload signal to Pi-hole\'s DNS server...', 'INFO');
+    printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
 
     exec('pidof pihole-FTL 2>/dev/null', $return);
     if (isset($return[0])) {
@@ -862,7 +976,7 @@ if ($config['UPDATE_GRAVITY'] === false) {
         }
 
         if (posix_kill($pid, SIGRTMIN)) {
-            printAndLog(' done' . PHP_EOL, 'INFO');
+            printAndLog(' done' . PHP_EOL);
         } else {
             printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
             $stat['errors']++;
@@ -894,4 +1008,4 @@ if ($stat['errors'] > 0) {
     exit(1);
 }
 
-printAndLog('Finished successfully in ' . $elapsedTime . '.' . PHP_EOL, 'INFO');
+printAndLog('Finished successfully in ' . $elapsedTime . '.' . PHP_EOL);
