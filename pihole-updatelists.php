@@ -272,7 +272,7 @@ function textToArray($text)
             unset($array[$var]);
         }
 
-        $val = strtolower(trim($val));
+        $val = trim($val);
     }
     unset($val);
 
@@ -804,7 +804,11 @@ foreach ($domainListTypes as $typeName => $typeId) {
             $enabledDomains = [];
             if ($sth->execute()) {
                 foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $domain) {
-                    $enabledDomains[$domain['id']] = trim($domain['domain']);
+                    if (strpos($typeName, 'REGEX_') === false) {
+                        $enabledDomains[$domain['id']] = strtolower(trim($domain['domain']));
+                    } else {
+                        $enabledDomains[$domain['id']] = trim($domain['domain']);
+                    }
                 }
             }
 
@@ -823,9 +827,9 @@ foreach ($domainListTypes as $typeName => $typeId) {
             }
 
             foreach ($domainlist as $domain) {
-                $domain = strtolower($domain);
-
                 if (strpos($typeName, 'REGEX_') === false) {
+                    $domain = strtolower($domain);
+
                     // Conversion code 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_domain'
                     if (extension_loaded('intl')) {
                         $idn_domain = false;
