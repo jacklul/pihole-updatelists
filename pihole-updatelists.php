@@ -79,6 +79,7 @@ function loadConfig()
         'VACUUM_DATABASE'     => true,
         'VERBOSE'             => false,
         'DEBUG'               => false,
+        'DOWNLOAD_TIMEOUT'    => 60,
     ];
 
     $options = getopt(
@@ -369,7 +370,6 @@ function isUpToDate($debug = false)
     $cacheTime = $debug ? 60 : 3600;
 
     if (file_exists($cacheFile) && filemtime($cacheFile) + $cacheTime > time()) {
-
         $cachedData = file_get_contents($cacheFile);
         $cachedData = json_decode($cachedData, true);
 
@@ -573,11 +573,20 @@ $checkIfTouchable = static function ($array) use (&$config) {
 
 print PHP_EOL;
 
+// Set download timeout
+$streamContext = stream_context_create(
+    [
+        'http' => [
+            'timeout' => $config['DOWNLOAD_TIMEOUT'],
+        ],
+    ]
+);
+
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
     printAndLog('Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...');
 
-    if (($contents = @file_get_contents($config['ADLISTS_URL'])) !== false) {
+    if (($contents = @file_get_contents($config['ADLISTS_URL'], false, $streamContext)) !== false) {
         $adlists = textToArray($contents);
         printAndLog(' done (' . count($adlists) . ' entries)' . PHP_EOL);
 
@@ -762,7 +771,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
     if (!empty($config[$url_key])) {
         printAndLog('Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...');
 
-        if (($contents = @file_get_contents($config[$url_key])) !== false) {
+        if (($contents = @file_get_contents($config[$url_key], false, $streamContext)) !== false) {
             $list = textToArray($contents);
             printAndLog(' done (' . count($list) . ' entries)' . PHP_EOL);
 
