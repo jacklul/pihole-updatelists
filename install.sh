@@ -10,7 +10,7 @@ command -v php >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, i
 [[ $(php -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") < 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
 
 SPATH=$(dirname $0)
-REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta
+REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists/master
 SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"`
 
 [ "$SYSTEMD" == 0 ] && echo "! Systemd not detected, will not install service unit files !"

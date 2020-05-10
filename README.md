@@ -1,14 +1,12 @@
 # Update Pi-hole's lists from remote sources
 
-**This branch is for Pi-hole v5 beta only!**
-
 When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) or [this](https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt) it's a hassle to manually check for changes and update, this script will do that for you.
 
 Entries that were removed from the remote list will be disabled instead of removed, this is to prevent database corruption.
 
 ### Requirements
 
-- Pi-hole already installed
+- Pi-hole v5+ installed
 - php-cli >=7.0 and sqlite3 extension (`sudo apt install php-cli php-sqlite3`)
 - systemd distro is optional but recommended
 
@@ -17,7 +15,7 @@ Entries that were removed from the remote list will be disabled instead of remov
 This will install this script globally as `pihole-updatelists` and add systemd service and timer.
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/beta/install.sh | sudo bash
+wget -q -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
 ```
 
 Alternatively you can clone this repo and `sudo bash ./install.sh`.
