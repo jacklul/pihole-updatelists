@@ -591,16 +591,6 @@ if (!empty($config['ADLISTS_URL'])) {
         printAndLog('Processing...' . PHP_EOL);
         $dbh->beginTransaction();
 
-        // Get enabled adlists managed by this script from the DB
-        $sql = 'SELECT * FROM `adlist` WHERE `enabled` = 1';
-
-        if ($config['REQUIRE_COMMENT'] === true) {
-            $sth = $dbh->prepare($sql .= ' AND `comment` LIKE :comment');
-            $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
-        } else {
-            $sth = $dbh->prepare($sql);
-        }
-
         // Fetch all adlists
         $adlistsAll = [];
         if (($sth = $dbh->prepare('SELECT * FROM `adlist`'))->execute()) {
@@ -613,6 +603,16 @@ if (!empty($config['ADLISTS_URL'])) {
 
             $adlistsAll = $tmp;
             unset($tmp);
+        }
+
+        // Get enabled adlists managed by this script from the DB
+        $sql = 'SELECT * FROM `adlist` WHERE `enabled` = 1';
+
+        if ($config['REQUIRE_COMMENT'] === true) {
+            $sth = $dbh->prepare($sql .= ' AND `comment` LIKE :comment');
+            $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
+        } else {
+            $sth = $dbh->prepare($sql);
         }
 
         // Fetch all enabled touchable adlists
