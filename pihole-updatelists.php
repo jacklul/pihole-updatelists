@@ -582,9 +582,35 @@ $streamContext = stream_context_create(
 
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
-    printAndLog('Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...');
+    if (strpos($config['ADLISTS_URL'], PHP_EOL) !== false) {
+        $adlistsUrl = explode(PHP_EOL, $config['ADLISTS_URL']);
 
-    if (($contents = @file_get_contents($config['ADLISTS_URL'], false, $streamContext)) !== false) {
+        $contents = '';
+        foreach ($adlistsUrl as $url) {
+            if (!empty($url)) {
+                printAndLog('Fetching ADLISTS from \'' . $url . '\'...');
+
+                $listContents = @file_get_contents($url, false, $streamContext);
+
+                if ($listContents !== false) {
+                    printAndLog(' done' . PHP_EOL);
+
+                    $contents .= PHP_EOL . $listContents;
+                } else {
+                    $contents = false;
+                    break;
+                }
+            }
+        }
+
+        $contents !== false && printAndLog('Merging multiple lists...');
+    } else {
+        printAndLog('Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...');
+
+        $contents = @file_get_contents($config['ADLISTS_URL'], false, $streamContext);
+    }
+
+    if ($contents !== false) {
         $adlists = textToArray($contents);
         printAndLog(' done (' . count($adlists) . ' entries)' . PHP_EOL);
 
@@ -779,9 +805,35 @@ foreach ($domainListTypes as $typeName => $typeId) {
     $url_key = $typeName . '_URL';
 
     if (!empty($config[$url_key])) {
-        printAndLog('Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...');
+        if (strpos($config[$url_key], PHP_EOL) !== false) {
+            $domainlistUrl = explode(PHP_EOL, $config[$url_key]);
 
-        if (($contents = @file_get_contents($config[$url_key], false, $streamContext)) !== false) {
+            $contents = '';
+            foreach ($domainlistUrl as $url) {
+                if (!empty($url)) {
+                    printAndLog('Fetching ' . $typeName . ' from \'' . $url . '\'...');
+
+                    $listContents = @file_get_contents($url, false, $streamContext);
+
+                    if ($listContents !== false) {
+                        printAndLog(' done' . PHP_EOL);
+
+                        $contents .= PHP_EOL . $listContents;
+                    } else {
+                        $contents = false;
+                        break;
+                    }
+                }
+            }
+
+            $contents !== false && printAndLog('Merging multiple lists...');
+        } else {
+            printAndLog('Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...');
+
+            $contents = @file_get_contents($config[$url_key], false, $streamContext);
+        }
+
+        if ($contents !== false) {
             $domainlist = textToArray($contents);
             printAndLog(' done (' . count($domainlist) . ' entries)' . PHP_EOL);
 

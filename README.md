@@ -51,9 +51,18 @@ Default configuration file is `/etc/pihole-updatelists.conf`.
 
 String values should be put between `" "`, otherwise weird things might happen.
 
-You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/etc/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
+You can also give paths to the local files instead of URLs, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
 
-You can also give paths to local files instead of URL, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
+#### Multiple list URLs:
+
+You can pass multiple URLs to the list variables by separating them with new line:
+
+```bash
+ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick
+https://raw.githubusercontent.com/you/adlists/master/my_adlists.txt"
+```
+
+If one of the lists fails to download nothing will be affected for that list type.
 
 #### Recommended lists:
 
@@ -62,6 +71,10 @@ You can also give paths to local files instead of URL, for example setting `WHIT
 | ADLISTS_URL | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
 | WHITELIST_URL | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
 | REGEX_BLACKLIST_URL | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
+
+### Using multiple config files:
+
+You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
 
 ### Changing the schedule
 
