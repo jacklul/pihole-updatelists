@@ -5,6 +5,7 @@ if [[ $(/usr/bin/id -u) -ne 0 ]]; then
 	exit
 fi
 
+set -e
 [ -d "/etc/pihole" ] && [ -d "/opt/pihole" ] || { echo "Pi-hole doesn't seem to be installed."; exit 1; }
 command -v php >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, install it with 'sudo apt install php-cli'."; exit 1; }
 [[ $(php -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") < 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
@@ -24,8 +25,8 @@ if [ -f "$SPATH/pihole-updatelists.php" ] && [ -f "$SPATH/pihole-updatelists.con
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
-    cp -v $SPATH/pihole-updatelists.service /etc/systemd/system
-	  cp -v $SPATH/pihole-updatelists.timer /etc/systemd/system
+		cp -v $SPATH/pihole-updatelists.service /etc/systemd/system
+		cp -v $SPATH/pihole-updatelists.timer /etc/systemd/system
 	fi
 
 	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
@@ -38,14 +39,14 @@ elif [ "$REMOTE_URL" != "" ]; then
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
-    wget -nv -O /etc/systemd/system/pihole-updatelists.service "$REMOTE_URL/pihole-updatelists.service"
-	  wget -nv -O /etc/systemd/system/pihole-updatelists.timer "$REMOTE_URL/pihole-updatelists.timer"
+		wget -nv -O /etc/systemd/system/pihole-updatelists.service "$REMOTE_URL/pihole-updatelists.service"
+		wget -nv -O /etc/systemd/system/pihole-updatelists.timer "$REMOTE_URL/pihole-updatelists.timer"
 	fi
 else
 	exit 1
 fi
 
 if [ "$SYSTEMD" == 1 ]; then
-  echo "Enabling and starting pihole-updatelists.timer..."
-  systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
+	echo "Enabling and starting pihole-updatelists.timer..."
+	systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
 fi
