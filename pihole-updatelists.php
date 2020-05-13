@@ -35,8 +35,8 @@ function checkDependencies()
 
     // Require root privileges
     if (function_exists('posix_getuid') && posix_getuid() !== 0) {
-        printAndLog('This tool must be run as root!' . PHP_EOL, 'ERROR');
-        exit(1);
+        passthru('sudo ' . implode(' ', $_SERVER['argv']), $return);
+        exit($return);
     }
 
     $extensions = [
