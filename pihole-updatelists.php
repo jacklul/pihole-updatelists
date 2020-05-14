@@ -768,7 +768,7 @@ if (!empty($config['ADLISTS_URL'])) {
         $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
 
         if ($sth->execute()) {
-            printAndLog(' ok' . PHP_EOL);
+            printAndLog(' done' . PHP_EOL);
         }
 
         $dbh->commit();
@@ -1004,7 +1004,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
             if ($sth->execute()) {
-                printAndLog(' ok' . PHP_EOL);
+                printAndLog(' done' . PHP_EOL);
             }
 
             $dbh->commit();
