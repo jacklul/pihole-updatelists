@@ -564,12 +564,23 @@ $config['DEBUG'] === true && printDebugHeader($config);
 // Open the database
 $dbh = openDatabase($config['GRAVITY_DB'], true, $config['DEBUG']);
 
+print PHP_EOL;
+
+// Make sure group exists
+if ($config['GROUP_ID'] > 0) {
+    $sth = $dbh->prepare('SELECT `id` FROM `group` WHERE `id` = :id');
+    $sth->bindParam(':id', $config['GROUP_ID'], PDO::PARAM_INT);
+
+    if ($sth->execute() && $sth->fetch(PDO::FETCH_ASSOC) === false) {
+        printAndLog('Group with ID=' . $config['GROUP_ID'] . ' does not exist!' . PHP_EOL, 'ERROR');
+        exit(1);
+    }
+}
+
 // Helper function that checks if comment field matches when required
 $checkIfTouchable = static function ($array) use (&$config) {
     return $config['REQUIRE_COMMENT'] === false || strpos($array['comment'] ?? '', $config['COMMENT']) !== false;
 };
-
-print PHP_EOL;
 
 // Set download timeout
 $streamContext = stream_context_create(
