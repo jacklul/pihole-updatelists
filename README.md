@@ -55,11 +55,10 @@ You can also give paths to the local files instead of URLs, for example setting 
 
 #### Multiple list URLs:
 
-You can pass multiple URLs to the list variables by separating them with new line:
+You can pass multiple URLs to the list variables by separating them with whitespace (space or new line):
 
 ```bash
-ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick
-https://raw.githubusercontent.com/you/adlists/master/my_adlists.txt"
+ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick  https://raw.githubusercontent.com/you/adlists/master/my_adlists.txt"
 ```
 
 If one of the lists fails to download nothing will be affected for that list type.
