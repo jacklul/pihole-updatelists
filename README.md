@@ -53,6 +53,8 @@ String values should be put between `" "`, otherwise weird things might happen.
 
 You can also give paths to the local files instead of URLs, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
 
+You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
+
 #### Multiple list URLs:
 
 You can pass multiple URLs to the list variables by separating them with whitespace (space or new line):
@@ -71,9 +73,17 @@ If one of the lists fails to download nothing will be affected for that list typ
 | WHITELIST_URL | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
 | REGEX_BLACKLIST_URL | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
-### Using multiple config files:
+### Runtime options
 
-You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
+| Option | Description |
+|----------|-------------|
+| -help, -h | Show help message |
+| --config=[FILE], -c=[FILE] | Load alternative configuration file |
+| --no-gravity, -n | Force no gravity update |
+| --no-vacuum, -m | Force no database vacuuming |
+| --verbose, -v | Turn on verbose mode |
+| --debug, -d  | Turn on debug mode |
+| --update, -u  | Update the script |
 
 ### Changing the schedule
 

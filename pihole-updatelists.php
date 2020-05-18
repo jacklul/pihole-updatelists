@@ -55,11 +55,79 @@ function checkDependencies()
 }
 
 /**
+ * Print help
+ */
+function printHelp()
+{
+    printHeader();
+
+    $help[] = ' Options: ';
+    $help[] = '  --help, -h                   - This help message';
+    $help[] = '  --config=[FILE], -c=[FILE]   - Load alternative configuration file';
+    $help[] = '  --no-gravity, -n             - Force no gravity update';
+    $help[] = '  --no-vacuum, -m              - Force no database vacuuming';
+    $help[] = '  --verbose, -v                - Turn on verbose mode';
+    $help[] = '  --debug, -d                  - Turn on debug mode';
+    $help[] = '  --update, -u                 - Update the script';
+
+    print implode(PHP_EOL, $help) . PHP_EOL . PHP_EOL;
+}
+
+/**
+ * Parse command-line arguments
+ */
+function parseOptions()
+{
+    $short = [
+        'h',
+        'c::',
+        'n',
+        'm',
+        'v',
+        'd',
+        'u',
+    ];
+    $long = [
+        'help',
+        'config::',
+        'no-gravity',
+        'no-vacuum',
+        'verbose',
+        'debug',
+        'update',
+    ];
+
+    $options = getopt(implode('', $short), $long);
+
+    // If short is used set the long one
+    for ($i = 0, $iMax = count($short); $i < $iMax; $i++) {
+        if ($short[$i] !== null && isset($options[$short[$i]])) {
+            $options[$long[$i]] = $options[$short[$i]];
+            unset($options[$short[$i]]);
+        }
+    }
+
+    if (isset($options['help'])) {
+        printHelp();
+        exit;
+    }
+
+    if (isset($options['update'])) {
+        updateScript();
+        exit;
+    }
+
+    return $options;
+}
+
+/**
  * Load config file, if exists
+ *
+ * @param array $options
  *
  * @return array
  */
-function loadConfig()
+function loadConfig($options = [])
 {
     // Default configuration
     $config = [
@@ -81,13 +149,6 @@ function loadConfig()
         'DEBUG'               => false,
         'DOWNLOAD_TIMEOUT'    => 60,
     ];
-
-    $options = getopt(
-        '',
-        [
-            'config::',
-        ]
-    );
 
     if (isset($options['config'])) {
         if (!file_exists($options['config'])) {
@@ -112,6 +173,22 @@ function loadConfig()
 
     validateConfig($config);
     $config['COMMENT'] = trim($config['COMMENT']);
+
+    if (isset($options['no-gravity'])) {
+        $config['UPDATE_GRAVITY'] = false;
+    }
+
+    if (isset($options['no-vacuum'])) {
+        $config['VACUUM_DATABASE'] = false;
+    }
+
+    if (isset($options['verbose'])) {
+        $config['VERBOSE'] = true;
+    }
+
+    if (isset($options['debug'])) {
+        $config['DEBUG'] = true;
+    }
 
     return $config;
 }
@@ -346,6 +423,41 @@ function parseLastError($default = 'Unknown error')
 }
 
 /**
+ * Fetch remote script file
+ *
+ * @return false|string
+ */
+function fetchRemoteScript()
+{
+    global $remoteScript;
+
+    if (isset($remoteScript)) {
+        return $remoteScript;
+    }
+
+    $remoteScript = @file_get_contents(
+        GITHUB_LINK_RAW . '/pihole-updatelists.php',
+        false,
+        stream_context_create(
+            [
+                'http' => [
+                    'timeout' => 10,
+                ],
+            ]
+        )
+    );
+
+    $firstLine = strtok($remoteScript, "\n");
+    if (strpos($firstLine, '#!/usr/bin/env php') === false) {
+        print 'Returned remote script data doesn\'t seem to be valid!' . PHP_EOL;
+        print 'First line: ' . $firstLine . PHP_EOL;
+        exit(1);
+    }
+
+    return $remoteScript;
+}
+
+/**
  * Check if script is up to date
  *
  * @return string
@@ -354,64 +466,57 @@ function parseLastError($default = 'Unknown error')
 function isUpToDate()
 {
     $md5Self = md5_file(__FILE__);
-    $cacheFile = sys_get_temp_dir() . '/pihole-updatelists.versioncheck';
-    $cache = false;
+    $remoteScript = fetchRemoteScript();
 
-    if (file_exists($cacheFile) && filemtime($cacheFile) + 300 > time()) {
-        $cachedData = file_get_contents($cacheFile);
-        $cachedData = json_decode($cachedData, true);
-
-        if (isset($cachedData['md5']) && $cachedData['md5'] === $md5Self) {
-            $cache = true;
-            $result = $cachedData['result'];
-        }
+    if ($remoteScript === false) {
+        return null;
     }
 
-    if (!isset($result)) {
-        $remote = @file_get_contents(
-            GITHUB_LINK_RAW . '/pihole-updatelists.php',
-            false,
-            stream_context_create(
-                [
-                    'http' => [
-                        'timeout' => 10,
-                    ],
-                ]
-            )
-        );
-
-        if ($remote === false) {
-            $result = null;
-        } elseif ($md5Self !== md5($remote)) {
-            $result = false;
-        } else {
-            $result = true;
-        }
+    if ($md5Self !== md5($remoteScript)) {
+        return false;
     }
 
-    if ($result === null) {
-        $output = 'error - ' . parseLastError();
-    } elseif ($result === false) {
-        $output = 'outdated or checksum mismatch';
-    } else {
-        $output = 'up to date';
+    return true;
+}
+
+/**
+ * This will update the script to newest version
+ */
+function updateScript()
+{
+    $updateCheck = isUpToDate();
+    if ($updateCheck === true) {
+        print 'The script is up to date!' . PHP_EOL;
+        exit;
     }
 
-    $cache === true && $output .= ' (cache)';
+    if ($updateCheck === null) {
+        print 'Failed to check remote script: ' . parseLastError(). PHP_EOL;
+        exit(1);
+    }
 
-    $result !== null && @file_put_contents($cacheFile, json_encode(['result' => $result, 'md5' => $md5Self]));
+    if (strpos(basename($_SERVER['argv'][0]), '.php') !== false) {
+        print 'It seems like this script haven\'t been installed - unable to update!';
+        exit(1);
+    }
 
-    return $output;
+    $remoteScript = fetchRemoteScript();
+    if (!@file_put_contents(__FILE__, $remoteScript)) {
+        print 'Failed to update: ' . parseLastError() . PHP_EOL;
+        exit(1);
+    }
+
+    print 'Updated successfully!' . PHP_EOL;
 }
 
 /**
  * Print debug information
  *
  * @param array $config
+ * @param array $options
  */
-function printDebugHeader($config)
+function printDebugHeader($config, $options)
 {
-    //printAndLog('Script version: ' . isUpToDate() . PHP_EOL, 'DEBUG');
     printAndLog('Checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
     printAndLog('OS: ' . php_uname() . PHP_EOL, 'DEBUG');
     printAndLog('PHP: ' . PHP_VERSION . (ZEND_THREAD_SAFE ? '' : ' NTS') . PHP_EOL, 'DEBUG');
@@ -432,21 +537,31 @@ function printDebugHeader($config)
 
     ob_start();
     var_dump($config);
-    printAndLog('Configuration: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()) . PHP_EOL, 'DEBUG');
+    printAndLog('Configuration: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()), 'DEBUG');
+
+    ob_start();
+    var_dump($options);
+    printAndLog('Options: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()), 'DEBUG');
+
+    print PHP_EOL;
 }
 
 /**
  * Print (and optionally log) string
  *
  * @param string $str
- * @param string $channel
+ * @param string $severity
  * @param bool   $logOnly
  *
  * @throws RuntimeException
  */
-function printAndLog($str, $channel = 'INFO', $logOnly = false)
+function printAndLog($str, $severity = 'INFO', $logOnly = false)
 {
     global $config, $lock;
+
+    if (!in_array(strtoupper($severity), ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR'])) {
+        throw new RuntimeException('Invalid log severity: ' . $severity);
+    }
 
     if (!empty($config['LOG_FILE'])) {
         $flags = FILE_APPEND;
@@ -464,7 +579,7 @@ function printAndLog($str, $channel = 'INFO', $logOnly = false)
 
             $lines = preg_split('/\r\n|\r|\n/', ucfirst(trim($str)));
             foreach ($lines as &$line) {
-                $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($channel) . '] ' . $line;
+                $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($severity) . '] ' . $line;
             }
             unset($line);
 
@@ -500,7 +615,8 @@ function shutdownCleanup()
 /** PROCEDURAL CODE STARTS HERE */
 $startTime = microtime(true);
 checkDependencies();    // Check script requirements
-$config = loadConfig();     // Load config and process variables
+$options = parseOptions();   // Parse arguments
+$config = loadConfig($options);     // Load config and process variables
 
 // Exception handler, always log detailed information
 set_exception_handler(
@@ -534,7 +650,7 @@ if (function_exists('pcntl_signal')) {
             }
         }
 
-        printAndLog(PHP_EOL . 'Interrupted by ' . ($signame ?? $signo) . PHP_EOL, 'WARNING');
+        printAndLog(PHP_EOL . 'Interrupted by ' . ($signame ?? $signo) . PHP_EOL, 'NOTICE');
         exit(130);
     }
 
@@ -559,7 +675,7 @@ if (!extension_loaded('intl')) {
 }
 
 // Show initial debug messages
-$config['DEBUG'] === true && printDebugHeader($config);
+$config['DEBUG'] === true && printDebugHeader($config, $options);
 
 // Open the database
 $dbh = openDatabase($config['GRAVITY_DB'], true, $config['DEBUG']);
@@ -739,7 +855,7 @@ if (!empty($config['ADLISTS_URL'])) {
                         printAndLog('Enabled: ' . $address . PHP_EOL);
                     }
                 } elseif ($config['VERBOSE'] === true) {        // Show other entry states only in verbose mode
-                    if ($adlistUrl !== false && $isTouchable === true) {
+                    if ($adlistUrl['enabled'] !== false && $isTouchable === true) {
                         printAndLog('Exists: ' . $address . PHP_EOL);
                     } elseif ($isTouchable === false) {
                         printAndLog('Ignored: ' . $address . PHP_EOL);
@@ -761,7 +877,7 @@ if (!empty($config['ADLISTS_URL'])) {
     $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
 
     if ($sth->execute() && count($sth->fetchAll()) > 0) {
-        printAndLog('No remote list set for ADLISTS, disabling orphaned entries in the database...');
+        printAndLog('No remote list set for ADLISTS, disabling orphaned entries in the database...', 'NOTICE');
 
         $dbh->beginTransaction();
         $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `comment` LIKE :comment');
@@ -973,7 +1089,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             $stat['conflicts'][] = $domain;
                         }
                     } elseif ($config['VERBOSE'] === true) {        // Show other entry states only in verbose mode
-                        if ($domainlistDomain !== false && $isTouchable === true) {
+                        if ($domainlistDomain['enabled'] !== false && $isTouchable === true) {
                             printAndLog('Exists: ' . $domain . PHP_EOL);
                         } elseif ($isTouchable === false) {
                             printAndLog('Ignored: ' . $domain . PHP_EOL);
@@ -996,7 +1112,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
         $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
         if ($sth->execute() && count($sth->fetchAll()) > 0) {
-            printAndLog('No remote list set for ' . $typeName . ', disabling orphaned entries in the database...');
+            printAndLog('No remote list set for ' . $typeName . ', disabling orphaned entries in the database...', 'NOTICE');
 
             $dbh->beginTransaction();
             $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `comment` LIKE :comment AND `type` = :type');
@@ -1031,9 +1147,9 @@ if ($config['UPDATE_GRAVITY'] === true) {
     if ($return !== 0) {
         printAndLog('Error occurred while updating gravity!' . PHP_EOL . PHP_EOL, 'ERROR');
         $stat['errors']++;
+    } else {
+        printAndLog('Done' . PHP_EOL . PHP_EOL, 'INFO', true);
     }
-
-    printAndLog('Done' . PHP_EOL . PHP_EOL, 'INFO', true);
 }
 
 // Vacuum database (run `VACUUM` command)
