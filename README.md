@@ -22,7 +22,9 @@ Alternatively you can clone this repo and `sudo bash ./install.sh`.
 
 When configuration file already exists this script will not overwrite it so it's safe to update at any time.
 
-You should disable `pihole updateGravity` entry in `/etc/cron.d/pihole` as this script already runs it, unless you're planning on disabling this with setting `UPDATE_GRAVITY` set to `false`.
+In the future to quickly update the script you can use `sudo pihole-updatelists --update`.
+
+Note that you should disable `pihole updateGravity` entry in `/etc/cron.d/pihole` as this script already runs it, unless you're planning on disabling this with configuration setting `UPDATE_GRAVITY` set to `false`.
 
 ### Configuration
 
@@ -77,13 +79,13 @@ If one of the lists fails to download nothing will be affected for that list typ
 
 | Option | Description |
 |----------|-------------|
-| -help, -h | Show help message |
+| -help, -h | Show help message, which is simply this list |
 | --config=[FILE], -c=[FILE] | Load alternative configuration file |
-| --no-gravity, -n | Force no gravity update |
-| --no-vacuum, -m | Force no database vacuuming |
-| --verbose, -v | Turn on verbose mode |
-| --debug, -d  | Turn on debug mode |
-| --update, -u  | Update the script |
+| --no-gravity, -n | Force gravity update to be skipped |
+| --no-vacuum, -m | Force database vacuuming to be skipped |
+| --verbose, -v | Turn on verbose mode (affects log) |
+| --debug, -d  | Turn on debug mode (affects log) |
+| --update, -u  | Update the script - compares local script with the one in the repository and overwrites it if they are different |
 
 ### Changing the schedule
 
