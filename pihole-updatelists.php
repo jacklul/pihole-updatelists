@@ -461,7 +461,6 @@ function fetchRemoteScript()
  * Check if script is up to date
  *
  * @return string
- * @noinspection PhpUnused
  */
 function isUpToDate()
 {
