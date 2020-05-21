@@ -603,8 +603,8 @@ if (!empty($config['ADLISTS_URL'])) {
 
         // Fetch all adlists
         $adlistsAll = [];
-        if (($sth = $dbh->prepare('SELECT * FROM `adlist`'))->execute()) {
-            $adlistsAll = $sth->fetchAll(PDO::FETCH_ASSOC);
+        if (($sthAll = $dbh->prepare('SELECT * FROM `adlist`'))->execute()) {
+            $adlistsAll = $sthAll->fetchAll(PDO::FETCH_ASSOC);
 
             $tmp = [];
             foreach ($adlistsAll as $key => $value) {
