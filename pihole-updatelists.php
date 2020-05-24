@@ -261,7 +261,10 @@ function openDatabase($db_file, $verbose = true, $debug = false)
         $dbh->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['LoggedPDOStatement']);
     }
 
-    $verbose && printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL);
+    if ($verbose) {
+        clearstatcache();
+        printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL);
+    }
 
     return $dbh;
 }
@@ -1157,6 +1160,7 @@ if ($config['VACUUM_DATABASE'] === true) {
 
     printAndLog('Vacuuming database...');
     if ($dbh->query('VACUUM')) {
+        clearstatcache();
         printAndLog(' done (' . formatBytes(filesize($config['GRAVITY_DB'])) . ')' . PHP_EOL);
     }
 
