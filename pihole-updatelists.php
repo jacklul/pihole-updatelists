@@ -711,7 +711,7 @@ $streamContext = stream_context_create(
 
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
-    if (strpos($config['ADLISTS_URL'], PHP_EOL) !== false) {
+    if (preg_match('/\s+/', trim($config['ADLISTS_URL']))) {
         $adlistsUrl = preg_split('/\s+/', $config['ADLISTS_URL']);
 
         $contents = '';
@@ -934,7 +934,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
     $url_key = $typeName . '_URL';
 
     if (!empty($config[$url_key])) {
-        if (strpos($config[$url_key], PHP_EOL) !== false) {
+        if (preg_match('/\s+/', trim($config[$url_key]))) {
             $domainlistUrl = preg_split('/\s+/', $config[$url_key]);
 
             $contents = '';
