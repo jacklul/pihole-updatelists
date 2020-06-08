@@ -581,7 +581,7 @@ function printAndLog($str, $severity = 'INFO', $logOnly = false)
 
             $lines = preg_split('/\r\n|\r|\n/', ucfirst(trim($str)));
             foreach ($lines as &$line) {
-                $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($severity) . '] ' . $line;
+                $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($severity) . ']' . "\t" . $line;
             }
             unset($line);
 
