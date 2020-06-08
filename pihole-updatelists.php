@@ -1170,6 +1170,11 @@ if ($config['VACUUM_DATABASE'] === true) {
 
 // Sends signal to pihole-FTl to reload lists
 if ($config['UPDATE_GRAVITY'] === false) {
+    if (!defined('SIGRTMIN')) {
+        printAndLog('Signal SIGRTMIN is not defined!' . PHP_EOL, 'DEBUG');
+        define('SIGRTMIN', 34);
+    }
+
     printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
 
     exec('pidof pihole-FTL 2>/dev/null', $return);
