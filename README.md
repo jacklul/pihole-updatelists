@@ -15,7 +15,7 @@ Entries that were removed from the remote list will be disabled instead of remov
 This will install this script globally as `pihole-updatelists` and add systemd service and timer.
 
 ```bash
-wget -q -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
+wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
 ```
 
 Alternatively you can clone this repo and `sudo bash ./install.sh`.
