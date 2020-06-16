@@ -24,11 +24,25 @@ When configuration file already exists this script will not overwrite it so it's
 
 In the future to quickly update the script you can use `sudo pihole-updatelists --update`.
 
-Note that you should disable `pihole updateGravity` entry in `/etc/cron.d/pihole` as this script already runs it, unless you're planning on disabling this with configuration setting `UPDATE_GRAVITY` set to `false`.
+Note that you should disable entry with `pihole updateGravity` command in `/etc/cron.d/pihole` as this script already runs it:
+
+```bash
+sudo nano /etc/cron.d/pihole
+```
+Put a `#` before this line (numbers might be different):
+```
+#49 4   * * 7   root    PATH="$PATH:/usr/local/bin/" pihole updateGravity >/var/log/pihole_updateGravity.log || cat /var/log/pihole_updateGravity.log
+```
+
+You might have to do this after each Pi-hole update.
 
 ### Configuration
 
 Default configuration file is `/etc/pihole-updatelists.conf`.
+
+```bash
+sudo nano /etc/pihole-updatelists.conf
+```
 
 #### Available variables:
 
@@ -91,7 +105,9 @@ If one of the lists fails to download nothing will be affected for that list typ
 
 By default, the script runs at random time (between 03:00 and 04:00) on Saturday, to change it you'll have to override [timer unit](https://www.freedesktop.org/software/systemd/man/systemd.timer.html) file:
  
-`sudo systemctl edit pihole-updatelists.timer`
+```bash
+sudo systemctl edit pihole-updatelists.timer
+```
 ```
 [Timer]
 RandomizedDelaySec=5m
@@ -103,8 +119,10 @@ OnCalendar=Sat *-*-* 00:00:00
 
 Override [service unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html) file:
 
-`sudo systemctl edit pihole-updatelists.service`
 
+```bash
+sudo systemctl edit pihole-updatelists.service
+```
 ```
 [Service]
 Type=oneshot
