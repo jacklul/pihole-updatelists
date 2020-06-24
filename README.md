@@ -10,6 +10,8 @@ This script will not touch user-created entries, entries that were removed from 
 - php-cli >=7.0 and sqlite3 extension (`sudo apt install php-cli php-sqlite3`)
 - systemd distro is optional but recommended
 
+Without **systemd** you will have to take care of scheduled run of this script yourself.
+
 ### Install
 
 This will install this script globally as `pihole-updatelists` and add systemd service and timer.
@@ -22,7 +24,11 @@ Alternatively you can clone this repo and `sudo bash ./install.sh`.
 
 In the future to quickly update the script you can use `sudo pihole-updatelists --update`.
 
-Note that you should disable entry with `pihole updateGravity` command in `/etc/cron.d/pihole` as this script already runs it:
+#### Disable default gravity update schedule
+
+_If you don't plan on updating adlists you can skip this and set `UPDATE_GRAVITY=false` in the configuration file._
+
+You should disable entry with `pihole updateGravity` command in `/etc/cron.d/pihole` as this script already runs it:
 
 ```bash
 sudo nano /etc/cron.d/pihole
@@ -32,30 +38,31 @@ Put a `#` before this line (numbers might be different):
 #49 4   * * 7   root    PATH="$PATH:/usr/local/bin/" pihole updateGravity >/var/log/pihole_updateGravity.log || cat /var/log/pihole_updateGravity.log
 ```
 
-You might have to do this after each Pi-hole update.
+**You might have to do this after each Pi-hole update.**
 
 #### Migrating lists and domains
 
-It is recommended to install this on a fresh Pi-hole install, if you already used it for a while or imported any of the remote lists manually it will still work fine except it won't be able to disable entries that got removed from the remote lists.
+If you already imported any of the remote lists manually you should migrate their entries to allow the script to disable them in case they are removed from the remote list.
 
-If you used [pihole5-list-tool](https://github.com/jessedp/pihole5-list-tool) to import adlists and whitelist you can use this commands to fix this quickly:
+If you used [pihole5-list-tool](https://github.com/jessedp/pihole5-list-tool) to import adlists and whitelist you can use this commands to do this quickly:
 ```bash
-sudo sqlite3 /etc/pihole/gravity.db "UPDATE `adlist` SET `comment` = 'Managed by pihole-updatelists' WHERE `comment` LIKE '%Firebog |%'"
-sudo sqlite3 /etc/pihole/gravity.db "UPDATE `domainlist` SET `comment` = 'Managed by pihole-updatelists' WHERE `comment` LIKE '%AndeepND |%'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE adlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%Firebog |%'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE domainlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%AndeepND |%'"
 ```
 _(code up to date as of pihole5-list-tool 0.5.0)_
 
 Alternatively, some manual work is required - pick one:
 
-- Manually modify comment field of all imported domains to match the one this script uses (see `COMMENT` variable in **Configuration** section)  **(recommended but might be a lot of work)**
-- Manually delete all imported domains from the web interface  (might be a lot of work)
-- Wipe all lists and domains: (not recommended but fast - use this if you want to start fresh)
+- Manually modify comment field of all imported domains/adlists to match the one this script uses (see `COMMENT` variable in **Configuration** section)  **(recommended but might be a lot of work)**
+- Manually delete all imported domains/adlists from the web interface  (might be a lot of work)
+- Wipe all adlists and domains (not recommended but fast - use this if you want to start fresh)
 	- backup default lists and custom entries (write them down somewhere, do not use the Teleporter)
 	- run the following commands:
 	```bash
-	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM `adlist`"
-	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM `domainlist`"
+	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM adlist"
+	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist"
 	```
+    - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
 
 ### Configuration
 
@@ -75,7 +82,7 @@ sudo nano /etc/pihole-updatelists.conf
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
 | COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script |
-| GROUP_ID | 0 | All inserted adlists and domains will have this additional group ID assigned (`0` is the default group to which all entries are added anyway) |
+| GROUP_ID | 0 | All inserted adlists and domains will have this additional group ID assigned (`0` is the default group to which all entries are added no matter what) |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`, when disabled will invoke lists reload instead) |
 | VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) |
@@ -152,14 +159,12 @@ ExecStartPost=echo "after"
 
 ### Changing comment value after running the script
 
-Replace `NEWCOMMENT` with your new desired comment value.
-
-_This assumes `Managed by pihole-updatelists` is the old comment value, replace it with your custom value when needed._
-
 ```bash
-sudo sqlite3 /etc/pihole/gravity.db "UPDATE `adlist` SET `comment` = 'NEWCOMMENT' WHERE `comment` LIKE '%Managed by pihole-updatelists%'"
-sudo sqlite3 /etc/pihole/gravity.db "UPDATE `domainlist` SET `comment` = 'NEWCOMMENT' WHERE `comment` LIKE '%Managed by pihole-updatelists%'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE adlist SET comment = 'NEWCOMMENT' WHERE comment LIKE '%Managed by pihole-updatelists%'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE domainlist SET comment = 'NEWCOMMENT' WHERE comment LIKE '%Managed by pihole-updatelists%'"
 ```
+
+Replace `NEWCOMMENT` with your new desired comment value. This assumes `Managed by pihole-updatelists` is the old comment value, replace it with your old custom value when needed.
 
 ## License
 
