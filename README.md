@@ -2,11 +2,11 @@
 
 When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) or [this](https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt) it's a hassle to manually check for changes and update, this script will do that for you.
 
-Entries that were removed from the remote list will be disabled instead of removed, this is to prevent database corruption.
+This script will not touch user-created entries, entries that were removed from the remote list will be disabled instead of removed.
 
 ### Requirements
 
-- Pi-hole v5+ installed
+- Pi-hole v5+ installed (fresh install preferred)
 - php-cli >=7.0 and sqlite3 extension (`sudo apt install php-cli php-sqlite3`)
 - systemd distro is optional but recommended
 
@@ -19,8 +19,6 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 ```
 
 Alternatively you can clone this repo and `sudo bash ./install.sh`.
-
-When configuration file already exists this script will not overwrite it so it's safe to update at any time.
 
 In the future to quickly update the script you can use `sudo pihole-updatelists --update`.
 
@@ -35,6 +33,29 @@ Put a `#` before this line (numbers might be different):
 ```
 
 You might have to do this after each Pi-hole update.
+
+#### Migrating lists and domains
+
+It is recommended to install this on a fresh Pi-hole install, if you already used it for a while or imported any of the remote lists manually it will still work fine except it won't be able to disable entries that got removed from the remote lists.
+
+If you used [pihole5-list-tool](https://github.com/jessedp/pihole5-list-tool) to import adlists and whitelist you can use this commands to fix this quickly:
+```bash
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE `adlist` SET `comment` = 'Managed by pihole-updatelists' WHERE `comment` LIKE '%Firebog |%'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE `domainlist` SET `comment` = 'Managed by pihole-updatelists' WHERE `comment` LIKE '%AndeepND |%'"
+```
+_(code up to date as of pihole5-list-tool 0.5.0)_
+
+Alternatively, some manual work is required - pick one:
+
+- Manually modify comment field of all imported domains to match the one this script uses (see `COMMENT` variable in **Configuration** section)  **(recommended but might be a lot of work)**
+- Manually delete all imported domains from the web interface  (might be a lot of work)
+- Wipe all lists and domains: (not recommended but fast - use this if you want to start fresh)
+	- backup default lists and custom entries (write them down somewhere, do not use the Teleporter)
+	- run the following commands:
+	```bash
+	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM `adlist`"
+	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM `domainlist`"
+	```
 
 ### Configuration
 
@@ -119,7 +140,6 @@ OnCalendar=Sat *-*-* 00:00:00
 
 Override [service unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html) file:
 
-
 ```bash
 sudo systemctl edit pihole-updatelists.service
 ```
@@ -128,6 +148,17 @@ sudo systemctl edit pihole-updatelists.service
 Type=oneshot
 ExecStartPre=echo "before"
 ExecStartPost=echo "after"
+```
+
+### Changing comment value after running the script
+
+Replace `NEWCOMMENT` with your new desired comment value.
+
+_This assumes `Managed by pihole-updatelists` is the old comment value, replace it with your custom value when needed._
+
+```bash
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE `adlist` SET `comment` = 'NEWCOMMENT' WHERE `comment` LIKE '%Managed by pihole-updatelists%'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE `domainlist` SET `comment` = 'NEWCOMMENT' WHERE `comment` LIKE '%Managed by pihole-updatelists%'"
 ```
 
 ## License
