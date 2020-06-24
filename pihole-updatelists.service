@@ -6,3 +6,4 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/local/sbin/pihole-updatelists
+TimeoutStartSec=infinity
