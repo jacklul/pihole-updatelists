@@ -78,7 +78,7 @@ sudo nano /etc/pihole-updatelists.conf
 | GROUP_ID | 0 | All inserted adlists and domains will have this additional group ID assigned (`0` is the default group to which all entries are added anyway) |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`, when disabled will invoke lists reload instead) |
-| VACUUM_DATABASE | true | Vacuum database at the end? (runs `VACUUM` SQLite command) |
+| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) |
 | VERBOSE | false | Print more information while script is running? |
 | DEBUG | false | Print even more information for debugging purposes |
 | DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up (you should increase this when downloads fail) | 
