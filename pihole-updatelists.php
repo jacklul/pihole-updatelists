@@ -343,23 +343,32 @@ function registerPDOLogger()
  * @param string $text
  *
  * @return array
+ *
+ * @noinspection OnlyWritesOnParameterInspection
  */
 function textToArray($text)
 {
+    global $comments;
+
     $array = preg_split('/\r\n|\r|\n/', $text);
+    $comments = [];
 
     foreach ($array as $var => &$val) {
         // Ignore empty lines and those with only a comment
         if (empty($val) || strpos(trim($val), '#') === 0) {
             unset($array[$var]);
+            continue;
         }
+
+        $comment = '';
 
         // Extract value from lines ending with comment
         if (preg_match('/^(.*)\s+#\s*(\S.*)$/U', $val, $matches)) {
-            $val = $matches[1];
+            list(, $val, $comment) = $matches;
         }
 
         $val = trim($val);
+        $comments[$val] = trim($comment);
     }
     unset($val);
 
@@ -827,7 +836,12 @@ if (!empty($config['ADLISTS_URL'])) {
             if ($adlistUrl === false) {     // Add entry if it doesn't exist
                 $sth = $dbh->prepare('INSERT INTO `adlist` (address, enabled, comment) VALUES (:address, 1, :comment)');
                 $sth->bindParam(':address', $address, PDO::PARAM_STR);
-                $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
+
+                if (isset($comments[$address])) {
+                    $sth->bindValue(':comment', $comments[$address] . ' | ' . $config['COMMENT'], PDO::PARAM_STR);
+                } else {
+                    $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
+                }
 
                 if ($sth->execute()) {
                     $lastInsertId = $dbh->lastInsertId();
@@ -1060,7 +1074,12 @@ foreach ($domainListTypes as $typeName => $typeId) {
                     $sth = $dbh->prepare('INSERT INTO `domainlist` (domain, type, enabled, comment) VALUES (:domain, :type, 1, :comment)');
                     $sth->bindParam(':domain', $domain, PDO::PARAM_STR);
                     $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
-                    $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
+
+                    if (isset($comments[$domain])) {
+                        $sth->bindValue(':comment', $comments[$domain] . ' | ' . $config['COMMENT'], PDO::PARAM_STR);
+                    } else {
+                        $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
+                    }
 
                     if ($sth->execute()) {
                         $lastInsertId = $dbh->lastInsertId();
