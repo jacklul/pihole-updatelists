@@ -82,7 +82,7 @@ sudo nano /etc/pihole-updatelists.conf
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
 | COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script |
-| GROUP_ID | 0 | All inserted adlists and domains will have this additional group ID assigned (`0` is the default group to which all entries are added no matter what) |
+| GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group make the number negative, `0` is the default group |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`, when disabled will invoke lists reload instead) |
 | VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) |

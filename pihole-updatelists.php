@@ -205,8 +205,8 @@ function validateConfig($config)
         exit(1);
     }
 
-    if (!is_int($config['GROUP_ID']) || $config['GROUP_ID'] < 0) {
-        printAndLog('Variable GROUP_ID must be a number higher or equal zero!' . PHP_EOL, 'ERROR');
+    if (!is_int($config['GROUP_ID'])) {
+        printAndLog('Variable GROUP_ID must be a number!' . PHP_EOL, 'ERROR');
         exit(1);
     }
 }
@@ -691,12 +691,12 @@ $dbh = openDatabase($config['GRAVITY_DB'], true, $config['DEBUG']);
 print PHP_EOL;
 
 // Make sure group exists
-if ($config['GROUP_ID'] > 0) {
+if (($absoluteGroupId = abs($config['GROUP_ID'])) > 0) {
     $sth = $dbh->prepare('SELECT `id` FROM `group` WHERE `id` = :id');
-    $sth->bindParam(':id', $config['GROUP_ID'], PDO::PARAM_INT);
+    $sth->bindParam(':id', $absoluteGroupId, PDO::PARAM_INT);
 
     if ($sth->execute() && $sth->fetch(PDO::FETCH_ASSOC) === false) {
-        printAndLog('Group with ID=' . $config['GROUP_ID'] . ' does not exist!' . PHP_EOL, 'ERROR');
+        printAndLog('Group with ID=' . $absoluteGroupId . ' does not exist!' . PHP_EOL, 'ERROR');
         exit(1);
     }
 }
@@ -839,11 +839,18 @@ if (!empty($config['ADLISTS_URL'])) {
                         'comment' => $config['COMMENT'],
                     ];
 
-                    if ($config['GROUP_ID'] > 0) {      // Assign to group ID
+                    if ($absoluteGroupId > 0) {      // Add to the specified group
                         $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
                         $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
-                        $sth->bindParam(':group_id', $config['GROUP_ID'], PDO::PARAM_INT);
+                        $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
                         $sth->execute();
+
+                        if ($config['GROUP_ID'] < 0) {      // Remove from the default group
+                            $sth = $dbh->prepare('DELETE FROM `adlist_by_group` WHERE adlist_id = :adlist_id AND group_id = :group_id');
+                            $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
+                            $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                            $sth->execute();
+                        }
                     }
 
                     printAndLog('Inserted: ' . $address . PHP_EOL);
@@ -1066,11 +1073,18 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             'comment' => $config['COMMENT'],
                         ];
 
-                        if ($config['GROUP_ID'] > 0) {      // Assign to group ID
-                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
+                        if ($absoluteGroupId > 0) {      // Add to the specified group
+                           $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
                             $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
-                            $sth->bindParam(':group_id', $config['GROUP_ID'], PDO::PARAM_INT);
+                            $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
                             $sth->execute();
+
+                            if ($config['GROUP_ID'] < 0) {      // Remove from the default group
+                                $sth = $dbh->prepare('DELETE FROM `domainlist_by_group` WHERE domainlist_id = :domainlist_id AND group_id = :group_id');
+                                $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
+                                $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                                $sth->execute();
+                            }
                         }
 
                         printAndLog('Inserted: ' . $domain . PHP_EOL);
