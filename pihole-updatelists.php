@@ -10,7 +10,6 @@
 
 define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists');
 define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists/master');
-define('FTL_BINARY', '/usr/bin/pihole-FTL');
 
 /**
  * Check for required stuff
@@ -201,8 +200,8 @@ function loadConfig($options = [])
  */
 function validateConfig($config)
 {
-    if (empty($config['COMMENT']) || strlen($config['COMMENT']) < 3) {
-        printAndLog('Variable COMMENT must be a string at least 3 characters long!' . PHP_EOL, 'ERROR');
+    if ($config['COMMENT'] === '') {
+        printAndLog('Variable COMMENT must be a string at least 1 characters long!' . PHP_EOL, 'ERROR');
         exit(1);
     }
 
@@ -368,7 +367,7 @@ function textToArray($text)
         }
 
         $val = trim($val);
-        $comments[$val] = trim($comment);
+        !empty($comment) && $comments[$val] = trim($comment);
     }
     unset($val);
 
@@ -837,11 +836,11 @@ if (!empty($config['ADLISTS_URL'])) {
                 $sth = $dbh->prepare('INSERT INTO `adlist` (address, enabled, comment) VALUES (:address, 1, :comment)');
                 $sth->bindParam(':address', $address, PDO::PARAM_STR);
 
+                $comment = $config['COMMENT'];
                 if (isset($comments[$address])) {
-                    $sth->bindValue(':comment', $comments[$address] . ' | ' . $config['COMMENT'], PDO::PARAM_STR);
-                } else {
-                    $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
+                    $comment = $comments[$address] . ($comment !== '' ? ' | ' . $comment : '');
                 }
+                $sth->bindParam(':comment', $comment, PDO::PARAM_STR);
 
                 if ($sth->execute()) {
                     $lastInsertId = $dbh->lastInsertId();
@@ -851,7 +850,7 @@ if (!empty($config['ADLISTS_URL'])) {
                         'id'      => $lastInsertId,
                         'address' => $address,
                         'enabled' => true,
-                        'comment' => $config['COMMENT'],
+                        'comment' => $comment,
                     ];
 
                     if ($absoluteGroupId > 0) {      // Add to the specified group
@@ -1075,11 +1074,11 @@ foreach ($domainListTypes as $typeName => $typeId) {
                     $sth->bindParam(':domain', $domain, PDO::PARAM_STR);
                     $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
+                    $comment = $config['COMMENT'];
                     if (isset($comments[$domain])) {
-                        $sth->bindValue(':comment', $comments[$domain] . ' | ' . $config['COMMENT'], PDO::PARAM_STR);
-                    } else {
-                        $sth->bindParam(':comment', $config['COMMENT'], PDO::PARAM_STR);
+                        $comment = $comments[$domain] . ($comment !== '' ? ' | ' . $comment : '');
                     }
+                    $sth->bindParam(':comment', $comment, PDO::PARAM_STR);
 
                     if ($sth->execute()) {
                         $lastInsertId = $dbh->lastInsertId();
@@ -1090,7 +1089,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             'domain'  => $domain,
                             'type'    => $typeId,
                             'enabled' => true,
-                            'comment' => $config['COMMENT'],
+                            'comment' => $comment,
                         ];
 
                         if ($absoluteGroupId > 0) {      // Add to the specified group
@@ -1210,35 +1209,31 @@ if ($config['VACUUM_DATABASE'] === true) {
 
 // Sends signal to pihole-FTl to reload lists
 if ($config['UPDATE_GRAVITY'] === false) {
-    if (file_exists(FTL_BINARY)) {
-        printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
+    printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
 
-        exec('pidof ' . basename(FTL_BINARY) . ' 2>/dev/null', $return);
-        if (isset($return[0])) {
-            $pid = $return[0];
+    exec('pidof pihole-FTL 2>/dev/null', $return);
+    if (isset($return[0])) {
+        $pid = $return[0];
 
-            if (strpos($pid, ' ') !== false) {
-                $pid = explode(' ', $pid);
-                $pid = $pid[count($pid) - 1];
-            }
+        if (strpos($pid, ' ') !== false) {
+            $pid = explode(' ', $pid);
+            $pid = $pid[count($pid) - 1];
+        }
 
-            if (!defined('SIGRTMIN')) {
-                $config['DEBUG'] === true && printAndLog('Signal SIGRTMIN is not defined!' . PHP_EOL, 'DEBUG');
-                define('SIGRTMIN', 34);
-            }
+        if (!defined('SIGRTMIN')) {
+            $config['DEBUG'] === true && printAndLog('Signal SIGRTMIN is not defined!' . PHP_EOL, 'DEBUG');
+            define('SIGRTMIN', 34);
+        }
 
-            if (posix_kill($pid, SIGRTMIN)) {
-                printAndLog(' done' . PHP_EOL);
-            } else {
-                printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
-                $stat['errors']++;
-            }
+        if (posix_kill($pid, SIGRTMIN)) {
+            printAndLog(' done' . PHP_EOL);
         } else {
-            printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
+            printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
             $stat['errors']++;
         }
     } else {
-        printAndLog('Pi-hole FTL binary not found - unable to send reload signal!' . PHP_EOL, 'ERROR');
+        printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
+        $stat['errors']++;
     }
 
     print PHP_EOL;
