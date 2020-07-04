@@ -348,8 +348,14 @@ function textToArray($text)
     $array = preg_split('/\r\n|\r|\n/', $text);
 
     foreach ($array as $var => &$val) {
+        // Ignore empty lines and those with only a comment
         if (empty($val) || strpos(trim($val), '#') === 0) {
             unset($array[$var]);
+        }
+
+        // Extract value from lines ending with comment
+        if (preg_match('/^(.*)\s+#\s*(\S.*)$/U', $val, $matches)) {
+            $val = $matches[1];
         }
 
         $val = trim($val);
