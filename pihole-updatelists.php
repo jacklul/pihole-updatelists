@@ -10,6 +10,7 @@
 
 define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists');
 define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists/master');
+define('FTL_BINARY', '/usr/bin/pihole-FTL');
 
 /**
  * Check for required stuff
@@ -1190,31 +1191,35 @@ if ($config['VACUUM_DATABASE'] === true) {
 
 // Sends signal to pihole-FTl to reload lists
 if ($config['UPDATE_GRAVITY'] === false) {
-    if (!defined('SIGRTMIN')) {
-        $config['DEBUG'] === true && printAndLog('Signal SIGRTMIN is not defined!' . PHP_EOL, 'DEBUG');
-        define('SIGRTMIN', 34);
-    }
+    if (file_exists(FTL_BINARY)) {
+        printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
 
-    printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
+        exec('pidof ' . basename(FTL_BINARY) . ' 2>/dev/null', $return);
+        if (isset($return[0])) {
+            $pid = $return[0];
 
-    exec('pidof pihole-FTL 2>/dev/null', $return);
-    if (isset($return[0])) {
-        $pid = $return[0];
+            if (strpos($pid, ' ') !== false) {
+                $pid = explode(' ', $pid);
+                $pid = $pid[count($pid) - 1];
+            }
 
-        if (strpos($pid, ' ') !== false) {
-            $pid = explode(' ', $pid);
-            $pid = $pid[count($pid) - 1];
-        }
+            if (!defined('SIGRTMIN')) {
+                $config['DEBUG'] === true && printAndLog('Signal SIGRTMIN is not defined!' . PHP_EOL, 'DEBUG');
+                define('SIGRTMIN', 34);
+            }
 
-        if (posix_kill($pid, SIGRTMIN)) {
-            printAndLog(' done' . PHP_EOL);
+            if (posix_kill($pid, SIGRTMIN)) {
+                printAndLog(' done' . PHP_EOL);
+            } else {
+                printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
+                $stat['errors']++;
+            }
         } else {
-            printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
+            printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
             $stat['errors']++;
         }
     } else {
-        printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
-        $stat['errors']++;
+        printAndLog('Pi-hole FTL binary not found - unable to send reload signal!' . PHP_EOL, 'ERROR');
     }
 
     print PHP_EOL;
