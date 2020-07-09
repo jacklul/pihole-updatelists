@@ -14,7 +14,7 @@ Without **systemd** you will have to take care of scheduled run of this script y
 
 ### Install
 
-This will install this script globally as `pihole-updatelists` and add systemd service and timer.
+This command will install this script globally as `pihole-updatelists` and add systemd service and timer:
 
 ```bash
 wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
@@ -22,7 +22,7 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 
 Alternatively you can clone this repo and `sudo bash ./install.sh`.
 
-In the future to quickly update the script you can use `sudo pihole-updatelists --update`.
+**In the future to quickly update the script you can use `sudo pihole-updatelists --update`.**
 
 #### Disable default gravity update schedule
 
@@ -81,7 +81,7 @@ sudo nano /etc/pihole-updatelists.conf
 | REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
-| COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script |
+| COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script (you can still add your own comments to individual entries as long you keep this string intact) |
 | GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group make the number negative, `0` is the default group |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`, when disabled will invoke lists reload instead) |
@@ -166,6 +166,18 @@ sudo sqlite3 /etc/pihole/gravity.db "UPDATE domainlist SET comment = 'NEWCOMMENT
 ```
 
 Replace `NEWCOMMENT` with your new desired comment value. This assumes `Managed by pihole-updatelists` is the old comment value, replace it with your old custom value when needed.
+
+### Custom comments for entries
+
+If you wish to add custom comments to entries you can use the following file syntax:
+
+```
+example-domain.com # your comment
+```
+
+Which will cause `example-domain.com` to have `comment` set to `your comment | Managed by pihole-updatelists`.
+
+You can also add your comments directly through the Pi-hole's web interface by either appending or prepending the comment field for entries.
 
 ## License
 
