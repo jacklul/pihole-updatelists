@@ -69,6 +69,7 @@ function printHelp()
     $help[] = '  --verbose, -v                - Turn on verbose mode';
     $help[] = '  --debug, -d                  - Turn on debug mode';
     $help[] = '  --update, -u                 - Update the script';
+    $help[] = '  --version, -v                - Check script version checksum';
 
     print implode(PHP_EOL, $help) . PHP_EOL . PHP_EOL;
 }
@@ -86,6 +87,7 @@ function parseOptions()
         'v',
         'd',
         'u',
+        'v',
     ];
     $long = [
         'help',
@@ -95,6 +97,7 @@ function parseOptions()
         'verbose',
         'debug',
         'update',
+        'version',
     ];
 
     $options = getopt(implode('', $short), $long);
@@ -114,6 +117,11 @@ function parseOptions()
 
     if (isset($options['update'])) {
         updateScript();
+        exit;
+    }
+
+    if (isset($options['version'])) {
+        printVersion();
         exit;
     }
 
@@ -524,6 +532,31 @@ function updateScript()
     }
 
     print 'Updated successfully!' . PHP_EOL;
+}
+
+/**
+ * Check local and remote version and print it
+ */
+function printVersion()
+{
+    global $remoteScript;
+
+    print 'Local checksum: ' . md5_file(__FILE__) . PHP_EOL;
+
+    $updateCheck = isUpToDate();
+    print 'Remote checksum: ' . md5($remoteScript) . PHP_EOL;
+
+    if ($updateCheck === true) {
+        print 'The script is up to date!' . PHP_EOL;
+        exit;
+    }
+
+    if ($updateCheck === null) {
+        print 'Failed to check remote script: ' . parseLastError() . PHP_EOL;
+        exit(1);
+    }
+
+    print 'Update is available!' . PHP_EOL;
 }
 
 /**

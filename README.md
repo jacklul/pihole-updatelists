@@ -128,6 +128,7 @@ If one of the lists fails to download nothing will be affected for that list typ
 | --verbose, -v | Turn on verbose mode (affects log) |
 | --debug, -d  | Turn on debug mode (affects log) |
 | --update, -u  | Update the script - compares local script with the one in the repository and overwrites it if they are different |
+| --version, -v  | Check script version checksum (and also if update is available) |
 
 ### Changing the schedule
 
