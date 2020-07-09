@@ -62,14 +62,14 @@ function printHelp()
     printHeader();
 
     $help[] = ' Options: ';
-    $help[] = '  --help, -h                   - This help message';
-    $help[] = '  --config=[FILE], -c=[FILE]   - Load alternative configuration file';
-    $help[] = '  --no-gravity, -n             - Force no gravity update';
-    $help[] = '  --no-vacuum, -m              - Force no database vacuuming';
-    $help[] = '  --verbose, -v                - Turn on verbose mode';
-    $help[] = '  --debug, -d                  - Turn on debug mode';
-    $help[] = '  --update                     - Update the script';
-    $help[] = '  --version                    - Check script version checksum';
+    $help[] = '  --help, -h        - This help message';
+    $help[] = '  --no-gravity, -n  - Force no gravity update';
+    $help[] = '  --no-vacuum, -m   - Force no database vacuuming';
+    $help[] = '  --verbose, -v     - Turn on verbose mode';
+    $help[] = '  --debug, -d       - Turn on debug mode';
+    $help[] = '  --config=[FILE]   - Load alternative configuration file';
+    $help[] = '  --update          - Update the script';
+    $help[] = '  --version         - Check script version checksum';
 
     print implode(PHP_EOL, $help) . PHP_EOL . PHP_EOL;
 }
@@ -79,49 +79,121 @@ function printHelp()
  */
 function parseOptions()
 {
-    $short = [
-        'h',
-        'c::',
-        'n',
-        'm',
-        'v',
-        'd',
-        null,
-        null,
-    ];
-    $long = [
-        'help',
-        'config::',
-        'no-gravity',
-        'no-vacuum',
-        'verbose',
-        'debug',
-        'update',
-        'version',
+    $optionsList = [
+        'help' => [
+            'long' => 'help',
+            'short' => 'h',
+            'function' => 'printHelp',
+        ],
+        'no-gravity' => [
+            'long' => 'no-gravity',
+            'short' => 'n',
+        ],
+        'no-vacuum' => [
+            'long' => 'no-vacuum',
+            'short' => 'm',
+        ],
+        'verbose' => [
+            'long' => 'verbose',
+            'short' => 'v',
+        ],
+        'debug' => [
+            'long' => 'debug',
+            'short' => 'd',
+        ],
+        'config' => [
+            'long' => 'config::',
+        ],
+        'update' => [
+            'long' => 'update',
+            'function' => 'updateScript',
+        ],
+        'version' => [
+            'long' => 'version',
+            'function' => 'printVersion',
+        ],
     ];
 
-    $options = getopt(implode('', $short), $long);
+    $shortOpts = [];
+    $longOpts = [];
+    foreach ($optionsList as $i => $data) {
+        if (isset($data['long'])) {
+            if (in_array($data['long'], $longOpts)) {
+                throw new RuntimeException('Unable to define long option because it is already defined: ' . $data['long']);
+            }
 
-    // If short is used set the long one
-    for ($i = 0, $iMax = count($short); $i < $iMax; $i++) {
-        if ($short[$i] !== null && isset($options[$short[$i]])) {
-            $options[$long[$i]] = $options[$short[$i]];
-            unset($options[$short[$i]]);
+            $longOpts[] = $data['long'];
+        }
+        
+        if (isset($data['short'])) {
+            if (in_array($data['short'], $longOpts)) {
+                throw new RuntimeException('Unable to define short option because it is already defined: ' . $data['short']);
+            }
+            
+            $shortOpts[] = $data['short'];
         }
     }
 
-    if (isset($options['help'])) {
-        printHelp();
-        exit;
+    $options = getopt(implode('', $shortOpts), $longOpts);
+
+    // If short is used set the long one
+    foreach ($options as $option => $data) {
+        foreach ($optionsList as $optionsListIndex => $optionsListData) {
+            if (
+                isset($optionsListData['short']) && $optionsListData['short'] === $option ||
+                isset($optionsListData['long']) && $optionsListData['long'] === $option
+            ) {
+                if (isset($optionsListData['short']) && $optionsListData['short'] === $option) {
+                    $options[$optionsListData['long']] = $data;
+
+                    unset($options[$option]);
+                }
+
+                // Fire off the function if it is defined for this option
+                if (!isset($runFunction) && isset($optionsListData['function']) && function_exists($optionsListData['function'])) {
+                    $runFunction = $optionsListData['function'];
+                }
+            }
+        }
     }
 
-    if (isset($options['update'])) {
-        updateScript();
-        exit;
+    global $argv;
+    unset($argv[0]); // Remove path to self
+
+    // Remove recognized options from argv[]
+    foreach ($options as $option => $data) {
+        $result = array_filter($argv, function($el) use ($option) {
+            return strpos($el, $option) !== false;
+        });
+
+        if (!empty($result)) {
+            unset($argv[key($result)]);
+        }
+        
+        if (isset($optionsList[$option]['short'])) {
+            $shortOption = $optionsList[$option]['short'];
+
+            $result = array_filter($argv, function($el) use ($shortOption) {
+                return strpos($el, $shortOption) !== false;
+            });
+
+            if (!empty($result)) {
+                $argv[key($result)] = str_replace($shortOption, '', $argv[key($result)]);
+                
+                if ($argv[key($result)] === '-') {
+                    unset($argv[key($result)]);
+                }
+            }
+        }
     }
 
-    if (isset($options['version'])) {
-        printVersion();
+    if (count($argv) > 0) {
+        print 'Unrecognized option(s): ' . implode(' ', $argv). PHP_EOL;
+        exit(1);
+    }
+
+    if (isset($runFunction)) {
+        $runFunction();
         exit;
     }
 
