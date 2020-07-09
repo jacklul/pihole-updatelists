@@ -122,14 +122,14 @@ If one of the lists fails to download nothing will be affected for that list typ
 
 | Option | Description |
 |----------|-------------|
-| -help, -h | Show help message, which is simply this list |
-| --config=[FILE], -c=[FILE] | Load alternative configuration file |
+| --help, -h | Show help message, which is simply this list |
 | --no-gravity, -n | Force gravity update to be skipped |
 | --no-vacuum, -m | Force database vacuuming to be skipped |
 | --verbose, -v | Turn on verbose mode (affects log) |
 | --debug, -d  | Turn on debug mode (affects log) |
-| --update, -u  | Update the script - compares local script with the one in the repository and overwrites it if they are different |
-| --version, -v  | Check script version checksum (and also if update is available) |
+| --config=[FILE] | Load alternative configuration file |
+| --update | Update the script - compares local script with the one in the repository and overwrites it if they are different |
+| --version | Check script version checksum (and also if update is available) |
 
 ### Changing the schedule
 

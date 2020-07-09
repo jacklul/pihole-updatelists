@@ -17,7 +17,7 @@ define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-upda
 function checkDependencies()
 {
     // Do not run on PHP lower than 7.0
-    if ((float)PHP_VERSION < 7.0) {
+    if ((float) PHP_VERSION < 7.0) {
         printAndLog('Minimum PHP 7.0 is required to run this script!' . PHP_EOL, 'ERROR');
         exit(1);
     }
@@ -68,8 +68,8 @@ function printHelp()
     $help[] = '  --no-vacuum, -m              - Force no database vacuuming';
     $help[] = '  --verbose, -v                - Turn on verbose mode';
     $help[] = '  --debug, -d                  - Turn on debug mode';
-    $help[] = '  --update, -u                 - Update the script';
-    $help[] = '  --version, -v                - Check script version checksum';
+    $help[] = '  --update                     - Update the script';
+    $help[] = '  --version                    - Check script version checksum';
 
     print implode(PHP_EOL, $help) . PHP_EOL . PHP_EOL;
 }
@@ -86,8 +86,8 @@ function parseOptions()
         'm',
         'v',
         'd',
-        'u',
-        'v',
+        null,
+        null,
     ];
     $long = [
         'help',
@@ -263,7 +263,7 @@ function openDatabase($db_file, $verbose = true, $debug = false)
 {
     $dbh = new PDO('sqlite:' . $db_file);
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $dbh->exec('PRAGMA foreign_keys = ON;');   // Require foreign key constraints
+    $dbh->exec('PRAGMA foreign_keys = ON;'); // Require foreign key constraints
 
     if ($debug) {
         !class_exists('LoggedPDOStatement') && registerPDOLogger();
@@ -286,7 +286,7 @@ function registerPDOLogger()
     class LoggedPDOStatement extends PDOStatement
     {
         private $queryParameters = [];
-        private $parsedQuery = '';
+        private $parsedQuery     = '';
 
         public function bindValue($parameter, $value, $data_type = PDO::PARAM_STR): bool
         {
@@ -328,10 +328,10 @@ function registerPDOLogger()
                         $value = '"' . $data['value'] . '"';
                         break;
                     case PDO::PARAM_INT:
-                        $value = (int)$data['value'];
+                        $value = (int) $data['value'];
                         break;
                     case PDO::PARAM_BOOL:
-                        $value = (bool)$data['value'];
+                        $value = (bool) $data['value'];
                         break;
                     default:
                         $value = null;
@@ -358,7 +358,7 @@ function textToArray($text)
 {
     global $comments;
 
-    $array = preg_split('/\r\n|\r|\n/', $text);
+    $array    = preg_split('/\r\n|\r|\n/', $text);
     $comments = [];
 
     foreach ($array as $var => &$val) {
@@ -375,7 +375,7 @@ function textToArray($text)
             list(, $val, $comment) = $matches;
         }
 
-        $val = trim($val);
+        $val                                = trim($val);
         !empty($comment) && $comments[$val] = trim($comment);
     }
     unset($val);
@@ -394,8 +394,8 @@ function formatBytes($bytes, $precision = 2)
     $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
     $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-    $pow = min($pow, count($units) - 1);
+    $pow   = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow   = min($pow, count($units) - 1);
     $bytes /= (1 << (10 * $pow));
 
     return round($bytes, $precision) . ' ' . $units[$pow];
@@ -408,11 +408,11 @@ function printHeader()
 {
     $header[] = 'Pi-hole\'s Lists Updater by Jack\'lul';
     $header[] = GITHUB_LINK;
-    $offset = ' ';
+    $offset   = ' ';
 
     $maxLen = 0;
     foreach ($header as $string) {
-        $strlen = strlen($string);
+        $strlen                      = strlen($string);
         $strlen > $maxLen && $maxLen = $strlen;
     }
 
@@ -491,7 +491,7 @@ function fetchRemoteScript()
  */
 function isUpToDate()
 {
-    $md5Self = md5_file(__FILE__);
+    $md5Self      = md5_file(__FILE__);
     $remoteScript = fetchRemoteScript();
 
     if ($remoteScript === false) {
@@ -517,7 +517,7 @@ function updateScript()
     }
 
     if ($updateCheck === null) {
-        print 'Failed to check remote script: ' . parseLastError(). PHP_EOL;
+        print 'Failed to check remote script: ' . parseLastError() . PHP_EOL;
         exit(1);
     }
 
@@ -618,7 +618,7 @@ function printAndLog($str, $severity = 'INFO', $logOnly = false)
         $flags = FILE_APPEND;
 
         if (strpos($config['LOG_FILE'], '-') === 0) {
-            $flags = 0;
+            $flags              = 0;
             $config['LOG_FILE'] = substr($config['LOG_FILE'], 1);
         }
 
@@ -665,13 +665,13 @@ function shutdownCleanup()
 
 /** PROCEDURAL CODE STARTS HERE */
 $startTime = microtime(true);
-checkDependencies();    // Check script requirements
-$options = parseOptions();   // Parse arguments
-$config = loadConfig($options);     // Load config and process variables
+checkDependencies(); // Check script requirements
+$options = parseOptions(); // Parse arguments
+$config  = loadConfig($options); // Load config and process variables
 
 // Exception handler, always log detailed information
 set_exception_handler(
-    static function (Exception $e) use (&$config) {
+    function (Exception $e) use (&$config) {
         if ($config['DEBUG'] === false) {
             print 'Exception: ' . $e->getMessage() . PHP_EOL;
         }
@@ -681,17 +681,17 @@ set_exception_handler(
     }
 );
 
-$lock = acquireLock($config['LOCK_FILE'], $config['DEBUG']);  // Make sure this is the only instance
-register_shutdown_function('shutdownCleanup');  // Cleanup when script finishes
+$lock = acquireLock($config['LOCK_FILE'], $config['DEBUG']); // Make sure this is the only instance
+register_shutdown_function('shutdownCleanup'); // Cleanup when script finishes
 
 // Handle script interruption / termination
 if (function_exists('pcntl_signal')) {
-    declare(ticks=1);
+    declare (ticks = 1);
 
     function signalHandler($signo)
     {
         $definedConstants = get_defined_constants(true);
-        $signame = null;
+        $signame          = null;
 
         if (isset($definedConstants['pcntl'])) {
             foreach ($definedConstants['pcntl'] as $name => $num) {
@@ -753,7 +753,8 @@ $checkIfTouchable = static function ($array) use (&$config) {
 $streamContext = stream_context_create(
     [
         'http' => [
-            'timeout' => $config['DOWNLOAD_TIMEOUT'],
+            'timeout'    => $config['DOWNLOAD_TIMEOUT'],
+            'user_agent' => 'Pi-hole\'s Lists Updater (' . preg_replace('#^https?://#', '', rtrim(GITHUB_LINK, '/')) . ')',
         ],
     ]
 );
@@ -763,8 +764,8 @@ if (!empty($config['ADLISTS_URL'])) {
     $multipleLists = false;
 
     if (preg_match('/\s+/', trim($config['ADLISTS_URL']))) {
+        $adlistsUrl    = preg_split('/\s+/', $config['ADLISTS_URL']);
         $multipleLists = true;
-        $adlistsUrl = preg_split('/\s+/', $config['ADLISTS_URL']);
 
         $contents = '';
         foreach ($adlistsUrl as $url) {
@@ -837,7 +838,7 @@ if (!empty($config['ADLISTS_URL'])) {
 
         // Entries that no longer exist in remote list
         $removedLists = array_diff($enabledLists, $adlists);
-        foreach ($removedLists as $id => $address) {        // Disable entries instead of removing them
+        foreach ($removedLists as $id => $address) { // Disable entries instead of removing them
             $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id');
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
@@ -874,7 +875,7 @@ if (!empty($config['ADLISTS_URL'])) {
             }
 
             $adlistUrl = $checkAdlistExists($address);
-            if ($adlistUrl === false) {     // Add entry if it doesn't exist
+            if ($adlistUrl === false) { // Add entry if it doesn't exist
                 $sth = $dbh->prepare('INSERT INTO `adlist` (address, enabled, comment) VALUES (:address, 1, :comment)');
                 $sth->bindParam(':address', $address, PDO::PARAM_STR);
 
@@ -895,13 +896,13 @@ if (!empty($config['ADLISTS_URL'])) {
                         'comment' => $comment,
                     ];
 
-                    if ($absoluteGroupId > 0) {      // Add to the specified group
+                    if ($absoluteGroupId > 0) { // Add to the specified group
                         $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
                         $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
                         $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
                         $sth->execute();
 
-                        if ($config['GROUP_ID'] < 0) {      // Remove from the default group
+                        if ($config['GROUP_ID'] < 0) { // Remove from the default group
                             $sth = $dbh->prepare('DELETE FROM `adlist_by_group` WHERE adlist_id = :adlist_id AND group_id = :group_id');
                             $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
                             $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
@@ -912,8 +913,8 @@ if (!empty($config['ADLISTS_URL'])) {
                     printAndLog('Inserted: ' . $address . PHP_EOL);
                 }
             } else {
-                $isTouchable = $checkIfTouchable($adlistUrl);
-                $adlistUrl['enabled'] = (bool)$adlistUrl['enabled'] === true;
+                $isTouchable          = $checkIfTouchable($adlistUrl);
+                $adlistUrl['enabled'] = (bool) $adlistUrl['enabled'] === true;
 
                 // Enable existing entry but only if it's managed by this script
                 if ($adlistUrl['enabled'] !== true && $isTouchable === true) {
@@ -925,7 +926,7 @@ if (!empty($config['ADLISTS_URL'])) {
 
                         printAndLog('Enabled: ' . $address . PHP_EOL);
                     }
-                } elseif ($config['VERBOSE'] === true) {        // Show other entry states only in verbose mode
+                } elseif ($config['VERBOSE'] === true) { // Show other entry states only in verbose mode
                     if ($adlistUrl['enabled'] !== false && $isTouchable === true) {
                         printAndLog('Exists: ' . $address . PHP_EOL);
                     } elseif ($isTouchable === false) {
@@ -938,7 +939,7 @@ if (!empty($config['ADLISTS_URL'])) {
         $dbh->commit();
     } else {
         if ($multipleLists) {
-            printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'INFO');
+            printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'NOTICE');
         } else {
             printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
             $stat['errors']++;
@@ -946,7 +947,7 @@ if (!empty($config['ADLISTS_URL'])) {
     }
 
     print PHP_EOL;
-} elseif ($config['REQUIRE_COMMENT'] === true) {        // In case user decides to unset the URL - disable previously added entries
+} elseif ($config['REQUIRE_COMMENT'] === true) { // In case user decides to unset the URL - disable previously added entries
     $sth = $dbh->prepare('SELECT `id` FROM `adlist` WHERE `comment` LIKE :comment AND `enabled` = 1 LIMIT 1');
     $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
 
@@ -1004,12 +1005,13 @@ $checkDomainExists = static function ($domain) use (&$domainsAll) {
 // Fetch DOMAINLISTS
 foreach ($domainListTypes as $typeName => $typeId) {
     $url_key = $typeName . '_URL';
-    $multipleLists = false;
 
     if (!empty($config[$url_key])) {
+        $multipleLists = false;
+
         if (preg_match('/\s+/', trim($config[$url_key]))) {
-            $multipleLists = true;
             $domainlistUrl = preg_split('/\s+/', $config[$url_key]);
+            $multipleLists = true;
 
             $contents = '';
             foreach ($domainlistUrl as $url) {
@@ -1075,7 +1077,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             // Entries that no longer exist in remote list
             $removedDomains = array_diff($enabledDomains, $domainlist);
 
-            foreach ($removedDomains as $id => $domain) {       // Disable entries instead of removing them
+            foreach ($removedDomains as $id => $domain) { // Disable entries instead of removing them
                 $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
                 $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
@@ -1121,7 +1123,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                 }
 
                 $domainlistDomain = $checkDomainExists($domain);
-                if ($domainlistDomain === false) {      // Add entry if it doesn't exist
+                if ($domainlistDomain === false) { // Add entry if it doesn't exist
                     $sth = $dbh->prepare('INSERT INTO `domainlist` (domain, type, enabled, comment) VALUES (:domain, :type, 1, :comment)');
                     $sth->bindParam(':domain', $domain, PDO::PARAM_STR);
                     $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
@@ -1144,13 +1146,13 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             'comment' => $comment,
                         ];
 
-                        if ($absoluteGroupId > 0) {      // Add to the specified group
-                           $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
+                        if ($absoluteGroupId > 0) { // Add to the specified group
+                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
                             $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
                             $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
                             $sth->execute();
 
-                            if ($config['GROUP_ID'] < 0) {      // Remove from the default group
+                            if ($config['GROUP_ID'] < 0) { // Remove from the default group
                                 $sth = $dbh->prepare('DELETE FROM `domainlist_by_group` WHERE domainlist_id = :domainlist_id AND group_id = :group_id');
                                 $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
                                 $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
@@ -1161,9 +1163,9 @@ foreach ($domainListTypes as $typeName => $typeId) {
                         printAndLog('Inserted: ' . $domain . PHP_EOL);
                     }
                 } else {
-                    $isTouchable = $checkIfTouchable($domainlistDomain);
-                    $domainlistDomain['enabled'] = (bool)$domainlistDomain['enabled'] === true;
-                    $domainlistDomain['type'] = (int)$domainlistDomain['type'];
+                    $isTouchable                 = $checkIfTouchable($domainlistDomain);
+                    $domainlistDomain['enabled'] = (bool) $domainlistDomain['enabled'] === true;
+                    $domainlistDomain['type']    = (int) $domainlistDomain['type'];
 
                     // Enable existing entry but only if it's managed by this script
                     if ($domainlistDomain['type'] === $typeId && $domainlistDomain['enabled'] !== true && $isTouchable === true) {
@@ -1181,7 +1183,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             $stat['conflict']++;
                             $stat['conflicts'][] = $domain;
                         }
-                    } elseif ($config['VERBOSE'] === true) {        // Show other entry states only in verbose mode
+                    } elseif ($config['VERBOSE'] === true) { // Show other entry states only in verbose mode
                         if ($domainlistDomain['enabled'] !== false && $isTouchable === true) {
                             printAndLog('Exists: ' . $domain . PHP_EOL);
                         } elseif ($isTouchable === false) {
@@ -1194,7 +1196,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             $dbh->commit();
         } else {
             if ($multipleLists) {
-                printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'INFO');
+                printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'NOTICE');
             } else {
                 printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
                 $stat['errors']++;
@@ -1202,7 +1204,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
         }
 
         print PHP_EOL;
-    } elseif ($config['REQUIRE_COMMENT'] === true) {        // In case user decides to unset the URL - disable previously added entries
+    } elseif ($config['REQUIRE_COMMENT'] === true) { // In case user decides to unset the URL - disable previously added entries
         $sth = $dbh->prepare('SELECT id FROM `domainlist` WHERE `comment` LIKE :comment AND `enabled` = 1 AND `type` = :type LIMIT 1');
         $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
         $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
