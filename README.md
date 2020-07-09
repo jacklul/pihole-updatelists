@@ -89,6 +89,7 @@ sudo nano /etc/pihole-updatelists.conf
 | VERBOSE | false | Print more information while script is running? |
 | DEBUG | false | Print even more information for debugging purposes |
 | DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up (you should increase this when downloads fail) | 
+| IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists (will cause entries from the failed downloads to be disabled) |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
 | LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script, you shouldn't change it - unless `/var/lock` is unavailable |
 | LOG_FILE | " " | Log console output to file (put `-` before path to overwrite file instead of appending to it), typically `/var/log/pihole-updatelists.log` is good |

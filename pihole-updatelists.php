@@ -139,23 +139,24 @@ function loadConfig($options = [])
 {
     // Default configuration
     $config = [
-        'CONFIG_FILE'         => '/etc/pihole-updatelists.conf',
-        'GRAVITY_DB'          => '/etc/pihole/gravity.db',
-        'LOCK_FILE'           => '/var/lock/pihole-updatelists.lock',
-        'LOG_FILE'            => '',
-        'ADLISTS_URL'         => '',
-        'WHITELIST_URL'       => '',
-        'REGEX_WHITELIST_URL' => '',
-        'BLACKLIST_URL'       => '',
-        'REGEX_BLACKLIST_URL' => '',
-        'COMMENT'             => 'Managed by pihole-updatelists',
-        'GROUP_ID'            => 0,
-        'REQUIRE_COMMENT'     => true,
-        'UPDATE_GRAVITY'      => true,
-        'VACUUM_DATABASE'     => false,
-        'VERBOSE'             => false,
-        'DEBUG'               => false,
-        'DOWNLOAD_TIMEOUT'    => 60,
+        'CONFIG_FILE'             => '/etc/pihole-updatelists.conf',
+        'GRAVITY_DB'              => '/etc/pihole/gravity.db',
+        'LOCK_FILE'               => '/var/lock/pihole-updatelists.lock',
+        'LOG_FILE'                => '',
+        'ADLISTS_URL'             => '',
+        'WHITELIST_URL'           => '',
+        'REGEX_WHITELIST_URL'     => '',
+        'BLACKLIST_URL'           => '',
+        'REGEX_BLACKLIST_URL'     => '',
+        'COMMENT'                 => 'Managed by pihole-updatelists',
+        'GROUP_ID'                => 0,
+        'REQUIRE_COMMENT'         => true,
+        'UPDATE_GRAVITY'          => true,
+        'VACUUM_DATABASE'         => false,
+        'VERBOSE'                 => false,
+        'DEBUG'                   => false,
+        'DOWNLOAD_TIMEOUT'        => 60,
+        'IGNORE_DOWNLOAD_FAILURE' => false,
     ];
 
     if (isset($options['config'])) {
@@ -759,7 +760,10 @@ $streamContext = stream_context_create(
 
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
+    $multipleLists = false;
+
     if (preg_match('/\s+/', trim($config['ADLISTS_URL']))) {
+        $multipleLists = true;
         $adlistsUrl = preg_split('/\s+/', $config['ADLISTS_URL']);
 
         $contents = '';
@@ -774,8 +778,13 @@ if (!empty($config['ADLISTS_URL'])) {
 
                     $contents .= PHP_EOL . $listContents;
                 } else {
-                    $contents = false;
-                    break;
+                    printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
+
+                    if ($config['IGNORE_DOWNLOAD_FAILURE'] === false) {
+                        $stat['errors']++;
+                        $contents = false;
+                        break;
+                    }
                 }
             }
         }
@@ -928,9 +937,12 @@ if (!empty($config['ADLISTS_URL'])) {
 
         $dbh->commit();
     } else {
-        printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
-
-        $stat['errors']++;
+        if ($multipleLists) {
+            printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'INFO');
+        } else {
+            printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
+            $stat['errors']++;
+        }
     }
 
     print PHP_EOL;
@@ -992,9 +1004,11 @@ $checkDomainExists = static function ($domain) use (&$domainsAll) {
 // Fetch DOMAINLISTS
 foreach ($domainListTypes as $typeName => $typeId) {
     $url_key = $typeName . '_URL';
+    $multipleLists = false;
 
     if (!empty($config[$url_key])) {
         if (preg_match('/\s+/', trim($config[$url_key]))) {
+            $multipleLists = true;
             $domainlistUrl = preg_split('/\s+/', $config[$url_key]);
 
             $contents = '';
@@ -1009,8 +1023,13 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
                         $contents .= PHP_EOL . $listContents;
                     } else {
-                        $contents = false;
-                        break;
+                        printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
+
+                        if ($config['IGNORE_DOWNLOAD_FAILURE'] === false) {
+                            $stat['errors']++;
+                            $contents = false;
+                            break;
+                        }
                     }
                 }
             }
@@ -1174,9 +1193,12 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
             $dbh->commit();
         } else {
-            printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
-
-            $stat['errors']++;
+            if ($multipleLists) {
+                printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'INFO');
+            } else {
+                printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
+                $stat['errors']++;
+            }
         }
 
         print PHP_EOL;
