@@ -9,7 +9,7 @@
  */
 
 define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists');
-define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists/master');
+define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists');
 
 /**
  * Check for required stuff
@@ -53,72 +53,75 @@ function checkDependencies()
  */
 function requireRoot()
 {
-    if (function_exists('posix_getuid') && posix_getuid() !== 0) {
+    if (function_exists('posix_getuid') && posix_getuid() !== 0 && strpos(basename($_SERVER['argv'][0]), '.php') === false) {
         passthru('sudo ' . implode(' ', $_SERVER['argv']), $return);
         exit($return);
     }
 }
 
 /**
- * Print help
+ * Returns array of defined options
+ *
+ * @return array
  */
-function printHelp()
+function getDefinedOptions()
 {
-    printHeader();
-
-    $help[] = ' Options: ';
-    $help[] = '  --help, -h        - This help message';
-    $help[] = '  --no-gravity, -n  - Force no gravity update';
-    $help[] = '  --no-vacuum, -m   - Force no database vacuuming';
-    $help[] = '  --verbose, -v     - Turn on verbose mode';
-    $help[] = '  --debug, -d       - Turn on debug mode';
-    $help[] = '  --config=[FILE]   - Load alternative configuration file';
-    $help[] = '  --update          - Update the script';
-    $help[] = '  --version         - Check script version checksum';
-
-    print implode(PHP_EOL, $help) . PHP_EOL . PHP_EOL;
-}
-
-/**
- * Parse command-line arguments
- */
-function parseOptions()
-{
-    $optionsList = [
+    return [
         'help' => [
             'long' => 'help',
             'short' => 'h',
             'function' => 'printHelp',
+            'description' => 'This help message',
         ],
         'no-gravity' => [
             'long' => 'no-gravity',
             'short' => 'n',
+            'description' => 'Force no gravity update',
         ],
         'no-vacuum' => [
             'long' => 'no-vacuum',
             'short' => 'm',
+            'description' => 'Force no database vacuuming',
         ],
         'verbose' => [
             'long' => 'verbose',
             'short' => 'v',
+            'description' => 'Turn on verbose mode',
         ],
         'debug' => [
             'long' => 'debug',
             'short' => 'd',
+            'description' => 'Turn on debug mode',
         ],
         'config' => [
             'long' => 'config::',
+            'description' => 'Load alternative configuration file',
+            'descriptionValue' => 'FILE',
+        ],
+        'git-branch' => [
+            'long' => 'git-branch::',
+            'description' => 'Select git branch to pull remote checksum and update from',
+            'descriptionValue' => 'BRANCH',
         ],
         'update' => [
             'long' => 'update',
             'function' => 'updateScript',
+            'description' => 'Update the script using selected git branch',
         ],
         'version' => [
             'long' => 'version',
             'function' => 'printVersion',
+            'description' => 'Show script checksum (and also if update is available)',
         ],
     ];
+}
 
+/**
+ * Parse command-line options
+ */
+function parseOptions()
+{
+    $optionsList = getDefinedOptions();
     $shortOpts = [];
     $longOpts = [];
     foreach ($optionsList as $i => $data) {
@@ -193,12 +196,12 @@ function parseOptions()
     }
 
     if (count($argv) > 0) {
-        print 'Unrecognized option(s): ' . implode(' ', $argv). PHP_EOL;
+        print 'Unknown option(s): ' . implode(' ', $argv). PHP_EOL;
         exit(1);
     }
 
     if (isset($runFunction)) {
-        $runFunction();
+        $runFunction($options, loadConfig($options));
         exit;
     }
 
@@ -236,6 +239,7 @@ function loadConfig($options = [])
         'DEBUG'                   => false,
         'DOWNLOAD_TIMEOUT'        => 60,
         'IGNORE_DOWNLOAD_FAILURE' => false,
+        'GIT_BRANCH'              => 'master',
     ];
 
     if (isset($options['config'])) {
@@ -531,18 +535,20 @@ function parseLastError($default = 'Unknown error')
 /**
  * Fetch remote script file
  *
+ * @param string $branch
+ * 
  * @return false|string
  */
-function fetchRemoteScript()
+function fetchRemoteScript($branch = 'master')
 {
     global $remoteScript;
 
-    if (isset($remoteScript)) {
-        return $remoteScript;
+    if (isset($remoteScript[$branch])) {
+        return $remoteScript[$branch];
     }
 
-    $remoteScript = @file_get_contents(
-        GITHUB_LINK_RAW . '/pihole-updatelists.php',
+    $remoteScript[$branch] = @file_get_contents(
+        GITHUB_LINK_RAW . '/' . $branch . '/pihole-updatelists.php',
         false,
         stream_context_create(
             [
@@ -553,25 +559,40 @@ function fetchRemoteScript()
         )
     );
 
-    $firstLine = strtok($remoteScript, "\n");
-    if (strpos($firstLine, '#!/usr/bin/env php') === false) {
-        print 'Returned remote script data doesn\'t seem to be valid!' . PHP_EOL;
-        print 'First line: ' . $firstLine . PHP_EOL;
-        exit(1);
+    $isSuccessful = false;
+    foreach ($http_response_header as $header) {
+        if (strpos($header, '200 OK') !== false) {
+            $isSuccessful = true;
+            break;
+        }
     }
 
-    return $remoteScript;
+    if ($isSuccessful) {
+        $firstLine = strtok($remoteScript[$branch], "\n");
+
+        if (strpos($firstLine, '#!/usr/bin/env php') === false) {
+            print 'Returned remote script data doesn\'t seem to be valid!' . PHP_EOL;
+            print 'First line: ' . $firstLine . PHP_EOL;
+            exit(1);
+        }
+
+        return $remoteScript[$branch];
+    }
+
+    return false;
 }
 
 /**
  * Check if script is up to date
  *
+ * @param string $branch
+ * 
  * @return string
  */
-function isUpToDate()
+function isUpToDate($branch = 'master')
 {
     $md5Self      = md5_file(__FILE__);
-    $remoteScript = fetchRemoteScript();
+    $remoteScript = fetchRemoteScript($branch);
 
     if ($remoteScript === false) {
         return null;
@@ -585,60 +606,142 @@ function isUpToDate()
 }
 
 /**
- * This will update the script to newest version
+ * Returns currently selected branch
+ * 
+ * @param array $options
+ * @param array $config
  */
-function updateScript()
+function getBranch($options = [], $config = [])
 {
-    requireRoot(); // Only root should be able to update the script
-
-    $updateCheck = isUpToDate();
-    if ($updateCheck === true) {
-        print 'The script is up to date!' . PHP_EOL;
-        exit;
+    if (isset($options['git-branch'])) {
+        return $options['git-branch'];
+    } elseif (isset($config['GIT_BRANCH'])) {
+        return $config['GIT_BRANCH'];
     }
 
-    if ($updateCheck === null) {
-        print 'Failed to check remote script: ' . parseLastError() . PHP_EOL;
-        exit(1);
+    return 'master';
+}
+
+/**
+ * Print help
+ */
+function printHelp()
+{
+    $options = getDefinedOptions();
+    $help = [];
+    $maxLen = 0;
+    foreach ($options as $option) {
+        $line = ' ';
+        
+        if (isset($option['short'])) {
+            $line .= '-' . $option['short'];
+        }        
+
+        if (isset($option['long'])) {
+            if (!empty(trim($line))) {
+                $line .= ', ';
+            }
+
+            $line .= '--' . str_replace(':', '', $option['long']);
+
+            if (isset($option['descriptionValue'])) {
+                $line .= '=<' . $option['descriptionValue'] . '>';
+            }
+        }
+
+        if (strlen($line) > $maxLen) {
+            $maxLen = strlen($line);
+        }
+
+        $help[$line] = $option['description'];
     }
 
+    printHeader();
+    print 'Usage: ' . basename(__FILE__) . ' [OPTIONS...] ' . PHP_EOL . PHP_EOL;
+    print 'Options:' . PHP_EOL;
+
+    foreach ($help as $option => $description) {
+        $whitespace = str_repeat(' ', $maxLen - strlen($option) + 2);
+        print $option . $whitespace . $description . PHP_EOL;
+    }
+
+    print PHP_EOL;
+}
+
+/**
+ * This will update the script to newest version
+ * 
+ * @param array $options
+ * @param array $config
+ */
+function updateScript($options = [], $config = [])
+{
     if (strpos(basename($_SERVER['argv'][0]), '.php') !== false) {
-        print 'It seems like this script haven\'t been installed - unable to update!';
+        print 'It seems like this script haven\'t been installed - unable to update!' . PHP_EOL;
         exit(1);
     }
 
-    $remoteScript = fetchRemoteScript();
-    if (!@file_put_contents(__FILE__, $remoteScript)) {
-        print 'Failed to update: ' . parseLastError() . PHP_EOL;
-        exit(1);
-    }
+    requireRoot(); // Only root should be able to run this command
+    $status = printVersion($options, $config, true);
 
-    print 'Updated successfully!' . PHP_EOL;
+    if ($status === false) {
+        print PHP_EOL . 'Update now? [y/N] ';
+        $confirmation = trim(fgets(STDIN));
+        if (strtolower($confirmation) !== 'y' && strtolower($confirmation) !== 'yes') {
+            print 'Aborted.' . PHP_EOL;
+            exit;
+        }
+
+        $remoteScript = fetchRemoteScript(getBranch($options, $config));
+        if (!@file_put_contents(__FILE__, $remoteScript)) {
+            print 'Failed to update: ' . parseLastError() . PHP_EOL;
+            exit(1);
+        }
+
+        print 'Updated successfully!' . PHP_EOL;
+    }
 }
 
 /**
  * Check local and remote version and print it
+ * 
+ * @param array $options
+ * @param array $config
+ * @param bool  $return
  */
-function printVersion()
+function printVersion($options = [], $config = [], $return = false)
 {
     global $remoteScript;
 
+    $config['DEBUG'] === true && printDebugHeader($config, $options);
+    $branch = getBranch($options, $config);
+
+    print 'Git branch: ' . $branch . PHP_EOL;
     print 'Local checksum: ' . md5_file(__FILE__) . PHP_EOL;
 
-    $updateCheck = isUpToDate();
-    print 'Remote checksum: ' . md5($remoteScript) . PHP_EOL;
-
-    if ($updateCheck === true) {
-        print 'The script is up to date!' . PHP_EOL;
-        exit;
-    }
-
+    $updateCheck = isUpToDate($branch);
     if ($updateCheck === null) {
         print 'Failed to check remote script: ' . parseLastError() . PHP_EOL;
         exit(1);
     }
 
+    print 'Remote checksum: ' . md5($remoteScript[$branch]) . PHP_EOL;
+
+    if ($updateCheck === true) {
+        print 'The script is up to date!' . PHP_EOL;
+
+        if ($return === true) {
+            return true;
+        }
+
+        exit;
+    }
+
     print 'Update is available!' . PHP_EOL;
+
+    if ($return === true) {
+        return false;
+    }
 }
 
 /**
@@ -650,6 +753,7 @@ function printVersion()
 function printDebugHeader($config, $options)
 {
     printAndLog('Checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
+    printAndLog('Git branch: ' . getBranch($options, $config) . PHP_EOL, 'DEBUG');
     printAndLog('OS: ' . php_uname() . PHP_EOL, 'DEBUG');
     printAndLog('PHP: ' . PHP_VERSION . (ZEND_THREAD_SAFE ? '' : ' NTS') . PHP_EOL, 'DEBUG');
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
@@ -747,7 +851,7 @@ function shutdownCleanup()
 /** PROCEDURAL CODE STARTS HERE */
 $startTime = microtime(true);
 checkDependencies(); // Check script requirements
-$options = parseOptions(); // Parse arguments
+$options = parseOptions(); // Parse options
 $config  = loadConfig($options); // Load config and process variables
 
 // Exception handler, always log detailed information

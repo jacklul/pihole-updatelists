@@ -93,6 +93,7 @@ sudo nano /etc/pihole-updatelists.conf
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
 | LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script, you shouldn't change it - unless `/var/lock` is unavailable |
 | LOG_FILE | " " | Log console output to file (put `-` before path to overwrite file instead of appending to it), typically `/var/log/pihole-updatelists.log` is good |
+| GIT_BRANCH | "master" | Branch to pull remote checksum from |
 
 String values should be put between `" "`, otherwise weird things might happen.
 
@@ -125,11 +126,12 @@ If one of the lists fails to download nothing will be affected for that list typ
 | --help, -h | Show help message, which is simply this list |
 | --no-gravity, -n | Force gravity update to be skipped |
 | --no-vacuum, -m | Force database vacuuming to be skipped |
-| --verbose, -v | Turn on verbose mode (affects log) |
-| --debug, -d  | Turn on debug mode (affects log) |
+| --verbose, -v | Turn on verbose mode |
+| --debug, -d  | Turn on debug mode |
 | --config=[FILE] | Load alternative configuration file |
-| --update | Update the script - compares local script with the one in the repository and overwrites it if they are different |
-| --version | Check script version checksum (and also if update is available) |
+| --git-branch=[BRANCH] | Select git branch to pull remote checksum and update from |
+| --update | Update the script using selected git branch |
+| --version | Show script checksum (and also if update is available) |
 
 ### Changing the schedule
 

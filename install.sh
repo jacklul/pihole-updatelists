@@ -46,7 +46,7 @@ else
 	exit 1
 fi
 
-if [ "$SYSTEMD" == 1 ]; then
+if [ "$SYSTEMD" == 1 ] && [ `systemctl is-enabled pihole-updatelists.timer` != 'enabled' ]; then
 	echo "Enabling and starting pihole-updatelists.timer..."
 	systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
 fi
