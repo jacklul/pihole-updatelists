@@ -22,7 +22,7 @@ function checkDependencies()
         exit(1);
     }
 
-    // Windows is obviously not supported
+    // Windows is obviously not supported (invironment variable IGNORE_OS_CHECK overrides this)
     if (stripos(PHP_OS, 'WIN') === 0 && empty(getenv('IGNORE_OS_CHECK'))) {
         printAndLog('Windows is not supported!' . PHP_EOL, 'ERROR');
         exit(1);
@@ -31,12 +31,6 @@ function checkDependencies()
     if ((!function_exists('posix_getuid') || !function_exists('posix_kill')) && empty(getenv('IGNORE_OS_CHECK'))) {
         printAndLog('Make sure PHP\'s functions \'posix_getuid\' and \'posix_kill\' are available!' . PHP_EOL, 'ERROR');
         exit(1);
-    }
-
-    // Require root privileges
-    if (function_exists('posix_getuid') && posix_getuid() !== 0) {
-        passthru('sudo ' . implode(' ', $_SERVER['argv']), $return);
-        exit($return);
     }
 
     $extensions = [
@@ -51,6 +45,17 @@ function checkDependencies()
             printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
             exit(1);
         }
+    }
+}
+
+/**
+ * Re-run the script with sudo when not running as root
+ */
+function requireRoot()
+{
+    if (function_exists('posix_getuid') && posix_getuid() !== 0) {
+        passthru('sudo ' . implode(' ', $_SERVER['argv']), $return);
+        exit($return);
     }
 }
 
@@ -196,6 +201,8 @@ function parseOptions()
         $runFunction();
         exit;
     }
+
+    requireRoot(); // Require root privileges
 
     return $options;
 }
@@ -582,6 +589,8 @@ function isUpToDate()
  */
 function updateScript()
 {
+    requireRoot(); // Only root should be able to update the script
+
     $updateCheck = isUpToDate();
     if ($updateCheck === true) {
         print 'The script is up to date!' . PHP_EOL;
