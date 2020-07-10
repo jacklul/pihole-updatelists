@@ -67,50 +67,50 @@ function requireRoot()
 function getDefinedOptions()
 {
     return [
-        'help' => [
-            'long' => 'help',
-            'short' => 'h',
-            'function' => 'printHelp',
+        'help'       => [
+            'long'        => 'help',
+            'short'       => 'h',
+            'function'    => 'printHelp',
             'description' => 'This help message',
         ],
         'no-gravity' => [
-            'long' => 'no-gravity',
-            'short' => 'n',
+            'long'        => 'no-gravity',
+            'short'       => 'n',
             'description' => 'Force no gravity update',
         ],
-        'no-vacuum' => [
-            'long' => 'no-vacuum',
-            'short' => 'm',
+        'no-vacuum'  => [
+            'long'        => 'no-vacuum',
+            'short'       => 'm',
             'description' => 'Force no database vacuuming',
         ],
-        'verbose' => [
-            'long' => 'verbose',
-            'short' => 'v',
+        'verbose'    => [
+            'long'        => 'verbose',
+            'short'       => 'v',
             'description' => 'Turn on verbose mode',
         ],
-        'debug' => [
-            'long' => 'debug',
-            'short' => 'd',
+        'debug'      => [
+            'long'        => 'debug',
+            'short'       => 'd',
             'description' => 'Turn on debug mode',
         ],
-        'config' => [
-            'long' => 'config::',
-            'description' => 'Load alternative configuration file',
+        'config'     => [
+            'long'             => 'config::',
+            'description'      => 'Load alternative configuration file',
             'descriptionValue' => 'FILE',
         ],
         'git-branch' => [
-            'long' => 'git-branch::',
-            'description' => 'Select git branch to pull remote checksum and update from',
+            'long'             => 'git-branch::',
+            'description'      => 'Select git branch to pull remote checksum and update from',
             'descriptionValue' => 'BRANCH',
         ],
-        'update' => [
-            'long' => 'update',
-            'function' => 'updateScript',
+        'update'     => [
+            'long'        => 'update',
+            'function'    => 'updateScript',
             'description' => 'Update the script using selected git branch',
         ],
-        'version' => [
-            'long' => 'version',
-            'function' => 'printVersion',
+        'version'    => [
+            'long'        => 'version',
+            'function'    => 'printVersion',
             'description' => 'Show script checksum (and also if update is available)',
         ],
     ];
@@ -122,8 +122,8 @@ function getDefinedOptions()
 function parseOptions()
 {
     $optionsList = getDefinedOptions();
-    $shortOpts = [];
-    $longOpts = [];
+    $shortOpts   = [];
+    $longOpts    = [];
     foreach ($optionsList as $i => $data) {
         if (isset($data['long'])) {
             if (in_array($data['long'], $longOpts)) {
@@ -132,12 +132,12 @@ function parseOptions()
 
             $longOpts[] = $data['long'];
         }
-        
+
         if (isset($data['short'])) {
             if (in_array($data['short'], $longOpts)) {
                 throw new RuntimeException('Unable to define short option because it is already defined: ' . $data['short']);
             }
-            
+
             $shortOpts[] = $data['short'];
         }
     }
@@ -170,24 +170,24 @@ function parseOptions()
 
     // Remove recognized options from argv[]
     foreach ($options as $option => $data) {
-        $result = array_filter($argv, function($el) use ($option) {
+        $result = array_filter($argv, function ($el) use ($option) {
             return strpos($el, $option) !== false;
         });
 
         if (!empty($result)) {
             unset($argv[key($result)]);
         }
-        
+
         if (isset($optionsList[$option]['short'])) {
             $shortOption = $optionsList[$option]['short'];
 
-            $result = array_filter($argv, function($el) use ($shortOption) {
+            $result = array_filter($argv, function ($el) use ($shortOption) {
                 return strpos($el, $shortOption) !== false;
             });
 
             if (!empty($result)) {
                 $argv[key($result)] = str_replace($shortOption, '', $argv[key($result)]);
-                
+
                 if ($argv[key($result)] === '-') {
                     unset($argv[key($result)]);
                 }
@@ -196,7 +196,7 @@ function parseOptions()
     }
 
     if (count($argv) > 0) {
-        print 'Unknown option(s): ' . implode(' ', $argv). PHP_EOL;
+        print 'Unknown option(s): ' . implode(' ', $argv) . PHP_EOL;
         exit(1);
     }
 
@@ -536,7 +536,7 @@ function parseLastError($default = 'Unknown error')
  * Fetch remote script file
  *
  * @param string $branch
- * 
+ *
  * @return false|string
  */
 function fetchRemoteScript($branch = 'master')
@@ -586,7 +586,7 @@ function fetchRemoteScript($branch = 'master')
  * Check if script is up to date
  *
  * @param string $branch
- * 
+ *
  * @return string
  */
 function isUpToDate($branch = 'master')
@@ -607,7 +607,7 @@ function isUpToDate($branch = 'master')
 
 /**
  * Returns currently selected branch
- * 
+ *
  * @param array $options
  * @param array $config
  */
@@ -628,14 +628,14 @@ function getBranch($options = [], $config = [])
 function printHelp()
 {
     $options = getDefinedOptions();
-    $help = [];
-    $maxLen = 0;
+    $help    = [];
+    $maxLen  = 0;
     foreach ($options as $option) {
         $line = ' ';
-        
+
         if (isset($option['short'])) {
             $line .= '-' . $option['short'];
-        }        
+        }
 
         if (isset($option['long'])) {
             if (!empty(trim($line))) {
@@ -670,7 +670,7 @@ function printHelp()
 
 /**
  * This will update the script to newest version
- * 
+ *
  * @param array $options
  * @param array $config
  */
@@ -704,7 +704,7 @@ function updateScript($options = [], $config = [])
 
 /**
  * Check local and remote version and print it
- * 
+ *
  * @param array $options
  * @param array $config
  * @param bool  $return
@@ -1023,7 +1023,8 @@ if (!empty($config['ADLISTS_URL'])) {
 
         // Entries that no longer exist in remote list
         $removedLists = array_diff($enabledLists, $adlists);
-        foreach ($removedLists as $id => $address) { // Disable entries instead of removing them
+        foreach ($removedLists as $id => $address) {
+            // Disable entries instead of removing them
             $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id');
             $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
@@ -1060,7 +1061,8 @@ if (!empty($config['ADLISTS_URL'])) {
             }
 
             $adlistUrl = $checkAdlistExists($address);
-            if ($adlistUrl === false) { // Add entry if it doesn't exist
+            if ($adlistUrl === false) {
+                // Add entry if it doesn't exist
                 $sth = $dbh->prepare('INSERT INTO `adlist` (address, enabled, comment) VALUES (:address, 1, :comment)');
                 $sth->bindParam(':address', $address, PDO::PARAM_STR);
 
@@ -1081,13 +1083,15 @@ if (!empty($config['ADLISTS_URL'])) {
                         'comment' => $comment,
                     ];
 
-                    if ($absoluteGroupId > 0) { // Add to the specified group
+                    if ($absoluteGroupId > 0) {
+                        // Add to the specified group
                         $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
                         $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
                         $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
                         $sth->execute();
 
-                        if ($config['GROUP_ID'] < 0) { // Remove from the default group
+                        if ($config['GROUP_ID'] < 0) {
+                            // Remove from the default group
                             $sth = $dbh->prepare('DELETE FROM `adlist_by_group` WHERE adlist_id = :adlist_id AND group_id = :group_id');
                             $sth->bindParam(':adlist_id', $lastInsertId, PDO::PARAM_INT);
                             $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
@@ -1111,7 +1115,8 @@ if (!empty($config['ADLISTS_URL'])) {
 
                         printAndLog('Enabled: ' . $address . PHP_EOL);
                     }
-                } elseif ($config['VERBOSE'] === true) { // Show other entry states only in verbose mode
+                } elseif ($config['VERBOSE'] === true) {
+                    // Show other entry states only in verbose mode
                     if ($adlistUrl['enabled'] !== false && $isTouchable === true) {
                         printAndLog('Exists: ' . $address . PHP_EOL);
                     } elseif ($isTouchable === false) {
@@ -1132,7 +1137,8 @@ if (!empty($config['ADLISTS_URL'])) {
     }
 
     print PHP_EOL;
-} elseif ($config['REQUIRE_COMMENT'] === true) { // In case user decides to unset the URL - disable previously added entries
+} elseif ($config['REQUIRE_COMMENT'] === true) {
+    // In case user decides to unset the URL - disable previously added entries
     $sth = $dbh->prepare('SELECT `id` FROM `adlist` WHERE `comment` LIKE :comment AND `enabled` = 1 LIMIT 1');
     $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
 
@@ -1262,7 +1268,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
             // Entries that no longer exist in remote list
             $removedDomains = array_diff($enabledDomains, $domainlist);
 
-            foreach ($removedDomains as $id => $domain) { // Disable entries instead of removing them
+            foreach ($removedDomains as $id => $domain) {
+                // Disable entries instead of removing them
                 $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
                 $sth->bindParam(':id', $id, PDO::PARAM_INT);
 
@@ -1308,7 +1315,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
                 }
 
                 $domainlistDomain = $checkDomainExists($domain);
-                if ($domainlistDomain === false) { // Add entry if it doesn't exist
+                if ($domainlistDomain === false) {
+                    // Add entry if it doesn't exist
                     $sth = $dbh->prepare('INSERT INTO `domainlist` (domain, type, enabled, comment) VALUES (:domain, :type, 1, :comment)');
                     $sth->bindParam(':domain', $domain, PDO::PARAM_STR);
                     $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
@@ -1331,13 +1339,15 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             'comment' => $comment,
                         ];
 
-                        if ($absoluteGroupId > 0) { // Add to the specified group
+                        if ($absoluteGroupId > 0) {
+                            // Add to the specified group
                             $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
                             $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
                             $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
                             $sth->execute();
 
-                            if ($config['GROUP_ID'] < 0) { // Remove from the default group
+                            if ($config['GROUP_ID'] < 0) {
+                                // Remove from the default group
                                 $sth = $dbh->prepare('DELETE FROM `domainlist_by_group` WHERE domainlist_id = :domainlist_id AND group_id = :group_id');
                                 $sth->bindParam(':domainlist_id', $lastInsertId, PDO::PARAM_INT);
                                 $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
@@ -1368,7 +1378,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             $stat['conflict']++;
                             $stat['conflicts'][] = $domain;
                         }
-                    } elseif ($config['VERBOSE'] === true) { // Show other entry states only in verbose mode
+                    } elseif ($config['VERBOSE'] === true) {
+                        // Show other entry states only in verbose mode
                         if ($domainlistDomain['enabled'] !== false && $isTouchable === true) {
                             printAndLog('Exists: ' . $domain . PHP_EOL);
                         } elseif ($isTouchable === false) {
@@ -1389,7 +1400,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
         }
 
         print PHP_EOL;
-    } elseif ($config['REQUIRE_COMMENT'] === true) { // In case user decides to unset the URL - disable previously added entries
+    } elseif ($config['REQUIRE_COMMENT'] === true) {
+        // In case user decides to unset the URL - disable previously added entries
         $sth = $dbh->prepare('SELECT id FROM `domainlist` WHERE `comment` LIKE :comment AND `enabled` = 1 AND `type` = :type LIMIT 1');
         $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
         $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
