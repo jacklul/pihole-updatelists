@@ -96,16 +96,18 @@ function getDefinedOptions()
         'yes'        => [
             'long'  => 'yes',
             'short' => 'y',
+            'function-restricted' => ['updateScript'],
         ],
         'config'     => [
             'long'             => 'config::',
             'description'      => 'Load alternative configuration file',
-            'descriptionValue' => 'FILE',
+            'parameter-descrption' => 'file',
         ],
         'git-branch' => [
             'long'             => 'git-branch::',
             'description'      => 'Select git branch to pull remote checksum and update from',
-            'descriptionValue' => 'BRANCH',
+            'parameter-descrption' => 'branch',
+            'function-restricted' => ['updateScript', 'printVersion'],
         ],
         'update'     => [
             'long'        => 'update',
@@ -128,6 +130,7 @@ function parseOptions()
     $optionsList = getDefinedOptions();
     $shortOpts   = [];
     $longOpts    = [];
+
     foreach ($optionsList as $i => $data) {
         if (isset($data['long'])) {
             if (in_array($data['long'], $longOpts)) {
@@ -147,13 +150,17 @@ function parseOptions()
     }
 
     $options = getopt(implode('', $shortOpts), $longOpts);
+    $restrictedOptions = [];
 
     // If short is used set the long one
     foreach ($options as $option => $data) {
         foreach ($optionsList as $optionsListIndex => $optionsListData) {
+            $optionsListData['short'] = isset($optionsListData['short']) ? str_replace(':', '', $optionsListData['short']) : '';
+            $optionsListData['long'] = isset($optionsListData['long']) ?str_replace(':', '', $optionsListData['long']) : '';
+
             if (
-                isset($optionsListData['short']) && $optionsListData['short'] === $option ||
-                isset($optionsListData['long']) && $optionsListData['long'] === $option
+                $optionsListData['short'] === $option ||
+                $optionsListData['long'] === $option
             ) {
                 if (isset($optionsListData['short']) && $optionsListData['short'] === $option) {
                     $options[$optionsListData['long']] = $data;
@@ -161,9 +168,19 @@ function parseOptions()
                     unset($options[$option]);
                 }
 
-                // Fire off the function if it is defined for this option
+                // Set function to run if it is defined for this option
                 if (!isset($runFunction) && isset($optionsListData['function']) && function_exists($optionsListData['function'])) {
                     $runFunction = $optionsListData['function'];
+                }
+
+                if (isset($optionsListData['function-restricted'])) {
+                    if (isset($optionsListData['long']) && $optionsListData['long'] === $option) {
+                        $optionStr = '--' . $optionsListData['long'];
+                    } elseif (isset($optionsListData['short']) && $optionsListData['short'] === $option) {
+                        $optionStr = '-' . $optionsListData['short'];
+                    }
+
+                    $restrictedOptions[$optionStr] = $optionsListData['function-restricted'];
                 }
             }
         }
@@ -199,16 +216,27 @@ function parseOptions()
         }
     }
 
+    // When unknown option is used
     if (count($argv) > 0) {
         print 'Unknown option(s): ' . implode(' ', $argv) . PHP_EOL;
         exit(1);
+    }
+
+    # When option meant to be used with others is used incorrectly
+    if (count($restrictedOptions) > 0) {
+        foreach ($restrictedOptions as $optionStr => $restrictedOption) {
+            if (!in_array($runFunction, $restrictedOption)) {
+                print 'Invalid option(s): ' . $optionStr . PHP_EOL;
+                exit(1);
+            }
+        }
     }
 
     if (isset($runFunction)) {
         $runFunction($options, loadConfig($options));
         exit;
     }
-
+    
     requireRoot(); // Require root privileges
 
     return $options;
@@ -657,8 +685,8 @@ function printHelp()
 
             $line .= '--' . str_replace(':', '', $option['long']);
 
-            if (isset($option['descriptionValue'])) {
-                $line .= '=<' . $option['descriptionValue'] . '>';
+            if (isset($option['parameter-descrption'])) {
+                $line .= '=<' . $option['parameter-descrption'] . '>';
             }
         }
 
