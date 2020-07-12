@@ -1007,12 +1007,14 @@ if (!empty($config['ADLISTS_URL'])) {
 
                     $contents .= PHP_EOL . $listContents;
                 } else {
-                    printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
-
                     if ($config['IGNORE_DOWNLOAD_FAILURE'] === false) {
+                        printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
+
                         $stat['errors']++;
                         $contents = false;
                         break;
+                    } else {
+                        printAndLog(' ' . parseLastError() . PHP_EOL, 'WARNING');
                     }
                 }
             }
@@ -1259,12 +1261,14 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
                         $contents .= PHP_EOL . $listContents;
                     } else {
-                        printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
-
                         if ($config['IGNORE_DOWNLOAD_FAILURE'] === false) {
+                            printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
+
                             $stat['errors']++;
                             $contents = false;
                             break;
+                        } else {
+                            printAndLog(' ' . parseLastError() . PHP_EOL, 'WARNING');
                         }
                     }
                 }
@@ -1541,17 +1545,17 @@ if ($config['DEBUG'] === true) {
 }
 
 if ($stat['invalid'] > 0) {
-    printAndLog('Ignored ' . $stat['invalid'] . ' invalid ' . ($stat['invalid'] === 1 ? 'entry' : 'entries') . '.' . PHP_EOL, 'WARNING');
+    printAndLog('Ignored ' . $stat['invalid'] . ' invalid ' . ($stat['invalid'] === 1 ? 'entry' : 'entries') . '.' . PHP_EOL, 'NOTICE');
 }
 
 if ($stat['conflict'] > 0) {
-    printAndLog('Found ' . $stat['conflict'] . ' conflicting ' . ($stat['conflict'] === 1 ? 'entry' : 'entries') . ' across your lists.' . PHP_EOL, 'WARNING');
+    printAndLog('Found ' . $stat['conflict'] . ' conflicting ' . ($stat['conflict'] === 1 ? 'entry' : 'entries') . ' across your lists.' . PHP_EOL, 'NOTICE');
 }
 
 $elapsedTime = round(microtime(true) - $startTime, 2) . ' seconds';
 
 if ($stat['errors'] > 0) {
-    printAndLog('Finished with ' . $stat['errors'] . ' error(s) in ' . $elapsedTime . '.' . PHP_EOL, 'ERROR');
+    printAndLog('Finished with ' . $stat['errors'] . ' error(s) in ' . $elapsedTime . '.' . PHP_EOL);
     exit(1);
 }
 
