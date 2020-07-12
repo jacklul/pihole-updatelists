@@ -256,7 +256,12 @@ function loadConfig($options = [])
     }
 
     if (file_exists($config['CONFIG_FILE'])) {
-        $loadedConfig = @parse_ini_file($config['CONFIG_FILE'], false, INI_SCANNER_TYPED);
+        $configFile = file_get_contents($config['CONFIG_FILE']);
+
+        // Convert any hash-commented lines to semicolons
+        $configFile = preg_replace('/^\s{0,}(#)(.*)$/m', ';$2', $configFile);
+
+        $loadedConfig = @parse_ini_string($configFile, false, INI_SCANNER_TYPED);
         if ($loadedConfig === false) {
             printAndLog('Failed to load configuration file: ' . parseLastError() . PHP_EOL, 'ERROR');
             exit(1);
