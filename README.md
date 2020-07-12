@@ -6,24 +6,25 @@ This script will not touch user-created entries, entries that were removed from 
 
 ### Requirements
 
-- Pi-hole v5+ installed (fresh install preferred)
-- php-cli >=7.0 and sqlite3 extension (`sudo apt install php-cli php-sqlite3`)
-- systemd distro is optional but recommended
+- **Pi-hole v5+** installed (fresh install preferred)
+- **php-cli >=7.0** and **sqlite3 extension** (`sudo apt install php-cli php-sqlite3`)
+- **systemd** is optional but recommended
 
 Without **systemd** you will have to take care of scheduled run of this script yourself.
 
 ### Install
 
-This command will install this script globally as `pihole-updatelists` and add systemd service and timer:
+This command will install this script to `/usr/local/sbin` and add systemd service and timer:
 
 ```bash
 wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
 ```
 
-Alternatively you can clone this repo and `sudo bash ./install.sh`.
+_Alternatively you can clone this repo and `sudo bash ./install.sh`._
 
 **In the future to quickly update the script you can use `sudo pihole-updatelists --update --yes`.**
 
+Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
 #### Disable default gravity update schedule
 
@@ -82,18 +83,18 @@ sudo nano /etc/pihole-updatelists.conf
 | REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
-| COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script (you can still add your own comments to individual entries as long you keep this string intact) |
-| GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group make the number negative, `0` is the default group |
-| REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field |
-| UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`, when disabled will invoke lists reload instead) |
-| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) |
-| VERBOSE | false | Print more information while script is running? |
-| DEBUG | false | Print even more information for debugging purposes |
-| DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up (you should increase this when downloads fail) | 
-| IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists (will cause entries from the failed downloads to be disabled) |
+| COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script <br>You can still add your own comments to individual entries as long you keep this string intact |
+| GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page |
+| REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When disabled any user-created entry will be disabled |
+| UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When disabled invokes lists reload instead |
+| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) <br>Will cause additional writes to disk |
+| VERBOSE | false | Show more information while the script is running |
+| DEBUG | false | Show debug messages |
+| DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout | 
+| IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists <br> This will cause entries from the lists that failed to download to be disabled |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
-| LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script, you shouldn't change it - unless `/var/lock` is unavailable |
-| LOG_FILE | " " | Log console output to file (put `-` before path to overwrite file instead of appending to it), typically `/var/log/pihole-updatelists.log` is good |
+| LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script from running <br>You shouldn't change it - unless `/var/lock` is unavailable |
+| LOG_FILE | " " | Log console output to file <br>In most cases you don't have to set this as you can view full log in the system journal <br>Put `-` before path to overwrite file instead of appending to it |
 | GIT_BRANCH | "master" | Branch to pull remote checksum from |
 
 String values should be put between `" "`, otherwise weird things might happen.
@@ -116,9 +117,9 @@ If one of the lists fails to download nothing will be affected for that list typ
 
 | List | URL | Description |
 |----------|-------------|-------------|
-| ADLISTS_URL | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
-| WHITELIST_URL | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
-| REGEX_BLACKLIST_URL | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
+| Adlist<br>(ADLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
+| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
+| Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
 ### Runtime options
 
