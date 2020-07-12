@@ -46,7 +46,14 @@ else
 	exit 1
 fi
 
-if [ "$SYSTEMD" == 1 ] && [ `systemctl is-enabled pihole-updatelists.timer` != 'enabled' ]; then
-	echo "Enabling and starting pihole-updatelists.timer..."
-	systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
+if [ "$SYSTEMD" == 1 ]; then
+	if [ `systemctl is-enabled pihole-updatelists.timer` != 'enabled' ]; then
+		echo "Enabling and starting pihole-updatelists.timer..."
+		systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
+	else
+		systemctl daemon-reload
+	fi
+else
+	echo "To enable schedule you will have to add cron entry manually, example:"
+	echo "30 3 * * 6   root   /usr/local/sbin/pihole-updatelists"
 fi
