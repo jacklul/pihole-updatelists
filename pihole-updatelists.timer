@@ -3,7 +3,7 @@ Description=Weekly update of Pi-hole's lists
 
 [Timer]
 RandomizedDelaySec=60m
-OnCalendar=Sat *-*-* 04:00:00
+OnCalendar=Sat *-*-* 03:00:00
 Persistent=true
 
 [Install]
