@@ -19,6 +19,7 @@ REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists/master #
 # This will simply remove the files and reload systemd (if available)
 if [ "$1" == "uninstall" ]; then
 	rm -v /usr/local/sbin/pihole-updatelists
+	rm -v /etc/bash_completion.d/pihole-updatelists
 	
 	if [ "$SYSTEMD" == 1 ]; then
 		rm -v /etc/systemd/system/pihole-updatelists.service
