@@ -22,7 +22,8 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 
 Alternatively you can clone this repo and `sudo bash ./install.sh`.
 
-**In the future to quickly update the script you can use `sudo pihole-updatelists --update`.**
+**In the future to quickly update the script you can use `sudo pihole-updatelists --update --yes`.**
+
 
 #### Disable default gravity update schedule
 

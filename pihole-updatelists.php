@@ -93,6 +93,10 @@ function getDefinedOptions()
             'short'       => 'd',
             'description' => 'Turn on debug mode',
         ],
+        'yes'        => [
+            'long'  => 'yes',
+            'short' => 'y',
+        ],
         'config'     => [
             'long'             => 'config::',
             'description'      => 'Load alternative configuration file',
@@ -633,6 +637,10 @@ function printHelp()
     foreach ($options as $option) {
         $line = ' ';
 
+        if (!isset($option['description'])) {
+            continue;
+        }
+
         if (isset($option['short'])) {
             $line .= '-' . $option['short'];
         }
@@ -685,11 +693,13 @@ function updateScript($options = [], $config = [])
     $status = printVersion($options, $config, true);
 
     if ($status === false) {
-        print PHP_EOL . 'Update now? [y/N] ';
-        $confirmation = trim(fgets(STDIN));
-        if (strtolower($confirmation) !== 'y' && strtolower($confirmation) !== 'yes') {
-            print 'Aborted.' . PHP_EOL;
-            exit;
+        if (!isset($options['yes']) && !isset($options['y'])) {
+            print PHP_EOL . 'Update now? [y/N] ';
+            $confirmation = trim(fgets(STDIN));
+            if (strtolower($confirmation) !== 'y' && strtolower($confirmation) !== 'yes') {
+                print 'Aborted.' . PHP_EOL;
+                exit;
+            }
         }
 
         $remoteScript = fetchRemoteScript(getBranch($options, $config));
