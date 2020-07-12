@@ -51,6 +51,7 @@ if [ "$SYSTEMD" == 1 ]; then
 		echo "Enabling and starting pihole-updatelists.timer..."
 		systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
 	else
+		echo "Reloading systemd manager configuration..." 
 		systemctl daemon-reload
 	fi
 else
