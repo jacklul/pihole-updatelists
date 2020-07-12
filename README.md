@@ -20,7 +20,7 @@ This command will install this script to `/usr/local/sbin` and add systemd servi
 wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
 ```
 
-_Alternatively you can clone this repo and `sudo bash ./install.sh`._
+_Alternatively you can clone this repo and `sudo bash install.sh`._
 
 **In the future to quickly update the script you can use `sudo pihole-updatelists --update --yes`.**
 
@@ -95,7 +95,7 @@ sudo nano /etc/pihole-updatelists.conf
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
 | LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script from running <br>You shouldn't change it - unless `/var/lock` is unavailable |
 | LOG_FILE | " " | Log console output to file <br>In most cases you don't have to set this as you can view full log in the system journal <br>Put `-` before path to overwrite file instead of appending to it |
-| GIT_BRANCH | "master" | Branch to pull remote checksum from |
+| GIT_BRANCH | "master" | Branch to pull remote checksum and update from |
 
 String values should be put between `" "`, otherwise weird things might happen.
 
