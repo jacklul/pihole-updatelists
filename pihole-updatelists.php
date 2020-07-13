@@ -94,20 +94,21 @@ function getDefinedOptions()
             'description' => 'Turn on debug mode',
         ],
         'yes'        => [
-            'long'  => 'yes',
-            'short' => 'y',
-            'function-restricted' => ['updateScript'],
+            'long'              => 'yes',
+            'short'             => 'y',
+            'description'       => 'Automatically say yes to any prompt',
+            'option-restricted' => ['update'],
         ],
         'config'     => [
-            'long'             => 'config::',
-            'description'      => 'Load alternative configuration file',
-            'parameter-descrption' => 'file',
+            'long'                  => 'config::',
+            'description'           => 'Load alternative configuration file',
+            'parameter-description' => 'file',
         ],
         'git-branch' => [
-            'long'             => 'git-branch::',
-            'description'      => 'Select git branch to pull remote checksum and update from',
-            'parameter-descrption' => 'branch',
-            'function-restricted' => ['updateScript', 'printVersion'],
+            'long'                  => 'git-branch::',
+            'description'           => 'Select git branch to pull remote checksum and update from',
+            'parameter-description' => 'branch',
+            'option-restricted'     => ['update', 'version'],
         ],
         'update'     => [
             'long'        => 'update',
@@ -127,11 +128,11 @@ function getDefinedOptions()
  */
 function parseOptions()
 {
-    $optionsList = getDefinedOptions();
-    $shortOpts   = [];
-    $longOpts    = [];
+    $definedOptions = getDefinedOptions();
+    $shortOpts      = [];
+    $longOpts       = [];
 
-    foreach ($optionsList as $i => $data) {
+    foreach ($definedOptions as $i => $data) {
         if (isset($data['long'])) {
             if (in_array($data['long'], $longOpts)) {
                 throw new RuntimeException('Unable to define long option because it is already defined: ' . $data['long']);
@@ -149,38 +150,39 @@ function parseOptions()
         }
     }
 
-    $options = getopt(implode('', $shortOpts), $longOpts);
-    $restrictedOptions = [];
+    $options          = getopt(implode('', $shortOpts), $longOpts);
+    $optionRestricted = [];
 
     // If short is used set the long one
     foreach ($options as $option => $data) {
-        foreach ($optionsList as $optionsListIndex => $optionsListData) {
-            $optionsListData['short'] = isset($optionsListData['short']) ? str_replace(':', '', $optionsListData['short']) : '';
-            $optionsListData['long'] = isset($optionsListData['long']) ?str_replace(':', '', $optionsListData['long']) : '';
+        foreach ($definedOptions as $definedOptionsIndex => $definedOptionsData) {
+            $definedOptionsData['short'] = isset($definedOptionsData['short']) ? str_replace(':', '', $definedOptionsData['short']) : '';
+            $definedOptionsData['long']  = isset($definedOptionsData['long']) ? str_replace(':', '', $definedOptionsData['long']) : '';
 
             if (
-                $optionsListData['short'] === $option ||
-                $optionsListData['long'] === $option
+                $definedOptionsData['short'] === $option ||
+                $definedOptionsData['long'] === $option
             ) {
-                if (isset($optionsListData['short']) && $optionsListData['short'] === $option) {
-                    $options[$optionsListData['long']] = $data;
+                if (
+                    !empty($definedOptionsData['short']) && $definedOptionsData['short'] === $option &&
+                    !empty($definedOptionsData['long'])
+                ) {
+                    $optionStr                            = '-' . $definedOptionsData['short'];
+                    $options[$definedOptionsData['long']] = $data;
 
                     unset($options[$option]);
+                } elseif (!empty($definedOptionsData['long']) && $definedOptionsData['long'] === $option) {
+                    $optionStr = '--' . $definedOptionsData['long'];
                 }
 
                 // Set function to run if it is defined for this option
-                if (!isset($runFunction) && isset($optionsListData['function']) && function_exists($optionsListData['function'])) {
-                    $runFunction = $optionsListData['function'];
+                if (!isset($runFunction) && isset($definedOptionsData['function']) && function_exists($definedOptionsData['function'])) {
+                    $runFunction = $definedOptionsData['function'];
                 }
 
-                if (isset($optionsListData['function-restricted'])) {
-                    if (isset($optionsListData['long']) && $optionsListData['long'] === $option) {
-                        $optionStr = '--' . $optionsListData['long'];
-                    } elseif (isset($optionsListData['short']) && $optionsListData['short'] === $option) {
-                        $optionStr = '-' . $optionsListData['short'];
-                    }
-
-                    $restrictedOptions[$optionStr] = $optionsListData['function-restricted'];
+                // Options restricted to be used with others
+                if (isset($definedOptionsData['option-restricted'])) {
+                    $optionRestricted[$optionStr] = $definedOptionsData['option-restricted'];
                 }
             }
         }
@@ -199,8 +201,8 @@ function parseOptions()
             unset($argv[key($result)]);
         }
 
-        if (isset($optionsList[$option]['short'])) {
-            $shortOption = $optionsList[$option]['short'];
+        if (isset($definedOptions[$option]['short'])) {
+            $shortOption = $definedOptions[$option]['short'];
 
             $result = array_filter($argv, function ($el) use ($shortOption) {
                 return strpos($el, $shortOption) !== false;
@@ -223,20 +225,28 @@ function parseOptions()
     }
 
     # When option meant to be used with others is used incorrectly
-    if (count($restrictedOptions) > 0) {
-        foreach ($restrictedOptions as $optionStr => $restrictedOption) {
-            if (!in_array($runFunction, $restrictedOption)) {
+    if (count($optionRestricted) > 0) {
+        foreach ($optionRestricted as $optionStr => $restrictedOption) {
+            $result = array_filter(
+                $restrictedOption,
+                static function ($el) use ($options) {
+                    return isset($options[$el]);
+                }
+            );
+
+            if (empty($result)) {
                 print 'Invalid option(s): ' . $optionStr . PHP_EOL;
                 exit(1);
             }
         }
     }
 
+    // Run the function
     if (isset($runFunction)) {
         $runFunction($options, loadConfig($options));
         exit;
     }
-    
+
     requireRoot(); // Require root privileges
 
     return $options;
@@ -661,13 +671,17 @@ function getBranch($options = [], $config = [])
 
 /**
  * Print help
+ *
+ * @param array $options
+ * @param array $config
  */
-function printHelp()
+function printHelp($options = [], $config = [])
 {
-    $options = getDefinedOptions();
-    $help    = [];
-    $maxLen  = 0;
-    foreach ($options as $option) {
+    $definedOptions = getDefinedOptions();
+    $help           = [];
+    $maxLen         = 0;
+
+    foreach ($definedOptions as $option) {
         $line = ' ';
 
         if (!isset($option['description'])) {
@@ -685,8 +699,23 @@ function printHelp()
 
             $line .= '--' . str_replace(':', '', $option['long']);
 
-            if (isset($option['parameter-descrption'])) {
-                $line .= '=<' . $option['parameter-descrption'] . '>';
+            if (isset($option['parameter-description'])) {
+                $line .= '=<' . $option['parameter-description'] . '>';
+            }
+        }
+
+        if (isset($option['option-restricted'])) {
+            $useOnlyWithOptions = $option['option-restricted'];
+
+            $useOnlyWithThisOption = false;
+            foreach ($useOnlyWithOptions as $useOnlyWithOption) {
+                if (isset($options[$useOnlyWithOption])) {
+                    $useOnlyWithThisOption = true;
+                }
+            }
+
+            if ($useOnlyWithThisOption === false) {
+                continue;
             }
         }
 

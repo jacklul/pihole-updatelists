@@ -4,7 +4,7 @@ When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=t
 
 This script will not touch user-created entries, entries that were removed from the remote list will be disabled instead of removed.
 
-### Requirements
+## Requirements
 
 - **Pi-hole v5+** installed (fresh install preferred)
 - **php-cli >=7.0** and **sqlite3 extension** (`sudo apt install php-cli php-sqlite3`)
@@ -12,7 +12,7 @@ This script will not touch user-created entries, entries that were removed from 
 
 Without **systemd** you will have to take care of scheduled run of this script yourself.
 
-### Install
+## Install
 
 This command will install this script to `/usr/local/sbin` and add systemd service and timer:
 
@@ -26,7 +26,7 @@ _Alternatively you can clone this repo and `sudo bash install.sh`._
 
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
-#### Disable default gravity update schedule
+### Disable default gravity update schedule
 
 _If you don't plan on updating adlists you can skip this and set `UPDATE_GRAVITY=false` in the configuration file._
 
@@ -42,7 +42,7 @@ Put a `#` before this line (numbers might be different):
 
 **You might have to do this after each Pi-hole update.**
 
-#### Migrating lists and domains
+### Migrating lists and domains
 
 If you already imported any of the remote lists manually you should migrate their entries to allow the script to disable them in case they are removed from the remote list.
 
@@ -66,7 +66,7 @@ Alternatively, some manual work is required - pick one:
 	```
     - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
 
-### Configuration
+## Configuration
 
 Default configuration file is `/etc/pihole-updatelists.conf`.
 
@@ -74,7 +74,7 @@ Default configuration file is `/etc/pihole-updatelists.conf`.
 sudo nano /etc/pihole-updatelists.conf
 ```
 
-#### Available variables:
+### Available variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -103,7 +103,7 @@ You can also give paths to the local files instead of URLs, for example setting 
 
 You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
 
-#### Multiple list URLs:
+### Multiple list URLs
 
 You can pass multiple URLs to the list variables by separating them with whitespace (space or new line):
 
@@ -113,7 +113,7 @@ ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick  https://raw.github
 
 If one of the lists fails to download nothing will be affected for that list type.
 
-#### Recommended lists:
+### Recommended lists
 
 | List | URL | Description |
 |----------|-------------|-------------|
@@ -121,19 +121,24 @@ If one of the lists fails to download nothing will be affected for that list typ
 | Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
 | Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
+## Extra information
+
 ### Runtime options
+
+These can be used when executing `pihole-updatelists`.
 
 | Option | Description |
 |----------|-------------|
-| --help, -h | Show help message, which is simply this list |
-| --no-gravity, -n | Force gravity update to be skipped |
-| --no-vacuum, -m | Force database vacuuming to be skipped |
-| --verbose, -v | Turn on verbose mode |
-| --debug, -d  | Turn on debug mode |
-| --config=[FILE] | Load alternative configuration file |
-| --git-branch=[BRANCH] | Select git branch to pull remote checksum and update from |
-| --update | Update the script using selected git branch |
-| --version | Show script checksum (and also if update is available) |
+| `--help, -h` | Show help message, which is simply this list |
+| `--no-gravity, -n` | Force gravity update to be skipped |
+| `--no-vacuum, -m` | Force database vacuuming to be skipped |
+| `--verbose, -v` | Turn on verbose mode |
+| `--debug, -d`  | Turn on debug mode |
+| `--yes, -y`  | Automatically say yes to any prompt <br>Can only be used with `--update` |
+| `--config=<file>` | Load alternative configuration file |
+| `--git-branch=<branch>` | Select git branch to pull remote checksum and update from <br>Can only be used with `--update` and `--version` |
+| `--update` | Update the script using selected git branch |
+| `--version `| Show script checksum (and also if update is available) |
 
 ### Changing the schedule
 
@@ -183,6 +188,16 @@ example-domain.com # your comment
 Which will cause `example-domain.com` to have `comment` set to `your comment | Managed by pihole-updatelists`.
 
 You can also add your comments directly through the Pi-hole's web interface by either appending or prepending the comment field for entries.
+
+### Uninstalling
+
+```bash
+wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash /dev/stdin uninstall
+```
+or remove files manually:
+```bash
+rm /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists /etc/systemd/system/pihole-updatelists.service /etc/systemd/system/pihole-updatelists.timer
+```
 
 ## License
 
