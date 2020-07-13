@@ -196,7 +196,7 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 ```
 or remove files manually:
 ```bash
-rm /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists /etc/systemd/system/pihole-updatelists.service /etc/systemd/system/pihole-updatelists.timer
+sudo rm /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists /etc/systemd/system/pihole-updatelists.service /etc/systemd/system/pihole-updatelists.timer
 ```
 
 ## License
