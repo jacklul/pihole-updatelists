@@ -22,7 +22,7 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 
 _Alternatively you can clone this repo and `sudo bash install.sh`._
 
-**In the future to quickly update the script you can use `sudo pihole-updatelists --update --yes`.**
+**In the future to quickly update the script you can use `sudo pihole-updatelists --update`.**
 
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
@@ -134,7 +134,6 @@ These can be used when executing `pihole-updatelists`.
 | `--no-vacuum, -m` | Force database vacuuming to be skipped |
 | `--verbose, -v` | Turn on verbose mode |
 | `--debug, -d`  | Turn on debug mode |
-| `--yes, -y`  | Automatically say yes to any prompt <br>Can only be used with `--update` |
 | `--config=<file>` | Load alternative configuration file |
 | `--git-branch=<branch>` | Select git branch to pull remote checksum and update from <br>Can only be used with `--update` and `--version` |
 | `--update` | Update the script using selected git branch |

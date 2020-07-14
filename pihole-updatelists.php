@@ -93,12 +93,6 @@ function getDefinedOptions()
             'short'       => 'd',
             'description' => 'Turn on debug mode',
         ],
-        'yes'        => [
-            'long'              => 'yes',
-            'short'             => 'y',
-            'description'       => 'Automatically say yes to any prompt',
-            'option-restricted' => ['update'],
-        ],
         'config'     => [
             'long'                  => 'config::',
             'description'           => 'Load alternative configuration file',
@@ -755,15 +749,6 @@ function updateScript($options = [], $config = [])
     $status = printVersion($options, $config, true);
 
     if ($status === false) {
-        if (!isset($options['yes']) && !isset($options['y'])) {
-            print PHP_EOL . 'Update now? [y/N] ';
-            $confirmation = trim(fgets(STDIN));
-            if (strtolower($confirmation) !== 'y' && strtolower($confirmation) !== 'yes') {
-                print 'Aborted.' . PHP_EOL;
-                exit;
-            }
-        }
-
         $remoteScript = fetchRemoteScript(getBranch($options, $config));
         if (!@file_put_contents(__FILE__, $remoteScript)) {
             print 'Failed to update: ' . parseLastError() . PHP_EOL;

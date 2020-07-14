@@ -14,11 +14,8 @@ _pihole_updatelists()
             "--help")
                 opts=" --update --version"
             ;;
-            "--version")
+            "--version"|"--update")
                 opts=" --git-branch="
-            ;;
-            "--update")
-                opts=" --git-branch= --yes"
             ;;
     esac
 
