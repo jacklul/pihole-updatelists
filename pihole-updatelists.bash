@@ -8,14 +8,14 @@ _pihole_updatelists()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--config= --help --no-gravity --no-vacuum --verbose --debug --update --version"
+    opts="--config= --git-branch= --help --no-gravity --no-vacuum --verbose --debug --update --version"
 
     case "${prev}" in
             "--help")
-                opts=" --update --version"
+                opts="--update --version"
             ;;
             "--version"|"--update")
-                opts=" --git-branch="
+                opts="--git-branch="
             ;;
     esac
 

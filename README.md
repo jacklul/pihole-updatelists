@@ -10,11 +10,9 @@ This script will not touch user-created entries, entries that were removed from 
 - **php-cli >=7.0** and **sqlite3 extension** (`sudo apt install php-cli php-sqlite3`)
 - **systemd** is optional but recommended
 
-Without **systemd** you will have to take care of scheduled run of this script yourself.
-
 ## Install
 
-This command will install this script to `/usr/local/sbin` and add systemd service and timer:
+This command will install this script to `/usr/local/sbin`:
 
 ```bash
 wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash
@@ -22,13 +20,15 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 
 _Alternatively you can clone this repo and `sudo bash install.sh`._
 
+If **systemd** is available this will also add service and timer unit files to the system, otherwise a crontab entry in `/etc/cron.d/pihole-updatelists` will be created.
+
 **In the future to quickly update the script you can use `sudo pihole-updatelists --update`.**
 
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
 ### Disable default gravity update schedule
 
-_If you don't plan on updating adlists you can skip this and set `UPDATE_GRAVITY=false` in the configuration file._
+_If you don't plan on updating adlists or want to keep Pi-hole's gravity update schedule you should skip this section and set `UPDATE_GRAVITY=false` in the configuration file._
 
 You should disable entry with `pihole updateGravity` command in `/etc/cron.d/pihole` as this script already runs it:
 

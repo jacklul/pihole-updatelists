@@ -8,11 +8,66 @@
  * @link    https://github.com/jacklul/pihole-updatelists
  */
 
-define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists');
-define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists');
+define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists'); // Link to Github page
+define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists'); // URL serving raw files from the repository
+define('RANDOM_VERSION_HASH', 'RQwj7ZKThUF8LmDdYtfHVV7v44QMtZ25'); // This is a secret.
+
+/**
+ * Print (and optionally log) string
+ *
+ * @param string $str
+ * @param string $severity
+ * @param bool   $logOnly
+ *
+ * @throws RuntimeException
+ */
+function printAndLog($str, $severity = 'INFO', $logOnly = false)
+{
+    global $config, $lock;
+
+    if (!in_array(strtoupper($severity), ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR'])) {
+        throw new RuntimeException('Invalid log severity: ' . $severity);
+    }
+
+    if (!empty($config['LOG_FILE'])) {
+        $flags = FILE_APPEND;
+
+        if (strpos($config['LOG_FILE'], '-') === 0) {
+            $flags              = 0;
+            $config['LOG_FILE'] = substr($config['LOG_FILE'], 1);
+        }
+
+        // Do not overwrite log files until we have a lock (this could mess up log file if another instance is already running)
+        if ($flags !== null || $lock !== null) {
+            if (!file_exists($config['LOG_FILE']) && !@touch($config['LOG_FILE'])) {
+                throw new RuntimeException('Unable to create log file: ' . $config['LOG_FILE']);
+            }
+
+            $lines = preg_split('/\r\n|\r|\n/', ucfirst(trim($str)));
+            foreach ($lines as &$line) {
+                $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($severity) . ']' . "\t" . $line;
+            }
+            unset($line);
+
+            file_put_contents(
+                $config['LOG_FILE'],
+                implode(PHP_EOL, $lines) . PHP_EOL,
+                $flags | LOCK_EX
+            );
+        }
+    }
+
+    if ($logOnly) {
+        return;
+    }
+
+    print $str;
+}
 
 /**
  * Check for required stuff
+ * 
+ * Setting invironment variable IGNORE_OS_CHECK allows to run this script on Windows
  */
 function checkDependencies()
 {
@@ -45,17 +100,6 @@ function checkDependencies()
             printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
             exit(1);
         }
-    }
-}
-
-/**
- * Re-run the script with sudo when not running as root
- */
-function requireRoot()
-{
-    if (function_exists('posix_getuid') && posix_getuid() !== 0 && strpos(basename($_SERVER['argv'][0]), '.php') === false) {
-        passthru('sudo ' . implode(' ', $_SERVER['argv']), $return);
-        exit($return);
     }
 }
 
@@ -93,17 +137,6 @@ function getDefinedOptions()
             'short'       => 'd',
             'description' => 'Turn on debug mode',
         ],
-        'config'     => [
-            'long'                  => 'config::',
-            'description'           => 'Load alternative configuration file',
-            'parameter-description' => 'file',
-        ],
-        'git-branch' => [
-            'long'                  => 'git-branch::',
-            'description'           => 'Select git branch to pull remote checksum and update from',
-            'parameter-description' => 'branch',
-            'option-restricted'     => ['update', 'version'],
-        ],
         'update'     => [
             'long'        => 'update',
             'function'    => 'updateScript',
@@ -114,7 +147,30 @@ function getDefinedOptions()
             'function'    => 'printVersion',
             'description' => 'Show script checksum (and also if update is available)',
         ],
+        'config'     => [
+            'long'                  => 'config::',
+            'description'           => 'Load alternative configuration file',
+            'parameter-description' => 'file',
+        ],
+        'git-branch' => [
+            'long'                  => 'git-branch::',
+            'description'           => 'Select git branch to pull remote checksum and update from',
+            'parameter-description' => 'branch',
+        ],
     ];
+}
+
+/**
+ * Re-run the script with sudo when not running as root
+ * 
+ * This check is ignored if script is not installed
+ */
+function requireRoot()
+{
+    if (function_exists('posix_getuid') && posix_getuid() !== 0 && strpos(basename($_SERVER['argv'][0]), '.php') === false) {
+        passthru('sudo ' . implode(' ', $_SERVER['argv']), $return);
+        exit($return);
+    }
 }
 
 /**
@@ -145,7 +201,6 @@ function parseOptions()
     }
 
     $options          = getopt(implode('', $shortOpts), $longOpts);
-    $optionRestricted = [];
 
     // If short is used set the long one
     foreach ($options as $option => $data) {
@@ -172,11 +227,6 @@ function parseOptions()
                 // Set function to run if it is defined for this option
                 if (!isset($runFunction) && isset($definedOptionsData['function']) && function_exists($definedOptionsData['function'])) {
                     $runFunction = $definedOptionsData['function'];
-                }
-
-                // Options restricted to be used with others
-                if (isset($definedOptionsData['option-restricted'])) {
-                    $optionRestricted[$optionStr] = $definedOptionsData['option-restricted'];
                 }
             }
         }
@@ -218,23 +268,6 @@ function parseOptions()
         exit(1);
     }
 
-    # When option meant to be used with others is used incorrectly
-    if (count($optionRestricted) > 0) {
-        foreach ($optionRestricted as $optionStr => $restrictedOption) {
-            $result = array_filter(
-                $restrictedOption,
-                static function ($el) use ($options) {
-                    return isset($options[$el]);
-                }
-            );
-
-            if (empty($result)) {
-                print 'Invalid option(s): ' . $optionStr . PHP_EOL;
-                exit(1);
-            }
-        }
-    }
-
     // Run the function
     if (isset($runFunction)) {
         $runFunction($options, loadConfig($options));
@@ -244,333 +277,6 @@ function parseOptions()
     requireRoot(); // Require root privileges
 
     return $options;
-}
-
-/**
- * Load config file, if exists
- *
- * @param array $options
- *
- * @return array
- */
-function loadConfig($options = [])
-{
-    // Default configuration
-    $config = [
-        'CONFIG_FILE'             => '/etc/pihole-updatelists.conf',
-        'GRAVITY_DB'              => '/etc/pihole/gravity.db',
-        'LOCK_FILE'               => '/var/lock/pihole-updatelists.lock',
-        'LOG_FILE'                => '',
-        'ADLISTS_URL'             => '',
-        'WHITELIST_URL'           => '',
-        'REGEX_WHITELIST_URL'     => '',
-        'BLACKLIST_URL'           => '',
-        'REGEX_BLACKLIST_URL'     => '',
-        'COMMENT'                 => 'Managed by pihole-updatelists',
-        'GROUP_ID'                => 0,
-        'REQUIRE_COMMENT'         => true,
-        'UPDATE_GRAVITY'          => true,
-        'VACUUM_DATABASE'         => false,
-        'VERBOSE'                 => false,
-        'DEBUG'                   => false,
-        'DOWNLOAD_TIMEOUT'        => 60,
-        'IGNORE_DOWNLOAD_FAILURE' => false,
-        'GIT_BRANCH'              => 'master',
-    ];
-
-    if (isset($options['config'])) {
-        if (!file_exists($options['config'])) {
-            printAndLog('Invalid file: ' . $options['config'] . PHP_EOL, 'ERROR');
-            exit(1);
-        }
-
-        $config['CONFIG_FILE'] = $options['config'];
-    }
-
-    if (file_exists($config['CONFIG_FILE'])) {
-        $configFile = file_get_contents($config['CONFIG_FILE']);
-
-        // Convert any hash-commented lines to semicolons
-        $configFile = preg_replace('/^\s{0,}(#)(.*)$/m', ';$2', $configFile);
-
-        $loadedConfig = @parse_ini_string($configFile, false, INI_SCANNER_TYPED);
-        if ($loadedConfig === false) {
-            printAndLog('Failed to load configuration file: ' . parseLastError() . PHP_EOL, 'ERROR');
-            exit(1);
-        }
-
-        unset($loadedConfig['CONFIG_FILE']);
-
-        $config = array_merge($config, $loadedConfig);
-    }
-
-    validateConfig($config);
-    $config['COMMENT'] = trim($config['COMMENT']);
-
-    if (isset($options['no-gravity'])) {
-        $config['UPDATE_GRAVITY'] = false;
-    }
-
-    if (isset($options['no-vacuum'])) {
-        $config['VACUUM_DATABASE'] = false;
-    }
-
-    if (isset($options['verbose'])) {
-        $config['VERBOSE'] = true;
-    }
-
-    if (isset($options['debug'])) {
-        $config['DEBUG'] = true;
-    }
-
-    return $config;
-}
-
-/**
- * Validate important configuration variables
- *
- * @param $config
- */
-function validateConfig($config)
-{
-    if ($config['COMMENT'] === '') {
-        printAndLog('Variable COMMENT must be a string at least 1 characters long!' . PHP_EOL, 'ERROR');
-        exit(1);
-    }
-
-    if (!is_int($config['GROUP_ID'])) {
-        printAndLog('Variable GROUP_ID must be a number!' . PHP_EOL, 'ERROR');
-        exit(1);
-    }
-}
-
-/**
- * Acquire process lock
- *
- * @param string $lockfile
- * @param bool   $debug
- *
- * @return resource
- */
-function acquireLock($lockfile, $debug = false)
-{
-    if (empty($lockfile)) {
-        printAndLog('Lock file not defined!' . PHP_EOL, 'ERROR');
-        exit(1);
-    }
-
-    if ($lock = @fopen($lockfile, 'wb+')) {
-        if (!flock($lock, LOCK_EX | LOCK_NB)) {
-            printAndLog('Another process is already running!' . PHP_EOL, 'ERROR');
-            exit(6);
-        }
-
-        $debug === true && printAndLog('Acquired process lock through file: ' . $lockfile . PHP_EOL, 'DEBUG');
-
-        return $lock;
-    }
-
-    printAndLog('Unable to access path or lock file: ' . $lockfile . PHP_EOL, 'ERROR');
-    exit(1);
-}
-
-/**
- * Open the database
- *
- * @param string $db_file
- * @param bool   $verbose
- * @param bool   $debug
- *
- * @return PDO
- */
-function openDatabase($db_file, $verbose = true, $debug = false)
-{
-    $dbh = new PDO('sqlite:' . $db_file);
-    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $dbh->exec('PRAGMA foreign_keys = ON;'); // Require foreign key constraints
-
-    if ($debug) {
-        !class_exists('LoggedPDOStatement') && registerPDOLogger();
-        $dbh->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['LoggedPDOStatement']);
-    }
-
-    if ($verbose) {
-        clearstatcache();
-        printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL);
-    }
-
-    return $dbh;
-}
-
-/**
- * Register PDO logging class
- */
-function registerPDOLogger()
-{
-    class LoggedPDOStatement extends PDOStatement
-    {
-        private $queryParameters = [];
-        private $parsedQuery     = '';
-
-        public function bindValue($parameter, $value, $data_type = PDO::PARAM_STR): bool
-        {
-            $this->queryParameters[$parameter] = [
-                'value' => $value,
-                'type'  => $data_type,
-            ];
-
-            return parent::bindValue($parameter, $value, $data_type);
-        }
-
-        public function bindParam($parameter, &$variable, $data_type = PDO::PARAM_STR, $length = null, $driver_options = null): bool
-        {
-            $this->queryParameters[$parameter] = [
-                'value' => $variable,
-                'type'  => $data_type,
-            ];
-
-            return parent::bindParam($parameter, $variable, $data_type, $length, $driver_options);
-        }
-
-        public function execute($input_parameters = null): bool
-        {
-            printAndLog('SQL Query: ' . $this->parseQuery() . PHP_EOL, 'DEBUG');
-
-            return parent::execute($input_parameters);
-        }
-
-        private function parseQuery(): string
-        {
-            if (!empty($this->parsedQuery)) {
-                return $this->parsedQuery;
-            }
-
-            $query = $this->queryString;
-            foreach ($this->queryParameters as $parameter => $data) {
-                switch ($data['type']) {
-                    case PDO::PARAM_STR:
-                        $value = '"' . $data['value'] . '"';
-                        break;
-                    case PDO::PARAM_INT:
-                        $value = (int) $data['value'];
-                        break;
-                    case PDO::PARAM_BOOL:
-                        $value = (bool) $data['value'];
-                        break;
-                    default:
-                        $value = null;
-                }
-
-                $query = str_replace($parameter, $value, $query);
-            }
-
-            return $this->parsedQuery = $query;
-        }
-    }
-}
-
-/**
- * Convert text files from one-entry-per-line to array
- *
- * @param string $text
- *
- * @return array
- *
- * @noinspection OnlyWritesOnParameterInspection
- */
-function textToArray($text)
-{
-    global $comments;
-
-    $array    = preg_split('/\r\n|\r|\n/', $text);
-    $comments = [];
-
-    foreach ($array as $var => &$val) {
-        // Ignore empty lines and those with only a comment
-        if (empty($val) || strpos(trim($val), '#') === 0) {
-            unset($array[$var]);
-            continue;
-        }
-
-        $comment = '';
-
-        // Extract value from lines ending with comment
-        if (preg_match('/^(.*)\s+#\s*(\S.*)$/U', $val, $matches)) {
-            list(, $val, $comment) = $matches;
-        }
-
-        $val                                = trim($val);
-        !empty($comment) && $comments[$val] = trim($comment);
-    }
-    unset($val);
-
-    return array_values($array);
-}
-
-/**
- * @param int $bytes
- * @param int $precision
- *
- * @return string
- */
-function formatBytes($bytes, $precision = 2)
-{
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-    $bytes = max($bytes, 0);
-    $pow   = floor(($bytes ? log($bytes) : 0) / log(1024));
-    $pow   = min($pow, count($units) - 1);
-    $bytes /= (1 << (10 * $pow));
-
-    return round($bytes, $precision) . ' ' . $units[$pow];
-}
-
-/**
- * Just print the header
- */
-function printHeader()
-{
-    $header[] = 'Pi-hole\'s Lists Updater by Jack\'lul';
-    $header[] = GITHUB_LINK;
-    $offset   = ' ';
-
-    $maxLen = 0;
-    foreach ($header as $string) {
-        $strlen                      = strlen($string);
-        $strlen > $maxLen && $maxLen = $strlen;
-    }
-
-    foreach ($header as &$string) {
-        $strlen = strlen($string);
-
-        if ($strlen < $maxLen) {
-            $diff = $maxLen - $strlen;
-            $addL = ceil($diff / 2);
-            $addR = $diff - $addL;
-
-            $string = str_repeat(' ', $addL) . $string . str_repeat(' ', $addR);
-        }
-
-        $string = $offset . $string;
-    }
-    unset($string);
-
-    printAndLog(trim($header[0]) . ' started' . PHP_EOL, 'INFO', true);
-    print PHP_EOL . implode(PHP_EOL, $header) . PHP_EOL . PHP_EOL;
-}
-
-/**
- * Parse last error from error_get_last()
- *
- * @param string $default
- *
- * @return string
- */
-function parseLastError($default = 'Unknown error')
-{
-    $lastError = error_get_last();
-
-    return preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? $default));
 }
 
 /**
@@ -654,13 +360,15 @@ function isUpToDate($branch = 'master')
  */
 function getBranch($options = [], $config = [])
 {
-    if (isset($options['git-branch'])) {
-        return $options['git-branch'];
-    } elseif (isset($config['GIT_BRANCH'])) {
-        return $config['GIT_BRANCH'];
+    $branch = 'master';
+
+    if (!empty($options['git-branch'])) {
+        $branch = $options['git-branch'];
+    } elseif (!empty($config['GIT_BRANCH'])) {
+        $branch = $config['GIT_BRANCH'];
     }
 
-    return 'master';
+    return $branch;
 }
 
 /**
@@ -698,21 +406,6 @@ function printHelp($options = [], $config = [])
             }
         }
 
-        if (isset($option['option-restricted'])) {
-            $useOnlyWithOptions = $option['option-restricted'];
-
-            $useOnlyWithThisOption = false;
-            foreach ($useOnlyWithOptions as $useOnlyWithOption) {
-                if (isset($options[$useOnlyWithOption])) {
-                    $useOnlyWithThisOption = true;
-                }
-            }
-
-            if ($useOnlyWithThisOption === false) {
-                continue;
-            }
-        }
-
         if (strlen($line) > $maxLen) {
             $maxLen = strlen($line);
         }
@@ -747,15 +440,12 @@ function updateScript($options = [], $config = [])
 
     requireRoot(); // Only root should be able to run this command
     $status = printVersion($options, $config, true);
+    $branch = getBranch($options, $config);
 
     if ($status === false) {
-        $remoteScript = fetchRemoteScript(getBranch($options, $config));
-        if (!@file_put_contents(__FILE__, $remoteScript)) {
-            print 'Failed to update: ' . parseLastError() . PHP_EOL;
-            exit(1);
-        }
-
-        print 'Updated successfully!' . PHP_EOL;
+        print PHP_EOL;
+        passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash /dev/stdin ' . $branch, $return);
+        exit($return);
     }
 }
 
@@ -802,6 +492,182 @@ function printVersion($options = [], $config = [], $return = false)
 }
 
 /**
+ * Validate important configuration variables
+ *
+ * @param $config
+ */
+function validateConfig($config)
+{
+    if ($config['COMMENT'] === '') {
+        printAndLog('Variable COMMENT must be a string at least 1 characters long!' . PHP_EOL, 'ERROR');
+        exit(1);
+    }
+
+    if (!is_int($config['GROUP_ID'])) {
+        printAndLog('Variable GROUP_ID must be a number!' . PHP_EOL, 'ERROR');
+        exit(1);
+    }
+}
+
+/**
+ * Load config file, if exists
+ *
+ * @param array $options
+ *
+ * @return array
+ */
+function loadConfig($options = [])
+{
+    // Default configuration
+    $config = [
+        'CONFIG_FILE'             => '/etc/pihole-updatelists.conf',
+        'GRAVITY_DB'              => '/etc/pihole/gravity.db',
+        'LOCK_FILE'               => '/var/lock/pihole-updatelists.lock',
+        'LOG_FILE'                => '',
+        'ADLISTS_URL'             => '',
+        'WHITELIST_URL'           => '',
+        'REGEX_WHITELIST_URL'     => '',
+        'BLACKLIST_URL'           => '',
+        'REGEX_BLACKLIST_URL'     => '',
+        'COMMENT'                 => 'Managed by pihole-updatelists',
+        'GROUP_ID'                => 0,
+        'REQUIRE_COMMENT'         => true,
+        'UPDATE_GRAVITY'          => true,
+        'VACUUM_DATABASE'         => false,
+        'VERBOSE'                 => false,
+        'DEBUG'                   => false,
+        'DOWNLOAD_TIMEOUT'        => 60,
+        'IGNORE_DOWNLOAD_FAILURE' => false,
+        'GIT_BRANCH'              => 'master',
+    ];
+
+    if (isset($options['config'])) {
+        if (!file_exists($options['config'])) {
+            printAndLog('Invalid file: ' . $options['config'] . PHP_EOL, 'ERROR');
+            exit(1);
+        }
+
+        $config['CONFIG_FILE'] = $options['config'];
+    }
+
+    if (file_exists($config['CONFIG_FILE'])) {
+        $configFile = file_get_contents($config['CONFIG_FILE']);
+
+        // Convert any hash-commented lines to semicolons
+        $configFile = preg_replace('/^\s{0,}(#)(.*)$/m', ';$2', $configFile);
+
+        $loadedConfig = @parse_ini_string($configFile, false, INI_SCANNER_TYPED);
+        if ($loadedConfig === false) {
+            printAndLog('Failed to load configuration file: ' . parseLastError() . PHP_EOL, 'ERROR');
+            exit(1);
+        }
+
+        unset($loadedConfig['CONFIG_FILE']);
+
+        $config = array_merge($config, $loadedConfig);
+    }
+
+    validateConfig($config);
+    $config['COMMENT'] = trim($config['COMMENT']);
+
+    if (isset($options['no-gravity'])) {
+        $config['UPDATE_GRAVITY'] = false;
+    }
+
+    if (isset($options['no-vacuum'])) {
+        $config['VACUUM_DATABASE'] = false;
+    }
+
+    if (isset($options['verbose'])) {
+        $config['VERBOSE'] = true;
+    }
+
+    if (isset($options['debug'])) {
+        $config['DEBUG'] = true;
+    }
+
+    return $config;
+}
+
+/**
+ * Acquire process lock
+ *
+ * @param string $lockfile
+ * @param bool   $debug
+ *
+ * @return resource
+ */
+function acquireLock($lockfile, $debug = false)
+{
+    if (empty($lockfile)) {
+        printAndLog('Lock file not defined!' . PHP_EOL, 'ERROR');
+        exit(1);
+    }
+
+    if ($lock = @fopen($lockfile, 'wb+')) {
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            printAndLog('Another process is already running!' . PHP_EOL, 'ERROR');
+            exit(6);
+        }
+
+        $debug === true && printAndLog('Acquired process lock through file: ' . $lockfile . PHP_EOL, 'DEBUG');
+
+        return $lock;
+    }
+
+    printAndLog('Unable to access path or lock file: ' . $lockfile . PHP_EOL, 'ERROR');
+    exit(1);
+}
+
+/**
+ * Shutdown related tasks
+ */
+function shutdownCleanup()
+{
+    global $config, $lock;
+
+    if ($config['DEBUG'] === true) {
+        printAndLog('Releasing lock and removing lockfile: ' . $config['LOCK_FILE'] . PHP_EOL, 'DEBUG');
+    }
+
+    flock($lock, LOCK_UN) && fclose($lock) && unlink($config['LOCK_FILE']);
+}
+
+/**
+ * Just print the header
+ */
+function printHeader()
+{
+    $header[] = 'Pi-hole\'s Lists Updater by Jack\'lul';
+    $header[] = GITHUB_LINK;
+    $offset   = ' ';
+
+    $maxLen = 0;
+    foreach ($header as $string) {
+        $strlen                      = strlen($string);
+        $strlen > $maxLen && $maxLen = $strlen;
+    }
+
+    foreach ($header as &$string) {
+        $strlen = strlen($string);
+
+        if ($strlen < $maxLen) {
+            $diff = $maxLen - $strlen;
+            $addL = ceil($diff / 2);
+            $addR = $diff - $addL;
+
+            $string = str_repeat(' ', $addL) . $string . str_repeat(' ', $addR);
+        }
+
+        $string = $offset . $string;
+    }
+    unset($string);
+
+    printAndLog(trim($header[0]) . ' started' . PHP_EOL, 'INFO', true);
+    print PHP_EOL . implode(PHP_EOL, $header) . PHP_EOL . PHP_EOL;
+}
+
+/**
  * Print debug information
  *
  * @param array $config
@@ -840,69 +706,168 @@ function printDebugHeader($config, $options)
 }
 
 /**
- * Print (and optionally log) string
- *
- * @param string $str
- * @param string $severity
- * @param bool   $logOnly
- *
- * @throws RuntimeException
+ * Register PDO logging class
  */
-function printAndLog($str, $severity = 'INFO', $logOnly = false)
+function registerPDOLogger()
 {
-    global $config, $lock;
+    class LoggedPDOStatement extends PDOStatement
+    {
+        private $queryParameters = [];
+        private $parsedQuery     = '';
 
-    if (!in_array(strtoupper($severity), ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR'])) {
-        throw new RuntimeException('Invalid log severity: ' . $severity);
-    }
+        public function bindValue($parameter, $value, $data_type = PDO::PARAM_STR): bool
+        {
+            $this->queryParameters[$parameter] = [
+                'value' => $value,
+                'type'  => $data_type,
+            ];
 
-    if (!empty($config['LOG_FILE'])) {
-        $flags = FILE_APPEND;
-
-        if (strpos($config['LOG_FILE'], '-') === 0) {
-            $flags              = 0;
-            $config['LOG_FILE'] = substr($config['LOG_FILE'], 1);
+            return parent::bindValue($parameter, $value, $data_type);
         }
 
-        // Do not overwrite log files until we have a lock (this could mess up log file if another instance is already running)
-        if ($flags !== null || $lock !== null) {
-            if (!file_exists($config['LOG_FILE']) && !@touch($config['LOG_FILE'])) {
-                throw new RuntimeException('Unable to create log file: ' . $config['LOG_FILE']);
+        public function bindParam($parameter, &$variable, $data_type = PDO::PARAM_STR, $length = null, $driver_options = null): bool
+        {
+            $this->queryParameters[$parameter] = [
+                'value' => $variable,
+                'type'  => $data_type,
+            ];
+
+            return parent::bindParam($parameter, $variable, $data_type, $length, $driver_options);
+        }
+
+        public function execute($input_parameters = null): bool
+        {
+            printAndLog('SQL Query: ' . $this->parseQuery() . PHP_EOL, 'DEBUG');
+
+            return parent::execute($input_parameters);
+        }
+
+        private function parseQuery(): string
+        {
+            if (!empty($this->parsedQuery)) {
+                return $this->parsedQuery;
             }
 
-            $lines = preg_split('/\r\n|\r|\n/', ucfirst(trim($str)));
-            foreach ($lines as &$line) {
-                $line = '[' . date('Y-m-d H:i:s') . '] [' . strtoupper($severity) . ']' . "\t" . $line;
-            }
-            unset($line);
+            $query = $this->queryString;
+            foreach ($this->queryParameters as $parameter => $data) {
+                switch ($data['type']) {
+                    case PDO::PARAM_STR:
+                        $value = '"' . $data['value'] . '"';
+                        break;
+                    case PDO::PARAM_INT:
+                        $value = (int) $data['value'];
+                        break;
+                    case PDO::PARAM_BOOL:
+                        $value = (bool) $data['value'];
+                        break;
+                    default:
+                        $value = null;
+                }
 
-            file_put_contents(
-                $config['LOG_FILE'],
-                implode(PHP_EOL, $lines) . PHP_EOL,
-                $flags | LOCK_EX
-            );
+                $query = str_replace($parameter, $value, $query);
+            }
+
+            return $this->parsedQuery = $query;
         }
     }
-
-    if ($logOnly) {
-        return;
-    }
-
-    print $str;
 }
 
 /**
- * Shutdown related tasks
+ * Open the database
+ *
+ * @param string $db_file
+ * @param bool   $verbose
+ * @param bool   $debug
+ *
+ * @return PDO
  */
-function shutdownCleanup()
+function openDatabase($db_file, $verbose = true, $debug = false)
 {
-    global $config, $lock;
+    $dbh = new PDO('sqlite:' . $db_file);
+    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $dbh->exec('PRAGMA foreign_keys = ON;'); // Require foreign key constraints
 
-    if ($config['DEBUG'] === true) {
-        printAndLog('Releasing lock and removing lockfile: ' . $config['LOCK_FILE'] . PHP_EOL, 'DEBUG');
+    if ($debug) {
+        !class_exists('LoggedPDOStatement') && registerPDOLogger();
+        $dbh->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['LoggedPDOStatement']);
     }
 
-    flock($lock, LOCK_UN) && fclose($lock) && unlink($config['LOCK_FILE']);
+    if ($verbose) {
+        clearstatcache();
+        printAndLog('Opened gravity database: ' . $db_file . ' (' . formatBytes(filesize($db_file)) . ')' . PHP_EOL);
+    }
+
+    return $dbh;
+}
+
+/**
+ * Convert text files from one-entry-per-line to array
+ *
+ * @param string $text
+ *
+ * @return array
+ *
+ * @noinspection OnlyWritesOnParameterInspection
+ */
+function textToArray($text)
+{
+    global $comments;
+
+    $array    = preg_split('/\r\n|\r|\n/', $text);
+    $comments = [];
+
+    foreach ($array as $var => &$val) {
+        // Ignore empty lines and those with only a comment
+        if (empty($val) || strpos(trim($val), '#') === 0) {
+            unset($array[$var]);
+            continue;
+        }
+
+        $comment = '';
+
+        // Extract value from lines ending with comment
+        if (preg_match('/^(.*)\s+#\s*(\S.*)$/U', $val, $matches)) {
+            list(, $val, $comment) = $matches;
+        }
+
+        $val                                = trim($val);
+        !empty($comment) && $comments[$val] = trim($comment);
+    }
+    unset($val);
+
+    return array_values($array);
+}
+
+/**
+ * Parse last error from error_get_last()
+ *
+ * @param string $default
+ *
+ * @return string
+ */
+function parseLastError($default = 'Unknown error')
+{
+    $lastError = error_get_last();
+
+    return preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? $default));
+}
+
+/**
+ * @param int $bytes
+ * @param int $precision
+ *
+ * @return string
+ */
+function formatBytes($bytes, $precision = 2)
+{
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+    $bytes = max($bytes, 0);
+    $pow   = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow   = min($pow, count($units) - 1);
+    $bytes /= (1 << (10 * $pow));
+
+    return round($bytes, $precision) . ' ' . $units[$pow];
 }
 
 /** PROCEDURAL CODE STARTS HERE */
@@ -1497,7 +1462,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
 
     printAndLog('Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL);
 
-    passthru('pihole updateGravity', $return);
+    passthru('/usr/local/bin/pihole updateGravity', $return);
     print PHP_EOL;
 
     if ($return !== 0) {

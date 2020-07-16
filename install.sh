@@ -13,11 +13,12 @@ function reloadSystemd() {
 }
 
 SPATH=$(dirname $0) # Path to the script
+REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists # Remote URL that serves raw files from the repository
+GIT_BRANCH=master # Git branch to use, user can specify custom branch as first argument
 SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"` # Is systemd available?
-REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists/master # Remote URL that serves raw files from the repository
+SYSTEMD_INSTALLED=`[ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0"` # Is systemd timer installed already?
 
-# This will simply remove the files and reload systemd (if available)
-if [ "$1" == "uninstall" ]; then
+if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
 	rm -v /usr/local/sbin/pihole-updatelists
 	rm -v /etc/bash_completion.d/pihole-updatelists
 	
@@ -25,9 +26,19 @@ if [ "$1" == "uninstall" ]; then
 		rm -v /etc/systemd/system/pihole-updatelists.service
 		rm -v /etc/systemd/system/pihole-updatelists.timer
 		reloadSystemd
+	else
+		rm -v /etc/cron.d/pihole-updatelists
 	fi
 
 	exit 0
+elif [ "$1" != "" ]; then	# Install using different branch
+	GIT_BRANCH=$1
+
+	wget -q --spider "$REMOTE_URL/$GIT_BRANCH/install.sh"
+	if [ $? -ne 0 ] ; then
+		echo "Invalid branch: ${GIT_BRANCH}"
+		exit 1
+	fi
 fi
 
 # We require some stuff before continuing
@@ -38,8 +49,9 @@ command -v php >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, i
 # Stop on first error
 set -e
 
-# Use local files when available, otherwise install from remote repository
+# Use local files when possible, otherwise install from remote repository
 if \
+	[ "$1" == "" ] && \
 	[ -f "$SPATH/pihole-updatelists.php" ] && \
 	[ -f "$SPATH/pihole-updatelists.conf" ] && \
 	[ -f "$SPATH/pihole-updatelists.service" ] && \
@@ -62,33 +74,40 @@ if \
 
 	# Convert line endings when dos2unix command is available
 	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
-elif [ "$REMOTE_URL" != "" ]; then
-	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/pihole-updatelists.php" && \
+elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
+	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php" && \
 	chmod -v +x /usr/local/sbin/pihole-updatelists
 	
 	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
-		wget -nv -O /etc/pihole-updatelists.conf "$REMOTE_URL/pihole-updatelists.conf"
+		wget -nv -O /etc/pihole-updatelists.conf "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.conf"
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
-		wget -nv -O /etc/systemd/system/pihole-updatelists.service "$REMOTE_URL/pihole-updatelists.service"
-		wget -nv -O /etc/systemd/system/pihole-updatelists.timer "$REMOTE_URL/pihole-updatelists.timer"
+		wget -nv -O /etc/systemd/system/pihole-updatelists.service "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.service"
+		wget -nv -O /etc/systemd/system/pihole-updatelists.timer "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.timer"
 	fi
 
-	wget -nv -O /etc/bash_completion.d/pihole-updatelists "$REMOTE_URL/pihole-updatelists.bash"
+	wget -nv -O /etc/bash_completion.d/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.bash"
 else
-	echo "REMOTE_URL is not set and required files are not present in current directory, unable to install!"
 	exit 1
 fi
 
 if [ "$SYSTEMD" == 1 ]; then
-	if [ `systemctl is-enabled pihole-updatelists.timer` != 'enabled' ]; then
+	if [ "$SYSTEMD_INSTALLED" == 0 ]; then
 		echo "Enabling and starting pihole-updatelists.timer..."
 		systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
 	else
 		reloadSystemd
 	fi
 else
-	echo "To enable schedule you will have to add cron entry manually, example:"
-	echo "30 3 * * 6   root   /usr/local/sbin/pihole-updatelists"
+	if [ ! -f "/etc/cron.d/pihole-updatelists" ]; then
+		echo "# Pi-hole's Lists Updater by Jack'lul
+# https://github.com/jacklul/pihole-updatelists
+
+#30 3 * * 6   root   /usr/local/sbin/pihole-updatelists
+" > "/etc/cron.d/pihole-updatelists"
+		sed -i "s/#30 /$((1 + RANDOM % 58)) /" /etc/cron.d/pihole-updatelists
+
+		echo "Created crontab entry in /etc/cron.d/pihole-updatelists"
+	fi
 fi
