@@ -8,9 +8,9 @@
  * @link    https://github.com/jacklul/pihole-updatelists
  */
 
+define('VERSION_HASH', 'RQwj7ZKThUF8LmDdYtfHVV7v44QMtZ25'); // This is a secret.
 define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists'); // Link to Github page
 define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists'); // URL serving raw files from the repository
-define('RANDOM_VERSION_HASH', 'RQwj7ZKThUF8LmDdYtfHVV7v44QMtZ25'); // This is a secret.
 
 /**
  * Print (and optionally log) string
@@ -1487,7 +1487,7 @@ if ($config['VACUUM_DATABASE'] === true) {
     print PHP_EOL;
 }
 
-// Sends signal to pihole-FTl to reload lists
+// Sends signal to pihole-FTL to reload lists
 if ($config['UPDATE_GRAVITY'] === false) {
     printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
 
