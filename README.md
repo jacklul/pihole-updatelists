@@ -62,7 +62,9 @@ Alternatively, some manual work is required - pick one:
 	- run the following commands:
 	```bash
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM adlist"
+	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM adlist_by_group"
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist"
+	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist_by_group"
 	```
     - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
 
@@ -195,7 +197,7 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 ```
 or remove files manually:
 ```bash
-sudo rm /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists /etc/systemd/system/pihole-updatelists.service /etc/systemd/system/pihole-updatelists.timer
+sudo rm -vf /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists /etc/systemd/system/pihole-updatelists.service /etc/systemd/system/pihole-updatelists.timer /etc/cron.d/pihole-updatelists
 ```
 
 ## License
