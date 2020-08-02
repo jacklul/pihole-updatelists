@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Try re-running with sudo
 if [[ $(/usr/bin/id -u) -ne 0 ]]; then
@@ -44,9 +45,6 @@ fi
 # We require some stuff before continuing
 command -v php >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, install it with 'sudo apt install php-cli'."; exit 1; }
 [[ $(php -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") < 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
-
-# Stop on first error
-set -e
 
 # Use local files when possible, otherwise install from remote repository
 if \
