@@ -520,7 +520,7 @@ function loadConfig($options = [])
 {
     // Default configuration
     $config = [
-        'CONFIG_FILE'             => '/etc/pihole-updatelists.conf',
+        'CONFIG_FILE'             => '/etc/pihole-updatelists/pihole-updatelists.conf',
         'GRAVITY_DB'              => '/etc/pihole/gravity.db',
         'LOCK_FILE'               => '/var/lock/pihole-updatelists.lock',
         'LOG_FILE'                => '',

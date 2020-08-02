@@ -70,10 +70,10 @@ Alternatively, some manual work is required - pick one:
 
 ## Configuration
 
-Default configuration file is `/etc/pihole-updatelists.conf`.
+Default configuration file is `/etc/pihole-updatelists/pihole-updatelists.conf`.
 
 ```bash
-sudo nano /etc/pihole-updatelists.conf
+sudo nano /etc/pihole-updatelists/pihole-updatelists.conf
 ```
 
 ### Available variables

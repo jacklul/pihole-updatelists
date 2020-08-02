@@ -17,6 +17,7 @@ REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists # Remote
 GIT_BRANCH=master # Git branch to use, user can specify custom branch as first argument
 SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"` # Is systemd available?
 SYSTEMD_INSTALLED=`[ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0"` # Is systemd timer installed already?
+DOCKER_INSTALL=0
 
 if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
 	rm -v /usr/local/sbin/pihole-updatelists
@@ -31,6 +32,10 @@ if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (i
 	fi
 
 	exit 0
+elif [ "$1" == "DOCKER" ]; then	# Docker install
+	echo "Installing in a Docker environment"
+	DOCKER_INSTALL=1
+	shift # remove this argument
 elif [ "$1" != "" ]; then	# Install using different branch
 	GIT_BRANCH=$1
 
@@ -55,13 +60,18 @@ if \
 	[ -f "$SPATH/pihole-updatelists.conf" ] && \
 	[ -f "$SPATH/pihole-updatelists.service" ] && \
 	[ -f "$SPATH/pihole-updatelists.timer" ] && \
-	[ -f "$SPATH/pihole-updatelists.bash" ] \
+	[ -f "$SPATH/pihole-updatelists.bash" ] && \
+	([ "$DOCKER_INSTALL" == 0 ] || ([ "$DOCKER_INSTALL" == 1 ] && [ -f "$SPATH/60-pihole-updatelists.sh" ]))  \
 ; then
 	cp -v $SPATH/pihole-updatelists.php /usr/local/sbin/pihole-updatelists && \
 	chmod -v +x /usr/local/sbin/pihole-updatelists
 	
-	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
-		cp -v $SPATH/pihole-updatelists.conf /etc/pihole-updatelists.conf
+	if [ ! -d "/etc/pihole-updatelists" ]; then
+		mkdir /etc/pihole-updatelists
+	fi
+	
+	if [ ! -f "/etc/pihole-updatelists/pihole-updatelists.conf" ]; then
+		cp -v $SPATH/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
@@ -70,23 +80,35 @@ if \
 	fi
 
 	cp -v $SPATH/pihole-updatelists.bash /etc/bash_completion.d/pihole-updatelists
+	
+	if [ "$DOCKER_INSTALL" == 1 ]; then
+		cp -v $SPATH/60-pihole-updatelists.sh /etc/cont-init.d/
+	fi
 
 	# Convert line endings when dos2unix command is available
 	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
 elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
-	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php" && \
+	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/src/pihole-updatelists.php" && \
 	chmod -v +x /usr/local/sbin/pihole-updatelists
 	
-	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
-		wget -nv -O /etc/pihole-updatelists.conf "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.conf"
+	if [ ! -d "/etc/pihole-updatelists" ]; then
+		mkdir /etc/pihole-updatelists
+	fi
+	
+	if [ ! -f "/etc/pihole-updatelists/pihole-updatelists.conf" ]; then
+		wget -nv -O /etc/pihole-updatelists/pihole-updatelists.conf "$REMOTE_URL/$GIT_BRANCH/src/pihole-updatelists.conf"
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
-		wget -nv -O /etc/systemd/system/pihole-updatelists.service "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.service"
-		wget -nv -O /etc/systemd/system/pihole-updatelists.timer "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.timer"
+		wget -nv -O /etc/systemd/system/pihole-updatelists.service "$REMOTE_URL/$GIT_BRANCH/src/pihole-updatelists.service"
+		wget -nv -O /etc/systemd/system/pihole-updatelists.timer "$REMOTE_URL/$GIT_BRANCH/src/pihole-updatelists.timer"
 	fi
 
-	wget -nv -O /etc/bash_completion.d/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.bash"
+	wget -nv -O /etc/bash_completion.d/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/src/pihole-updatelists.bash"
+
+	if [ "$DOCKER_INSTALL" == 1 ]; then
+		wget -nv -O /etc/cont-init.d/60-pihole-updatelists.sh "$REMOTE_URL/$GIT_BRANCH/src/60-pihole-updatelists.sh"
+	fi
 else
 	exit 1
 fi
