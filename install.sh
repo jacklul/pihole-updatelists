@@ -152,11 +152,6 @@ if [ ! -L \"/etc/cron.d/pihole-updatelists\" ]; then
 	ln -sv /etc/pihole-updatelists/crontab /etc/cron.d/pihole-updatelists
 fi
 
-if [ "$(grep '^#.*pihole updateGravity' /etc/cron.d/pihole)" == "" ]; then
-	sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
-	echo \"Disabled Pi-hole's gravity update schedule entry in /etc/cron.d/pihole\"
-fi
-
 if [ -e \"/etc/pihole/gravity.db\" ]; then
 	/usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS}
 else

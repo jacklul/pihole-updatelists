@@ -84,8 +84,6 @@ services:
       - './etc-pihole-updatelists/:/etc/pihole-updatelists/'
 ```
 
-Pi-hole's default gravity update schedule will be disabled and replaced by this script's crontab, to change the time it runs at look into `./etc-pihole-updatelists/crontab` file.
-
 ## Configuration
 
 Default configuration file is `/etc/pihole-updatelists.conf`.
