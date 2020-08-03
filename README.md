@@ -12,7 +12,7 @@ This script will not touch user-created entries, entries that were removed from 
 
 ## Install
 
-_Docker users [look here](#install-with-docker)._
+_Docker users [look below](#install-with-docker)._
 
 This command will install this script to `/usr/local/sbin`:
 
@@ -74,7 +74,7 @@ Alternatively, some manual work is required - pick one:
 
 _Currently, there is only image available for **linux/amd64** platform - you will have to build from source on the others._
 
-Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) and modify your `docker-compose.yml` file:
+Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/), then modify your `docker-compose.yml` file:
 
 ```yml
 services:
