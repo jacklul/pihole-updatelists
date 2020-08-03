@@ -122,6 +122,11 @@ function getDefinedOptions()
             'short'       => 'n',
             'description' => 'Force no gravity update',
         ],
+        'no-reload' => [
+            'long'        => 'no-reload',
+            'short'       => 'b',
+            'description' => 'Force no lists reload',
+        ],
         'no-vacuum'  => [
             'long'        => 'no-vacuum',
             'short'       => 'm',
@@ -252,7 +257,7 @@ function parseOptions()
                 return strpos($el, $shortOption) !== false;
             });
 
-            if (!empty($result)) {
+            if (!empty($result) && !preg_match('/^--' . $shortOption . '/', $argv[key($result)])) {
                 $argv[key($result)] = str_replace($shortOption, '', $argv[key($result)]);
 
                 if ($argv[key($result)] === '-') {
@@ -570,8 +575,12 @@ function loadConfig($options = [])
     validateConfig($config);
     $config['COMMENT'] = trim($config['COMMENT']);
 
-    if (isset($options['no-gravity'])) {
+    if (isset($options['no-gravity']) && $config['UPDATE_GRAVITY'] === true) {
         $config['UPDATE_GRAVITY'] = false;
+    }
+
+    if (isset($options['no-reload']) && $config['UPDATE_GRAVITY'] === false) {
+        $config['UPDATE_GRAVITY'] = null;
     }
 
     if (isset($options['no-vacuum'])) {
