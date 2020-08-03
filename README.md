@@ -12,6 +12,8 @@ This script will not touch user-created entries, entries that were removed from 
 
 ## Install
 
+_Docker users [look here](#install-with-docker)._
+
 This command will install this script to `/usr/local/sbin`:
 
 ```bash
@@ -67,6 +69,22 @@ Alternatively, some manual work is required - pick one:
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist_by_group"
 	```
     - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
+
+## Install with Docker
+
+_Currently, there is only image available for **linux/amd64** platform - you will have to build from source on the others._
+
+Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) and modify your `docker-compose.yml` file:
+
+```yml
+services:
+  pihole:
+    image: jacklul/pihole:latest
+    volumes:
+      - './etc-pihole-updatelists/:/etc/pihole-updatelists/'
+```
+
+Pi-hole's default gravity update schedule will be disabled and replaced by this script's crontab, to change the time it runs at look into `./etc-pihole-updatelists/crontab` file.
 
 ## Configuration
 

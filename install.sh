@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Try re-running with sudo
@@ -18,6 +18,12 @@ REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists # Remote
 GIT_BRANCH=master # Git branch to use, user can specify custom branch as first argument
 SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"` # Is systemd available?
 SYSTEMD_INSTALLED=`[ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0"` # Is systemd timer installed already?
+DOCKER=`[ "$(awk -F/ '$2 == "docker"' /proc/self/cgroup)" == "" ] && echo "0" || echo "1"` # Is this a Docker installation?
+
+# Do not install systemd unit files inside Docker container
+if [ "$DOCKER" == 1 ]; then
+	SYSTEMD=0
+fi
 
 if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
 	rm -v /usr/local/sbin/pihole-updatelists
@@ -89,6 +95,7 @@ else
 	exit 1
 fi
 
+# Install schedule related files
 if [ "$SYSTEMD" == 1 ]; then
 	if [ "$SYSTEMD_INSTALLED" == 0 ]; then
 		echo "Enabling and starting pihole-updatelists.timer..."
@@ -105,6 +112,57 @@ else
 " > "/etc/cron.d/pihole-updatelists"
 		sed -i "s/#30 /$((1 + RANDOM % 58)) /" /etc/cron.d/pihole-updatelists
 
-		echo "Created crontab entry in /etc/cron.d/pihole-updatelists"
+		echo "Created crontab (/etc/cron.d/pihole-updatelists)"
 	fi
+fi
+
+# Docker-related tasks
+if [ "$DOCKER" == 1 ]; then
+	# Create directory that will contain the configuration
+	if [ ! -d "/etc/pihole-updatelists" ]; then
+		mkdir -v /etc/pihole-updatelists
+	fi
+
+	# Create or update container startup script
+	echo "#!/usr/bin/env bash
+set -e
+
+if [ \"\${PH_VERBOSE:-0}\" -gt 0 ]; then
+    set -x
+	SCRIPT_ARGS=\"--verbose --debug\"
+fi
+
+if [ ! -L \"/etc/pihole-updatelists.conf\" ]; then
+	if [ ! -e \"/etc/pihole-updatelists/pihole-updatelists.conf\" ]; then
+		mv -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
+	else
+		rm -v /etc/pihole-updatelists.conf
+	fi
+
+	ln -sv /etc/pihole-updatelists/pihole-updatelists.conf /etc/pihole-updatelists.conf
+fi
+
+if [ ! -L \"/etc/cron.d/pihole-updatelists\" ]; then
+	if [ ! -e \"/etc/pihole-updatelists/crontab\" ]; then
+		mv -v /etc/cron.d/pihole-updatelists /etc/pihole-updatelists/crontab
+	else
+		rm -v /etc/cron.d/pihole-updatelists
+	fi
+
+	ln -sv /etc/pihole-updatelists/crontab /etc/cron.d/pihole-updatelists
+fi
+
+if [ "$(grep '^#.*pihole updateGravity' /etc/cron.d/pihole)" == "" ]; then
+	sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
+	echo \"Disabled Pi-hole's gravity update schedule entry in /etc/cron.d/pihole\"
+fi
+
+if [ -e \"/etc/pihole/gravity.db\" ]; then
+	/usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS}
+else
+	echo \"Gravity database not found, skipping lists update!\"
+fi
+" > /etc/cont-init.d/10-pihole-updatelists.sh
+
+	echo "Installed container startup script (/etc/cont-init.d/10-pihole-updatelists.sh)"
 fi
