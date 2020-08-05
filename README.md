@@ -150,7 +150,7 @@ These can be used when executing `pihole-updatelists`.
 | `--help, -h` | Show help message, which is simply this list |
 | `--no-gravity, -n` | Force gravity update to be skipped |
 | `--no-reload, -b` | Force lists reload to be skipped<br>Only if gravity update is disabled either by configuration (`UPDATE_GRAVITY=false`) or `--no-gravity` parameter |
-| `--no-vacuum, -m` | Force database vacuuming to be skipped  |
+| `--no-vacuum, -m` | Force database vacuuming to be skipped |
 | `--verbose, -v` | Turn on verbose mode |
 | `--debug, -d`  | Turn on debug mode |
 | `--config=<file>` | Load alternative configuration file |
