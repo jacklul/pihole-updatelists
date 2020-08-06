@@ -1,0 +1,7 @@
+.git*
+*.md
+LICENSE
+hooks
+Dockerfile*
+build.*
+manifest-*.json

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -eu
+source hooks/.config
+
+# Install required packages
+if \
+  ! command -v curl &> /dev/null || \
+  ! command -v jq &> /dev/null || \
+  ! command -v sponge &> /dev/null || \
+  ! command -v qemu-x86_64-static &> /dev/null || \
+  [ ! -d "/usr/lib/binfmt-support" ] \
+; then
+  echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+  echo "Installing additional packages"
+  apt-get update
+  apt-get install -y curl jq moreutils qemu-user-static binfmt-support
+fi
+
+# Make sure we have experimental features enabled, copy auths when running on Docker Hub
+DOCKER_CFG=~/.docker/config.json
+if [ ! -f ${DOCKER_CFG} ] || ! grep -q '[^[:space:]]' < ${DOCKER_CFG} || [ "$(jq -r '.experimental' /root/.docker/config.json)" != "enabled" ]; then
+  echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+  echo "Building a usable ${DOCKER_CFG} file"
+
+  if [ ! -f ${DOCKER_CFG} ]; then
+    mkdir -vp ~/.docker
+
+    if [ ! -z "${DOCKERCFG+x}" ]; then
+      jq --null-input --argjson auths "$DOCKERCFG" '. + {auths: $auths}' > ${DOCKER_CFG}
+    else
+      echo "{}" > ${DOCKER_CFG}
+    fi
+  fi
+
+  jq '.experimental = "enabled"' ${DOCKER_CFG} | sponge ${DOCKER_CFG}
+fi

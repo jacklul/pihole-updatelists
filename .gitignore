@@ -1,0 +1,3 @@
+build*.conf
+manifest-*.json
+Dockerfile_*

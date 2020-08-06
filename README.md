@@ -72,8 +72,6 @@ Alternatively, some manual work is required - pick one:
 
 ## Install with Docker
 
-_Currently, there is only image available for **linux/amd64** platform - you will have to build from source on the others._
-
 Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/), then modify your `docker-compose.yml` file:
 
 ```yml
