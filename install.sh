@@ -13,7 +13,7 @@ function reloadSystemd() {
 	systemctl daemon-reload
 }
 
-SPATH=$(dirname $0) # Path to the script
+SPATH=$(dirname "$0") # Path to the script
 REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists # Remote URL that serves raw files from the repository
 GIT_BRANCH=master # Git branch to use, user can specify custom branch as first argument
 SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"` # Is systemd available?
