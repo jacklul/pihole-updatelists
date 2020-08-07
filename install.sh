@@ -109,7 +109,7 @@ else
 # https://github.com/jacklul/pihole-updatelists
 
 #30 3 * * 6   root   /usr/local/sbin/pihole-updatelists
-" > "/etc/cron.d/pihole-updatelists"
+" > /etc/cron.d/pihole-updatelists
 		sed -i "s/#30 /$((1 + RANDOM % 58)) /" /etc/cron.d/pihole-updatelists
 
 		echo "Created crontab (/etc/cron.d/pihole-updatelists)"
