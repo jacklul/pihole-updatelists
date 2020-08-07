@@ -17,8 +17,8 @@ function executeHook() {
     fi
 }
 
-# Create 'build.conf' file (or passa  path to it as argument) to override these
-# If you just want to build locally the script will ask you questions
+# Create 'build.conf' file (or pass a path to it as an argument) to override these
+# If you just want to build locally you don't have to do this
 #
 # DOCKER_REPO should use format "index.docker.io/your_username/your_repository"
 # SOURCE_BRANCH, SOURCE_COMMIT and COMMIT_MSG will be filled automatically when possible

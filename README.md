@@ -72,14 +72,35 @@ Alternatively, some manual work is required - pick one:
 
 ## Install with Docker
 
-Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/), then modify your `docker-compose.yml` file:
+Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) but use [`jacklul/pihole:latest`](https://hub.docker.com/r/jacklul/pihole) image instead of `pihole/pihole:latest` and add a volume for `/etc/pihole-updatelists/` directory.
+
+Your `docker-compose.yml` file should look similar to this:
 
 ```yml
+version: "3"
+
 services:
   pihole:
+    container_name: pihole
     image: jacklul/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "67:67/udp"
+      - "80:80/tcp"
+      - "443:443/tcp"
+    environment:
+      TZ: 'America/Chicago'
     volumes:
+      - './etc-pihole/:/etc/pihole/'
+      - './etc-dnsmasq.d/:/etc/dnsmasq.d/'
       - './etc-pihole-updatelists/:/etc/pihole-updatelists/'
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped
 ```
 
 ## Configuration
