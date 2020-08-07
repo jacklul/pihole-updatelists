@@ -1,8 +1,8 @@
 # Update Pi-hole's lists from remote sources
 
-When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) or [this](https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt) it's a hassle to manually check for changes and update, this script will do that for you.
+When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) or [this](https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt) it's a hassle to manually check for changes and update - this script will do that for you!
 
-This script will not touch user-created entries, entries that were removed from the remote list will be disabled instead of removed.
+User-created entries will not be touched and those removed from the remote list will be disabled instead of removed.
 
 ## Requirements
 
@@ -12,7 +12,7 @@ This script will not touch user-created entries, entries that were removed from 
 
 ## Install
 
-_Docker users [look below](#install-with-docker)._
+_Docker users - [look below](#install-with-docker)._
 
 This command will install this script to `/usr/local/sbin`:
 
@@ -48,7 +48,7 @@ Put a `#` before this line (numbers might be different):
 
 If you already imported any of the remote lists manually you should migrate their entries to allow the script to disable them in case they are removed from the remote list.
 
-If you used [pihole5-list-tool](https://github.com/jessedp/pihole5-list-tool) to import adlists and whitelist you can use this commands to do this quickly:
+If you used [pihole5-list-tool](https://github.com/jessedp/pihole5-list-tool) to import adlists and whitelist you can use these commands to do this quickly:
 ```bash
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE adlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%Firebog |%'"
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE domainlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%AndeepND |%'"
@@ -57,18 +57,18 @@ _(code up to date as of pihole5-list-tool 0.5.0)_
 
 Alternatively, some manual work is required - pick one:
 
-- Manually modify comment field of all imported domains/adlists to match the one this script uses (see `COMMENT` variable in **Configuration** section)  **(recommended but might be a lot of work)**
-- Manually delete all imported domains/adlists from the web interface  (might be a lot of work)
+- Manually modify comment field of all imported domains/adlists to match the one this script uses (see `COMMENT` variable in **Configuration** section) **(recommended but might be a lot of work)**
+- Manually delete all imported domains/adlists from the web interface (might be a lot of work)
 - Wipe all adlists and domains (not recommended but fast - use this if you want to start fresh)
-	- backup default lists and custom entries (write them down somewhere, do not use the Teleporter)
-	- run the following commands:
+  - backup your lists and custom entries (write them down somewhere, do not use the Teleporter)
+  - run the following commands:
 	```bash
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM adlist"
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM adlist_by_group"
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist"
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist_by_group"
 	```
-    - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
+  - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
 
 ## Install with Docker
 
