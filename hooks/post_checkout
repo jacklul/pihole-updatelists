@@ -18,7 +18,7 @@ fi
 
 # Make sure we have experimental features enabled, copy auths when running on Docker Hub
 DOCKER_CFG=~/.docker/config.json
-if [ ! -f ${DOCKER_CFG} ] || ! grep -q '[^[:space:]]' < ${DOCKER_CFG} || [ "$(jq -r '.experimental' /root/.docker/config.json)" != "enabled" ]; then
+if [ ! -f ${DOCKER_CFG} ] || ! grep -q '[^[:space:]]' < ${DOCKER_CFG} || [ "$(jq -r '.experimental' ${DOCKER_CFG})" != "enabled" ]; then
   echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
   echo "Building a usable ${DOCKER_CFG} file"
 

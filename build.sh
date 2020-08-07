@@ -53,15 +53,15 @@ fi
 
 # Fill out SOURCE_BRANCH, SOURCE_COMMIT and COMMIT_MSG automatically
 if command -v git &> /dev/null; then
-    if [ -z "${SOURCE_BRANCH}" ] && [ -d "$(dirname $0)/.git" ]; then
+    if [ -z "${SOURCE_BRANCH}" ] && [ -d "${BASE_PATH}/.git" ]; then
         SOURCE_BRANCH=`git rev-parse --abbrev-ref HEAD`
     fi
 
-    if [ -z "${SOURCE_COMMIT}" ] && [ -d "$(dirname $0)/.git" ]; then
+    if [ -z "${SOURCE_COMMIT}" ] && [ -d "${BASE_PATH}/.git" ]; then
         SOURCE_COMMIT=`git rev-parse HEAD`
     fi
 
-    if [ -z "${COMMIT_MSG}" ] && [ -d "$(dirname $0)/.git" ]; then
+    if [ -z "${COMMIT_MSG}" ] && [ -d "${BASE_PATH}/.git" ]; then
         COMMIT_MSG=`git log -1 --pretty=%B`
     fi
 fi

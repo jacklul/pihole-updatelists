@@ -21,7 +21,7 @@ if [ -z "${BASE_IMAGE_TAG+x}" ]; then
 fi
 
 BASE_IMAGE_NAME="${BASE_IMAGE_REPO}:${BASE_IMAGE_TAG}"
-MANIFEST_FILE="$(dirname "$0")/manifest-$(echo ${BASE_IMAGE_NAME} | sed -e 's/[^A-Za-z0-9._-]/_/g').json"
+MANIFEST_FILE="${PWD}/manifest-$(echo ${BASE_IMAGE_NAME} | sed -e 's/[^A-Za-z0-9._-]/_/g').json"
 
 if [ ! -f "${MANIFEST_FILE}" ] || ! grep -q '[^[:space:]]' < ${MANIFEST_FILE} || test `find "${MANIFEST_FILE}" -mtime +60 &> /dev/null`; then
     echo "Fetching manifest for ${BASE_IMAGE_NAME}"
@@ -56,7 +56,7 @@ echo "Current working directory: ${PWD}"
 ls -al
 
 echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
-echo "Build variables (https://docs.docker.com/docker-hub/builds/advanced/)"
+echo "Build variables: (see https://docs.docker.com/docker-hub/builds/advanced/)"
 echo "SOURCE_BRANCH:   ${SOURCE_BRANCH}"
 echo "SOURCE_COMMIT:   ${SOURCE_COMMIT}"
 echo "COMMIT_MSG:      ${COMMIT_MSG}"
