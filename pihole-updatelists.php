@@ -66,7 +66,7 @@ function printAndLog($str, $severity = 'INFO', $logOnly = false)
 
 /**
  * Check for required stuff
- * 
+ *
  * Setting invironment variable IGNORE_OS_CHECK allows to run this script on Windows
  */
 function checkDependencies()
@@ -122,7 +122,7 @@ function getDefinedOptions()
             'short'       => 'n',
             'description' => 'Force no gravity update',
         ],
-        'no-reload' => [
+        'no-reload'  => [
             'long'        => 'no-reload',
             'short'       => 'b',
             'description' => 'Force no lists reload',
@@ -167,7 +167,7 @@ function getDefinedOptions()
 
 /**
  * Re-run the script with sudo when not running as root
- * 
+ *
  * This check is ignored if script is not installed
  */
 function requireRoot()
@@ -205,7 +205,7 @@ function parseOptions()
         }
     }
 
-    $options          = getopt(implode('', $shortOpts), $longOpts);
+    $options = getopt(implode('', $shortOpts), $longOpts);
 
     // If short is used set the long one
     foreach ($options as $option => $data) {
@@ -979,6 +979,20 @@ $streamContext = stream_context_create(
 if (!empty($config['ADLISTS_URL'])) {
     $multipleLists = false;
 
+    // Fetch all adlists
+    $adlistsAll = [];
+    if (($sth = $dbh->prepare('SELECT * FROM `adlist`'))->execute()) {
+        $adlistsAll = $sth->fetchAll(PDO::FETCH_ASSOC);
+
+        $tmp = [];
+        foreach ($adlistsAll as $key => $value) {
+            $tmp[$value['id']] = $value;
+        }
+
+        $adlistsAll = $tmp;
+        unset($tmp);
+    }
+
     if (preg_match('/\s+/', trim($config['ADLISTS_URL']))) {
         $adlistsUrl    = preg_split('/\s+/', $config['ADLISTS_URL']);
         $multipleLists = true;
@@ -1021,20 +1035,6 @@ if (!empty($config['ADLISTS_URL'])) {
 
         printAndLog('Processing...' . PHP_EOL);
         $dbh->beginTransaction();
-
-        // Fetch all adlists
-        $adlistsAll = [];
-        if (($sth = $dbh->prepare('SELECT * FROM `adlist`'))->execute()) {
-            $adlistsAll = $sth->fetchAll(PDO::FETCH_ASSOC);
-
-            $tmp = [];
-            foreach ($adlistsAll as $key => $value) {
-                $tmp[$value['id']] = $value;
-            }
-
-            $adlistsAll = $tmp;
-            unset($tmp);
-        }
 
         // Get enabled adlists managed by this script from the DB
         $sql = 'SELECT * FROM `adlist` WHERE `enabled` = 1';
@@ -1460,44 +1460,25 @@ foreach ($domainListTypes as $typeName => $typeId) {
     }
 }
 
-// Update gravity (run `pihole updateGravity`)
+// Update gravity (run `pihole updateGravity`) or sends signal to pihole-FTL to reload lists
 if ($config['UPDATE_GRAVITY'] === true) {
-    // Close any database handles
-    $sth = $dbh = null;
+    $sth = $dbh = null; // Close any database handles
 
     if ($config['DEBUG'] === true) {
         printAndLog('Closed database handles.' . PHP_EOL, 'DEBUG');
     }
 
-    printAndLog('Updating Pi-hole\'s gravity...' . PHP_EOL . PHP_EOL);
+    printAndLog('Updating Pi-hole\'s gravity...' . PHP_EOL);
 
     passthru('/usr/local/bin/pihole updateGravity', $return);
-    print PHP_EOL;
 
     if ($return !== 0) {
-        printAndLog('Error occurred while updating gravity!' . PHP_EOL . PHP_EOL, 'ERROR');
+        printAndLog('Error occurred while updating gravity!' . PHP_EOL, 'ERROR');
         $stat['errors']++;
     } else {
-        printAndLog('Done' . PHP_EOL . PHP_EOL, 'INFO', true);
+        printAndLog('Done' . PHP_EOL, 'INFO', true);
     }
-}
-
-// Vacuum database (run `VACUUM` command)
-if ($config['VACUUM_DATABASE'] === true) {
-    $dbh === null && $dbh = openDatabase($config['GRAVITY_DB'], $config['DEBUG'], $config['DEBUG']);
-
-    printAndLog('Vacuuming database...');
-    if ($dbh->query('VACUUM')) {
-        clearstatcache();
-        printAndLog(' done (' . formatBytes(filesize($config['GRAVITY_DB'])) . ')' . PHP_EOL);
-    }
-
-    $dbh = null;
-    print PHP_EOL;
-}
-
-// Sends signal to pihole-FTL to reload lists
-if ($config['UPDATE_GRAVITY'] === false) {
+} elseif ($config['UPDATE_GRAVITY'] === false) {
     printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
 
     exec('pidof pihole-FTL 2>/dev/null', $return);
@@ -1524,7 +1505,22 @@ if ($config['UPDATE_GRAVITY'] === false) {
         printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
         $stat['errors']++;
     }
+}
 
+// Vacuum database (run `VACUUM` command)
+if ($config['VACUUM_DATABASE'] === true) {
+    $dbh === null && $dbh = openDatabase($config['GRAVITY_DB'], $config['DEBUG'], $config['DEBUG']);
+
+    printAndLog('Vacuuming database...');
+    if ($dbh->query('VACUUM')) {
+        clearstatcache();
+        printAndLog(' done (' . formatBytes(filesize($config['GRAVITY_DB'])) . ')' . PHP_EOL);
+    }
+
+    $dbh = null;
+}
+
+if ($config['UPDATE_GRAVITY'] !== null || $config['VACUUM_DATABASE'] !== false) {
     print PHP_EOL;
 }
 
