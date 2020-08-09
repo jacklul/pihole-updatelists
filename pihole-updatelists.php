@@ -1396,23 +1396,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
                 }
             }
 
-            // Entries that no longer exist in remote list
-            $removedDomains = array_diff($enabledDomains, $domainlist);
-
-            foreach ($removedDomains as $id => $domain) {
-                // Disable entries instead of removing them
-                $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
-                $sth->bindParam(':id', $id, PDO::PARAM_INT);
-
-                if ($sth->execute()) {
-                    $domainsAll[$id]['enabled'] = false;
-
-                    $config['VERBOSE'] === true && printAndLog('Disabled: ' . $domain . PHP_EOL);
-                    incrementStat('disabled');
-                }
-            }
-
-            foreach ($domainlist as $domain) {
+            // Process internationalized domains
+            foreach ($domainlist as &$domain) {
                 if (strpos($typeName, 'REGEX_') === false) {
                     $domain = strtolower($domain);
 
@@ -1432,7 +1417,28 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             $domain = $idn_domain;
                         }
                     }
+                }
+            }
+            unset($domain);
 
+            // Entries that no longer exist in remote list
+            $removedDomains = array_diff($enabledDomains, $domainlist);
+
+            foreach ($removedDomains as $id => $domain) {
+                // Disable entries instead of removing them
+                $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
+                $sth->bindParam(':id', $id, PDO::PARAM_INT);
+
+                if ($sth->execute()) {
+                    $domainsAll[$id]['enabled'] = false;
+
+                    $config['VERBOSE'] === true && printAndLog('Disabled: ' . $domain . PHP_EOL);
+                    incrementStat('disabled');
+                }
+            }
+
+            foreach ($domainlist as $domain) {
+                if (strpos($typeName, 'REGEX_') === false) {
                     // Check 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_domain'
                     if (filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
                         if ($config['VERBOSE'] === true) {
