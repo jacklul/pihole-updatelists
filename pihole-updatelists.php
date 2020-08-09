@@ -1125,7 +1125,7 @@ if (!empty($config['ADLISTS_URL'])) {
         $enabledLists = [];
         if ($sth->execute()) {
             foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $adlist) {
-                $enabledLists[$adlist['id']] = trim($adlist['address']);
+                $enabledLists[$adlist['id']] = $adlist['address'];
             }
         }
 
@@ -1389,9 +1389,9 @@ foreach ($domainListTypes as $typeName => $typeId) {
             if ($sth->execute()) {
                 foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $domain) {
                     if (strpos($typeName, 'REGEX_') === false) {
-                        $enabledDomains[$domain['id']] = strtolower(trim($domain['domain']));
+                        $enabledDomains[$domain['id']] = strtolower($domain['domain']);
                     } else {
-                        $enabledDomains[$domain['id']] = trim($domain['domain']);
+                        $enabledDomains[$domain['id']] = $domain['domain'];
                     }
                 }
             }
