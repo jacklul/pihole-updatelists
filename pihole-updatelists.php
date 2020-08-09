@@ -1328,7 +1328,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                         }
 
                         if ($idn_domain === false && defined('INTL_IDNA_VARIANT_2003')) {
-                            $idn_domain = idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_2003);
+                            $idn_domain = @idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_2003);
                         }
 
                         if ($idn_domain !== false) {
