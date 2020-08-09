@@ -701,6 +701,7 @@ function printDebugHeader($config, $options)
         printAndLog('Pi-hole FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
     } else {
         printAndLog('Pi-hole: version info unavailable, make sure files `localversions` and `localbranches` exist in `/etc/pihole` and are valid!' . PHP_EOL, 'WARNING');
+        incrementStat('warnings');
     }
 
     ob_start();
@@ -879,6 +880,63 @@ function formatBytes($bytes, $precision = 2)
     return round($bytes, $precision) . ' ' . $units[$pow];
 }
 
+/**
+ * Increment values on $stat array
+ *
+ * @param string $name
+ * @param string $deduplication
+ *
+ * @return void
+ */
+function incrementStat($name, $deduplication = null)
+{
+    global $stat;
+
+    if (!isset($stat[$name])) {
+        throw new RuntimeException('Invalid stat: ' . $name);
+    }
+
+    if ($deduplication !== null) {
+        if (!isset($stat['list'][$name]) || !is_array($stat['list'][$name])) {
+            if (!isset($stat['list']) || !is_array($stat['list'])) {
+                $stat['list'] = [];
+            }
+
+            $stat['list'][$name] = [];
+        }
+
+        if (in_array($deduplication, $stat['list'][$name], true)) {
+            return;
+        }
+
+        $stat['list'][$name][] = $deduplication;
+    }
+
+    $stat[$name]++;
+}
+
+/**
+ * Print summary after processing single list (to be used after 'Processing...' message)
+ *
+ * @param array $statData
+ *
+ * @return void
+ */
+function printOperationSummary(array $statData)
+{
+    $summary = [];
+
+    $statData['exists'] > 0 && $summary[]   = $statData['exists'] . ' exists';
+    $statData['ignored'] > 0 && $summary[]  = $statData['ignored'] . ' ignored';
+    $statData['inserted'] > 0 && $summary[] = $statData['inserted'] . ' inserted';
+    $statData['enabled'] > 0 && $summary[]  = $statData['enabled'] . ' enabled';
+    $statData['disabled'] > 0 && $summary[] = $statData['disabled'] . ' disabled';
+    $statData['invalid'] > 0 && $summary[]  = $statData['invalid'] . ' invalid';
+    $statData['conflict'] > 0 && $summary[] = $statData['conflict'] . ' conflicts';
+
+    printAndLog(' ' . implode(', ', $summary) . PHP_EOL);
+}
+
 /** PROCEDURAL CODE STARTS HERE */
 $startTime = microtime(true);
 checkDependencies(); // Check script requirements
@@ -929,6 +987,12 @@ if (function_exists('pcntl_signal')) {
 // This array holds some state data
 $stat = [
     'errors'   => 0,
+    'warnings' => 0,
+    'exists'   => 0,
+    'ignored'  => 0,
+    'inserted' => 0,
+    'enabled'  => 0,
+    'disabled' => 0,
     'invalid'  => 0,
     'conflict' => 0,
 ];
@@ -939,6 +1003,7 @@ printHeader();
 // Show warning when php-intl isn't installed
 if (!extension_loaded('intl')) {
     printAndLog('Missing recommended PHP extension: intl' . PHP_EOL . PHP_EOL, 'WARNING');
+    incrementStat('warnings');
 }
 
 // Show initial debug messages
@@ -978,6 +1043,7 @@ $streamContext = stream_context_create(
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
     $multipleLists = false;
+    $summaryBuffer = [];
 
     // Fetch all adlists
     $adlistsAll = [];
@@ -1012,11 +1078,12 @@ if (!empty($config['ADLISTS_URL'])) {
                     if ($config['IGNORE_DOWNLOAD_FAILURE'] === false) {
                         printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
 
-                        $stat['errors']++;
+                        incrementStat('errors');
                         $contents = false;
                         break;
                     } else {
                         printAndLog(' ' . parseLastError() . PHP_EOL, 'WARNING');
+                        incrementStat('warnings');
                     }
                 }
             }
@@ -1033,7 +1100,7 @@ if (!empty($config['ADLISTS_URL'])) {
         $adlists = textToArray($contents);
         printAndLog(' done (' . count($adlists) . ' entries)' . PHP_EOL);
 
-        printAndLog('Processing...' . PHP_EOL);
+        printAndLog('Processing...' . ($config['VERBOSE'] === true ? PHP_EOL : ''));
         $dbh->beginTransaction();
 
         // Get enabled adlists managed by this script from the DB
@@ -1064,7 +1131,8 @@ if (!empty($config['ADLISTS_URL'])) {
             if ($sth->execute()) {
                 $adlistsAll[$id]['enabled'] = false;
 
-                printAndLog('Disabled: ' . $address . PHP_EOL);
+                $config['VERBOSE'] === true && printAndLog('Disabled: ' . $address . PHP_EOL);
+                incrementStat('disabled');
             }
         }
 
@@ -1083,13 +1151,13 @@ if (!empty($config['ADLISTS_URL'])) {
         foreach ($adlists as $address) {
             // Check 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_adlist'
             if (!filter_var($address, FILTER_VALIDATE_URL) || preg_match('/[^a-zA-Z0-9$\\-_.+!*\'(),;\/?:@=&%]/', $address) !== 0) {
-                printAndLog('Invalid: ' . $address . PHP_EOL);
-
-                if (!isset($stat['invalids']) || !in_array($address, $stat['invalids'], true)) {
-                    $stat['invalid']++;
-                    $stat['invalids'][] = $address;
+                if ($config['VERBOSE'] === true) {
+                    printAndLog('Invalid: ' . $address . PHP_EOL, 'NOTICE');
+                } else {
+                    $summaryBuffer['invalid'][] = $address;
                 }
 
+                incrementStat('invalid', $address);
                 continue;
             }
 
@@ -1132,7 +1200,8 @@ if (!empty($config['ADLISTS_URL'])) {
                         }
                     }
 
-                    printAndLog('Inserted: ' . $address . PHP_EOL);
+                    $config['VERBOSE'] === true && printAndLog('Inserted: ' . $address . PHP_EOL);
+                    incrementStat('inserted');
                 }
             } else {
                 $isTouchable          = $checkIfTouchable($adlistUrl);
@@ -1146,15 +1215,15 @@ if (!empty($config['ADLISTS_URL'])) {
                     if ($sth->execute()) {
                         $adlistsAll[$adlistUrl['id']]['enabled'] = true;
 
-                        printAndLog('Enabled: ' . $address . PHP_EOL);
+                        $config['VERBOSE'] === true && printAndLog('Enabled: ' . $address . PHP_EOL);
+                        incrementStat('enabled');
                     }
-                } elseif ($config['VERBOSE'] === true) {
-                    // Show other entry states only in verbose mode
-                    if ($adlistUrl['enabled'] !== false && $isTouchable === true) {
-                        printAndLog('Exists: ' . $address . PHP_EOL);
-                    } elseif ($isTouchable === false) {
-                        printAndLog('Ignored: ' . $address . PHP_EOL);
-                    }
+                } elseif ($adlistUrl['enabled'] !== false && $isTouchable === true) {
+                    $config['VERBOSE'] === true && printAndLog('Exists: ' . $address . PHP_EOL);
+                    incrementStat('exists');
+                } elseif ($isTouchable === false) {
+                    $config['VERBOSE'] === true && printAndLog('Ignored: ' . $address . PHP_EOL);
+                    incrementStat('ignored');
                 }
             }
         }
@@ -1165,7 +1234,15 @@ if (!empty($config['ADLISTS_URL'])) {
             printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'NOTICE');
         } else {
             printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
-            $stat['errors']++;
+            incrementStat('errors');
+        }
+    }
+
+    printOperationSummary($stat);
+
+    if ($config['VERBOSE'] === false) {
+        if (isset($summaryBuffer['invalid'])) {
+            printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
         }
     }
 
@@ -1183,7 +1260,7 @@ if (!empty($config['ADLISTS_URL'])) {
         $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
 
         if ($sth->execute()) {
-            printAndLog(' done' . PHP_EOL);
+            printAndLog(' done (' . $sth->rowCount() . ')' . PHP_EOL);
         }
 
         $dbh->commit();
@@ -1232,6 +1309,16 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
     if (!empty($config[$url_key])) {
         $multipleLists = false;
+        $statCopy      = [
+            'exists'   => $stat['exists'],
+            'ignored'  => $stat['ignored'],
+            'inserted' => $stat['inserted'],
+            'enabled'  => $stat['enabled'],
+            'disabled' => $stat['disabled'],
+            'invalid'  => $stat['invalid'],
+            'conflict' => $stat['conflict'],
+        ];
+        $summaryBuffer = [];
 
         if (preg_match('/\s+/', trim($config[$url_key]))) {
             $domainlistUrl = preg_split('/\s+/', $config[$url_key]);
@@ -1252,11 +1339,12 @@ foreach ($domainListTypes as $typeName => $typeId) {
                         if ($config['IGNORE_DOWNLOAD_FAILURE'] === false) {
                             printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
 
-                            $stat['errors']++;
+                            incrementStat('errors');
                             $contents = false;
                             break;
                         } else {
                             printAndLog(' ' . parseLastError() . PHP_EOL, 'WARNING');
+                            incrementStat('warnings');
                         }
                     }
                 }
@@ -1273,7 +1361,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             $domainlist = textToArray($contents);
             printAndLog(' done (' . count($domainlist) . ' entries)' . PHP_EOL);
 
-            printAndLog('Processing...' . PHP_EOL);
+            printAndLog('Processing...' . ($config['VERBOSE'] === true ? PHP_EOL : ''));
             $dbh->beginTransaction();
 
             // Get enabled domains of this type managed by this script from the DB
@@ -1311,7 +1399,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
                 if ($sth->execute()) {
                     $domainsAll[$id]['enabled'] = false;
 
-                    printAndLog('Disabled: ' . $domain . PHP_EOL);
+                    $config['VERBOSE'] === true && printAndLog('Disabled: ' . $domain . PHP_EOL);
+                    incrementStat('disabled');
                 }
             }
 
@@ -1338,13 +1427,13 @@ foreach ($domainListTypes as $typeName => $typeId) {
 
                     // Check 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_domain'
                     if (filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
-                        printAndLog('Invalid: ' . $domain . PHP_EOL);
-
-                        if (!isset($stat['invalids']) || !in_array($domain, $stat['invalids'], true)) {
-                            $stat['invalid']++;
-                            $stat['invalids'][] = $domain;
+                        if ($config['VERBOSE'] === true) {
+                            printAndLog('Invalid: ' . $domain . PHP_EOL, 'NOTICE');
+                        } else {
+                            $summaryBuffer['invalid'][] = $domain;
                         }
 
+                        incrementStat('invalid', $domain);
                         continue;
                     }
                 }
@@ -1390,7 +1479,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             }
                         }
 
-                        printAndLog('Inserted: ' . $domain . PHP_EOL);
+                        $config['VERBOSE'] === true && printAndLog('Inserted: ' . $domain . PHP_EOL);
+                        incrementStat('inserted');
                     }
                 } else {
                     $isTouchable                 = $checkIfTouchable($domainlistDomain);
@@ -1405,21 +1495,25 @@ foreach ($domainListTypes as $typeName => $typeId) {
                         if ($sth->execute()) {
                             $domainsAll[$domainlistDomain['id']]['enabled'] = true;
 
-                            printAndLog('Enabled: ' . $domain . PHP_EOL);
+                            $config['VERBOSE'] === true && printAndLog('Enabled: ' . $domain . PHP_EOL);
+                            incrementStat('enabled');
                         }
                     } elseif ($domainlistDomain['type'] !== $typeId) {
-                        printAndLog('Conflict: ' . $domain . ' (' . (array_search($domainlistDomain['type'], $domainListTypes, true) ?: 'type=' . $domainlistDomain['type']) . ')' . PHP_EOL, 'WARNING');
-                        if (!isset($stat['conflicts']) || !in_array($domain, $stat['conflicts'], true)) {
-                            $stat['conflict']++;
-                            $stat['conflicts'][] = $domain;
+                        $existsOnList = (array_search($domainlistDomain['type'], $domainListTypes, true) ?: 'type=' . $domainlistDomain['type']);
+
+                        if ($config['VERBOSE'] === true) {
+                            printAndLog('Conflict: ' . $domain . ' (' . $existsOnList . ')' . PHP_EOL, 'NOTICE');
+                        } else {
+                            $summaryBuffer['conflict'][$domain] = $existsOnList;
                         }
-                    } elseif ($config['VERBOSE'] === true) {
-                        // Show other entry states only in verbose mode
-                        if ($domainlistDomain['enabled'] !== false && $isTouchable === true) {
-                            printAndLog('Exists: ' . $domain . PHP_EOL);
-                        } elseif ($isTouchable === false) {
-                            printAndLog('Ignored: ' . $domain . PHP_EOL);
-                        }
+
+                        incrementStat('conflict', $domain);
+                    } elseif ($domainlistDomain['enabled'] !== false && $isTouchable === true) {
+                        $config['VERBOSE'] === true && printAndLog('Exists: ' . $domain . PHP_EOL);
+                        incrementStat('exists', $domain);
+                    } elseif ($isTouchable === false) {
+                        $config['VERBOSE'] === true && printAndLog('Ignored: ' . $domain . PHP_EOL);
+                        incrementStat('ignored', $domain);
                     }
                 }
             }
@@ -1430,7 +1524,26 @@ foreach ($domainListTypes as $typeName => $typeId) {
                 printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'NOTICE');
             } else {
                 printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
-                $stat['errors']++;
+                incrementStat('errors');
+            }
+        }
+
+        foreach ($statCopy as $var => $val) {
+            $statCopy[$var] = $stat[$var] - $statCopy[$var];
+        }
+        printOperationSummary($statCopy);
+
+        if ($config['VERBOSE'] === false) {
+            if (isset($summaryBuffer['invalid'])) {
+                printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
+            }
+
+            if (isset($summaryBuffer['conflict'])) {
+                foreach ($summaryBuffer['conflict'] as $duplicatedDomain => $onList) {
+                    $summaryBuffer['conflict'][$duplicatedDomain] = $duplicatedDomain . ' (' . $onList . ')';
+                }
+
+                printAndLog('List of conflicting entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['conflict']) . PHP_EOL, 'NOTICE');
             }
         }
 
@@ -1450,7 +1563,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
 
             if ($sth->execute()) {
-                printAndLog(' done' . PHP_EOL);
+                printAndLog(' done (' . $sth->rowCount() . ')' . PHP_EOL);
             }
 
             $dbh->commit();
@@ -1474,7 +1587,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
 
     if ($return !== 0) {
         printAndLog('Error occurred while updating gravity!' . PHP_EOL, 'ERROR');
-        $stat['errors']++;
+        incrementStat('errors');
     } else {
         printAndLog('Done' . PHP_EOL, 'INFO', true);
     }
@@ -1499,11 +1612,11 @@ if ($config['UPDATE_GRAVITY'] === true) {
             printAndLog(' done' . PHP_EOL);
         } else {
             printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
-            $stat['errors']++;
+            incrementStat('errors');
         }
     } else {
         printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
-        $stat['errors']++;
+        incrementStat('errors');
     }
 }
 
@@ -1541,6 +1654,11 @@ $elapsedTime = round(microtime(true) - $startTime, 2) . ' seconds';
 if ($stat['errors'] > 0) {
     printAndLog('Finished with ' . $stat['errors'] . ' error(s) in ' . $elapsedTime . '.' . PHP_EOL);
     exit(1);
+}
+
+if ($stat['warnings'] > 0) {
+    printAndLog('Finished successfully with ' . $stat['warnings'] . ' warning(s) in ' . $elapsedTime . '.' . PHP_EOL);
+    exit(0);
 }
 
 printAndLog('Finished successfully in ' . $elapsedTime . '.' . PHP_EOL);
