@@ -1,5 +1,5 @@
 #!/usr/bin/env php
-<?php
+<?php declare (strict_types = 1);
 /**
  * Update Pi-hole lists from remote sources
  *
@@ -665,7 +665,7 @@ function printHeader()
             $addL = ceil($diff / 2);
             $addR = $diff - $addL;
 
-            $string = str_repeat(' ', $addL) . $string . str_repeat(' ', $addR);
+            $string = str_repeat(' ', (int)$addL) . $string . str_repeat(' ', (int)$addR);
         }
 
         $string = $offset . $string;
@@ -691,11 +691,19 @@ function printDebugHeader($config, $options)
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
 
     $piholeVersions = @file_get_contents('/etc/pihole/localversions') ?? '';
-    $piholeVersions = explode(' ', $piholeVersions);
-    $piholeBranches = @file_get_contents('/etc/pihole/localbranches') ?? '';
-    $piholeBranches = explode(' ', $piholeBranches);
+    if ($piholeVersions !== false) {
+        $piholeVersions = explode(' ', $piholeVersions);
+    }
 
-    if (count($piholeVersions) === 3 && count($piholeBranches) === 3) {
+    $piholeBranches = @file_get_contents('/etc/pihole/localbranches') ?? '';
+    if ($piholeBranches !== false) {
+        $piholeBranches = explode(' ', $piholeBranches);
+    }
+
+    if (
+        $piholeVersions !== false && $piholeBranches !== false &&
+        count($piholeVersions) === 3 && count($piholeBranches) === 3
+    ) {
         printAndLog('Pi-hole Core: ' . $piholeVersions[0] . ' (' . $piholeBranches[0] . ')' . PHP_EOL, 'DEBUG');
         printAndLog('Pi-hole Web: ' . $piholeVersions[1] . ' (' . $piholeBranches[1] . ')' . PHP_EOL, 'DEBUG');
         printAndLog('Pi-hole FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
@@ -742,7 +750,7 @@ function registerPDOLogger()
                 'type'  => $data_type,
             ];
 
-            return parent::bindParam($parameter, $variable, $data_type, $length, $driver_options);
+            return parent::bindParam($parameter, $variable, $data_type);
         }
 
         public function execute($input_parameters = null): bool
@@ -945,7 +953,7 @@ $config  = loadConfig($options); // Load config and process variables
 
 // Exception handler, always log detailed information
 set_exception_handler(
-    function (Exception $e) use (&$config) {
+    function (Throwable $e) use (&$config) {
         if ($config['DEBUG'] === false) {
             print 'Exception: ' . $e->getMessage() . PHP_EOL;
         }
@@ -1027,7 +1035,7 @@ if (($absoluteGroupId = abs($config['GROUP_ID'])) > 0) {
 
 // Helper function that checks if comment field matches when required
 $checkIfTouchable = static function ($array) use (&$config) {
-    return $config['REQUIRE_COMMENT'] === false || strpos($array['comment'] ?? '', $config['COMMENT']) !== false;
+    return $config['REQUIRE_COMMENT'] === false || (!empty($config['COMMENT']) && strpos($array['comment'] ?? '', $config['COMMENT']) !== false);
 };
 
 // Set download timeout
@@ -1608,7 +1616,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
             define('SIGRTMIN', 34);
         }
 
-        if (posix_kill($pid, SIGRTMIN)) {
+        if (posix_kill((int)$pid, SIGRTMIN)) {
             printAndLog(' done' . PHP_EOL);
         } else {
             printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
