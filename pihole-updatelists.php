@@ -94,6 +94,7 @@ function checkDependencies()
         'pdo',
         'pdo_sqlite',
     ];
+
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
             printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
@@ -109,11 +110,11 @@ function checkDependencies()
 function checkOptionalDependencies()
 {
     // Check for recommended PHP extensions
+    $missingExtensions = [];
     $extensions = [
         'intl',
         'curl',
     ];
-    $missingExtensions = [];
     
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
@@ -1410,7 +1411,6 @@ if (!empty($config['ADLISTS_URL'])) {
         };
 
         foreach ($adlists as $address) {
-            // Check 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_adlist'
             if (!filter_var($address, FILTER_VALIDATE_URL) || preg_match('/[^a-zA-Z0-9$\\-_.+!*\'(),;\/?:@=&%]/', $address) !== 0) {
                 if ($config['VERBOSE'] === true) {
                     printAndLog('Invalid: ' . $address . PHP_EOL, 'NOTICE');
@@ -1552,6 +1552,9 @@ if (($sth = $dbh->prepare('SELECT * FROM `domainlist`'))->execute()) {
     unset($tmp);
 }
 
+// Instead of calling this function multiple times later we save the result here...
+$canConvertIdn = extension_loaded('intl');
+
 // Helper function to check whenever domain already exists
 $checkDomainExists = static function ($domain) use (&$domainsAll) {
     $result = array_filter(
@@ -1653,7 +1656,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             foreach ($domainlist as &$domain) {
                 if (strpos($typeName, 'REGEX_') === false) {
                     // Conversion code 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_domain'
-                    if (extension_loaded('intl')) {
+                    if ($canConvertIdn) {
                         $idn_domain = false;
 
                         if (defined('INTL_IDNA_VARIANT_UTS46')) {
