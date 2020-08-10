@@ -98,8 +98,33 @@ function checkDependencies()
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
             printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
+            print 'You can install it using `apt-get install php-' . str_replace('_', '-', $extension) . '`' . PHP_EOL;
             exit(1);
         }
+    }
+}
+
+/**
+ * Check for optional stuff
+ */
+function checkOptionalDependencies()
+{
+    $extensions = [
+        'intl',
+        'curl',
+    ];
+
+    // Required PHP extensions
+    $missingExtensions = [];
+    foreach ($extensions as $extension) {
+        if (!extension_loaded($extension)) {
+            printAndLog('Missing recommended PHP extension: php-' . $extension . PHP_EOL, 'NOTICE');
+            $missingExtensions[] = 'php-' . str_replace('_', '-', $extension);
+        }
+    }
+
+    if (count($missingExtensions) > 0) {
+        print 'You can install missing extensions using `apt-get install ' . implode(' ', $missingExtensions) . '`' . PHP_EOL . PHP_EOL;
     }
 }
 
@@ -285,11 +310,223 @@ function parseOptions()
 }
 
 /**
+ * Register object oriented wrapper for cURL/file_get_contents
+ *
+ * @return void
+ */
+function registerHttpClient()
+{
+    if (!class_exists('HttpClient')) {
+        if (function_exists('curl_init')) {
+            class HttpClient
+            {
+                /**
+                 * @var Resource
+                 */
+                private $curl;
+
+                /**
+                 * @param array $config
+                 */
+                public function __construct(array $config = null)
+                {
+                    $this->init();
+                    $this->setopt(CURLOPT_RETURNTRANSFER, true);
+
+                    if (is_array($config)) {
+                        isset($config['timeout']) && $this->setopt(CURLOPT_TIMEOUT, $config['timeout']);
+                        isset($config['user_agent']) && $this->setopt(CURLOPT_USERAGENT, $config['user_agent']);
+                    }
+                }
+
+                /**
+                 * @param string $function
+                 * @param array  $parameters
+                 *
+                 * @return mixed
+                 */
+                public function __call($function, $parameters)
+                {
+                    $function = strtolower($function);
+
+                    if ($function === 'init' || $function === 'multi_init') {
+                        is_resource($this->curl) && curl_close($this->curl);
+
+                        return $this->curl = call_user_func_array('curl_' . $function, $parameters);
+                    } else {
+                        array_unshift($parameters, $this->curl);
+                        return call_user_func_array('curl_' . $function, $parameters);
+                    }
+                }
+
+                /**
+                 * @param string $url
+                 *
+                 * @return string|false
+                 */
+                public function get($url)
+                {
+                    $this->setopt(CURLOPT_URL, $url);
+
+                    return $this->exec();
+                }
+
+                /**
+                 * @param string $url
+                 *
+                 * @return string|false
+                 */
+                public function getWithHeaders($url)
+                {
+                    $this->setopt(CURLOPT_HEADER, true);
+                    $return = $this->get($url);
+                    $this->setopt(CURLOPT_HEADER, false);
+
+                    return $return;
+                }
+
+                /**
+                 * @return int
+                 */
+                public function getHeaderSize()
+                {
+                    return $this->getinfo(CURLINFO_HEADER_SIZE);
+                }
+            }
+        } else {
+            class HttpClient
+            {
+                /**
+                 * @var array
+                 */
+                private $streamContext;
+
+                /**
+                 * @param string
+                 */
+                private $headers;
+
+                /**
+                 * @param string $url
+                 */
+                public function __construct(array $config = null)
+                {
+                    if (is_array($config)) {
+                        $this->streamContext = stream_context_create(
+                            [
+                                'http' => [
+                                    'timeout'    => $config['timeout'],
+                                    'user_agent' => $config['user_agent'],
+                                ],
+                            ]
+                        );
+                    }
+                }
+
+                /**
+                 * @param string $function
+                 * @param array  $parameters
+                 *
+                 * @return mixed
+                 */
+                public function __call($function, $parameters)
+                {
+                    return null;
+                }
+
+                /**
+                 * @param string $url
+                 * @param string $parseHeaders
+                 *
+                 * @return string|false
+                 */
+                public function get($url, $parseHeaders = false)
+                {
+                    $return = file_get_contents($url, false, $this->streamContext);
+
+                    if ($return === false) {
+                        return false;
+                    }
+
+                    $this->headers = null;
+                    if ($parseHeaders === true) {
+                        $headersAsString = '';
+                        foreach ($http_response_header as $header) {
+                            $headersAsString .= $header . "\r\n";
+                        }
+
+                        $this->headers = $headersAsString . "\r\n\r\n";
+                    }
+
+                    return $this->headers . $return;
+                }
+
+                /**
+                 * @param string $url
+                 *
+                 * @return string|false
+                 */
+                public function getWithHeaders($url)
+                {
+                    return $this->get($url, true);
+                }
+
+                /**
+                 * @return int
+                 */
+                public function getHeaderSize()
+                {
+                    return $this->headers !== null ? strlen($this->headers) : 0;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Create HTTP client instance
+ *
+ * @param array $config
+ *
+ * @return void
+ */
+function createHttpClient(array $config = null)
+{
+    registerHttpClient();
+
+    $defaultConfig = [
+        'timeout'    => 60,
+        'user_agent' => (function_exists('curl_version') ? 'curl/' . curl_version()['version'] . ' ' : '') . 'PHP/' . PHP_VERSION,
+    ];
+    $config = array_merge($defaultConfig, $config ?? []);
+
+    return new HttpClient($config);
+}
+
+/**
+ * Wrapper function for doing requests to files
+ *
+ * @param string $url
+ *
+ * @return string|false
+ */
+function fetchFileContents($url)
+{
+    if (file_exists($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+        return file_get_contents($url);
+    }
+
+    global $httpClient;
+
+    return $httpClient->get($url);
+}
+
+/**
  * Fetch remote script file
  *
  * @param string $branch
  *
- * @return false|string
+ * @return string|false
  */
 function fetchRemoteScript($branch = 'master')
 {
@@ -299,24 +536,30 @@ function fetchRemoteScript($branch = 'master')
         return $remoteScript[$branch];
     }
 
-    $remoteScript[$branch] = @file_get_contents(
-        GITHUB_LINK_RAW . '/' . $branch . '/pihole-updatelists.php',
-        false,
-        stream_context_create(
-            [
-                'http' => [
-                    'timeout' => 10,
-                ],
-            ]
-        )
-    );
+    $httpClient  = createHttpClient(['timeout' => 15]);
+    $response    = $httpClient->getWithHeaders(GITHUB_LINK_RAW . '/' . $branch . '/pihole-updatelists.php');
+    $header_size = $httpClient->getHeaderSize();
+
+    if ($response === false) {
+        return false;
+    }
+
+    $headers = [];
+    foreach (explode("\r\n", substr($response, 0, $header_size)) as $i => $line) {
+        if ($i === 0) {
+            $headers['http_code'] = $line;
+        } elseif (!empty($line)) {
+            list($key, $value) = explode(': ', $line);
+
+            $headers[$key] = $value;
+        }
+    }
+
+    $remoteScript[$branch] = substr($response, $header_size);
 
     $isSuccessful = false;
-    foreach ($http_response_header as $header) {
-        if (strpos($header, '200 OK') !== false) {
-            $isSuccessful = true;
-            break;
-        }
+    if (strpos($headers['http_code'], '200 OK') !== false) {
+        $isSuccessful = true;
     }
 
     if ($isSuccessful) {
@@ -630,6 +873,8 @@ function acquireLock($lockfile, $debug = false)
 
 /**
  * Shutdown related tasks
+ * 
+ * @return void
  */
 function shutdownCleanup()
 {
@@ -644,6 +889,8 @@ function shutdownCleanup()
 
 /**
  * Just print the header
+ * 
+ * @return void
  */
 function printHeader()
 {
@@ -665,7 +912,7 @@ function printHeader()
             $addL = ceil($diff / 2);
             $addR = $diff - $addL;
 
-            $string = str_repeat(' ', (int)$addL) . $string . str_repeat(' ', (int)$addR);
+            $string = str_repeat(' ', (int) $addL) . $string . str_repeat(' ', (int) $addR);
         }
 
         $string = $offset . $string;
@@ -689,6 +936,7 @@ function printDebugHeader($config, $options)
     printAndLog('OS: ' . php_uname() . PHP_EOL, 'DEBUG');
     printAndLog('PHP: ' . PHP_VERSION . (ZEND_THREAD_SAFE ? '' : ' NTS') . PHP_EOL, 'DEBUG');
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
+    printAndLog('cURL: ' . (function_exists('curl_version') ? curl_version()['version'] : 'Unavailable') . PHP_EOL, 'DEBUG');
 
     $piholeVersions = @file_get_contents('/etc/pihole/localversions') ?? '';
     if ($piholeVersions !== false) {
@@ -708,7 +956,7 @@ function printDebugHeader($config, $options)
         printAndLog('Pi-hole Web: ' . $piholeVersions[1] . ' (' . $piholeBranches[1] . ')' . PHP_EOL, 'DEBUG');
         printAndLog('Pi-hole FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
     } else {
-        printAndLog('Pi-hole: version info unavailable, make sure files `localversions` and `localbranches` exist in `/etc/pihole` and are valid!' . PHP_EOL, 'WARNING');
+        printAndLog('Pi-hole: Unavailable (make sure files `localversions` and `localbranches` exist in `/etc/pihole`)' . PHP_EOL, 'WARNING');
         incrementStat('warnings');
     }
 
@@ -725,67 +973,71 @@ function printDebugHeader($config, $options)
 
 /**
  * Register PDO logging class
+ *
+ * @return void
  */
 function registerPDOLogger()
 {
-    class LoggedPDOStatement extends PDOStatement
-    {
-        private $queryParameters = [];
-        private $parsedQuery     = '';
-
-        public function bindValue($parameter, $value, $data_type = PDO::PARAM_STR): bool
+    if (!class_exists('LoggedPDOStatement')) {
+        class LoggedPDOStatement extends PDOStatement
         {
-            $this->queryParameters[$parameter] = [
-                'value' => $value,
-                'type'  => $data_type,
-            ];
+            private $queryParameters = [];
+            private $parsedQuery     = '';
 
-            return parent::bindValue($parameter, $value, $data_type);
-        }
+            public function bindValue($parameter, $value, $data_type = PDO::PARAM_STR): bool
+            {
+                $this->queryParameters[$parameter] = [
+                    'value' => $value,
+                    'type'  => $data_type,
+                ];
 
-        public function bindParam($parameter, &$variable, $data_type = PDO::PARAM_STR, $length = null, $driver_options = null): bool
-        {
-            $this->queryParameters[$parameter] = [
-                'value' => $variable,
-                'type'  => $data_type,
-            ];
-
-            return parent::bindParam($parameter, $variable, $data_type);
-        }
-
-        public function execute($input_parameters = null): bool
-        {
-            printAndLog('SQL Query: ' . $this->parseQuery() . PHP_EOL, 'DEBUG');
-
-            return parent::execute($input_parameters);
-        }
-
-        private function parseQuery(): string
-        {
-            if (!empty($this->parsedQuery)) {
-                return $this->parsedQuery;
+                return parent::bindValue($parameter, $value, $data_type);
             }
 
-            $query = $this->queryString;
-            foreach ($this->queryParameters as $parameter => $data) {
-                switch ($data['type']) {
-                    case PDO::PARAM_STR:
-                        $value = '"' . $data['value'] . '"';
-                        break;
-                    case PDO::PARAM_INT:
-                        $value = (int) $data['value'];
-                        break;
-                    case PDO::PARAM_BOOL:
-                        $value = (bool) $data['value'];
-                        break;
-                    default:
-                        $value = null;
+            public function bindParam($parameter, &$variable, $data_type = PDO::PARAM_STR, $length = null, $driver_options = null): bool
+            {
+                $this->queryParameters[$parameter] = [
+                    'value' => $variable,
+                    'type'  => $data_type,
+                ];
+
+                return parent::bindParam($parameter, $variable, $data_type);
+            }
+
+            public function execute($input_parameters = null): bool
+            {
+                printAndLog('SQL Query: ' . $this->parseQuery() . PHP_EOL, 'DEBUG');
+
+                return parent::execute($input_parameters);
+            }
+
+            private function parseQuery(): string
+            {
+                if (!empty($this->parsedQuery)) {
+                    return $this->parsedQuery;
                 }
 
-                $query = str_replace($parameter, $value, $query);
-            }
+                $query = $this->queryString;
+                foreach ($this->queryParameters as $parameter => $data) {
+                    switch ($data['type']) {
+                        case PDO::PARAM_STR:
+                            $value = '"' . $data['value'] . '"';
+                            break;
+                        case PDO::PARAM_INT:
+                            $value = (int) $data['value'];
+                            break;
+                        case PDO::PARAM_BOOL:
+                            $value = (bool) $data['value'];
+                            break;
+                        default:
+                            $value = null;
+                    }
 
-            return $this->parsedQuery = $query;
+                    $query = str_replace($parameter, $value, $query);
+                }
+
+                return $this->parsedQuery = $query;
+            }
         }
     }
 }
@@ -806,7 +1058,7 @@ function openDatabase($db_file, $verbose = true, $debug = false)
     $dbh->exec('PRAGMA foreign_keys = ON;'); // Require foreign key constraints
 
     if ($debug) {
-        !class_exists('LoggedPDOStatement') && registerPDOLogger();
+        registerPDOLogger();
         $dbh->setAttribute(PDO::ATTR_STATEMENT_CLASS, ['LoggedPDOStatement']);
     }
 
@@ -865,7 +1117,17 @@ function textToArray($text)
  */
 function parseLastError($default = 'Unknown error')
 {
+    global $httpClient;
+
     $lastError = error_get_last();
+
+    if (is_object($httpClient)) {
+        $lastHttpError = $httpClient->error();
+
+        if (empty($lastError) && !empty($lastHttpError)) {
+            $lastError['message'] = $lastHttpError;
+        }
+    }
 
     return preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? $default));
 }
@@ -901,7 +1163,7 @@ function incrementStat($name, $deduplication = null)
     global $stat;
 
     if (!isset($stat[$name])) {
-        throw new RuntimeException('Invalid stat: ' . $name);
+        $stat[$name] = 0;
     }
 
     if ($deduplication !== null) {
@@ -992,7 +1254,7 @@ if (function_exists('pcntl_signal')) {
     pcntl_signal(SIGINT, 'signalHandler');
 }
 
-// This array holds some state data
+// This array holds stats data
 $stat = [
     'errors'   => 0,
     'warnings' => 0,
@@ -1005,14 +1267,8 @@ $stat = [
     'conflict' => 0,
 ];
 
-// Hi
-printHeader();
-
-// Show warning when php-intl isn't installed
-if (!extension_loaded('intl')) {
-    printAndLog('Missing recommended PHP extension: intl' . PHP_EOL . PHP_EOL, 'WARNING');
-    incrementStat('warnings');
-}
+printHeader(); // Hi
+checkOptionalDependencies(); // Check for optional stuff
 
 // Show initial debug messages
 $config['DEBUG'] === true && printDebugHeader($config, $options);
@@ -1038,15 +1294,12 @@ $checkIfTouchable = static function ($array) use (&$config) {
     return $config['REQUIRE_COMMENT'] === false || (!empty($config['COMMENT']) && strpos($array['comment'] ?? '', $config['COMMENT']) !== false);
 };
 
-// Set download timeout
-$streamContext = stream_context_create(
-    [
-        'http' => [
-            'timeout'    => $config['DOWNLOAD_TIMEOUT'],
-            'user_agent' => 'Pi-hole\'s Lists Updater (' . preg_replace('#^https?://#', '', rtrim(GITHUB_LINK, '/')) . ')',
-        ],
-    ]
-);
+// Initialize http client
+$httpOptions = [
+    'timeout'    => $config['DOWNLOAD_TIMEOUT'],
+    'user_agent' => 'Pi-hole\'s Lists Updater (' . preg_replace('#^https?://#', '', rtrim(GITHUB_LINK, '/')) . ')',
+];
+$httpClient = createHttpClient($httpOptions);
 
 // Fetch ADLISTS
 if (!empty($config['ADLISTS_URL'])) {
@@ -1076,7 +1329,7 @@ if (!empty($config['ADLISTS_URL'])) {
             if (!empty($url)) {
                 printAndLog('Fetching ADLISTS from \'' . $url . '\'...');
 
-                $listContents = @file_get_contents($url, false, $streamContext);
+                $listContents = @fetchFileContents($url, $httpOptions);
 
                 if ($listContents !== false) {
                     printAndLog(' done' . PHP_EOL);
@@ -1101,7 +1354,7 @@ if (!empty($config['ADLISTS_URL'])) {
     } else {
         printAndLog('Fetching ADLISTS from \'' . $config['ADLISTS_URL'] . '\'...');
 
-        $contents = @file_get_contents($config['ADLISTS_URL'], false, $streamContext);
+        $contents = @fetchFileContents($config['ADLISTS_URL'], $httpOptions);
     }
 
     if ($contents !== false) {
@@ -1337,7 +1590,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
                 if (!empty($url)) {
                     printAndLog('Fetching ' . $typeName . ' from \'' . $url . '\'...');
 
-                    $listContents = @file_get_contents($url, false, $streamContext);
+                    $listContents = @fetchFileContents($url, $httpOptions);
 
                     if ($listContents !== false) {
                         printAndLog(' done' . PHP_EOL);
@@ -1362,7 +1615,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
         } else {
             printAndLog('Fetching ' . $typeName . ' from \'' . $config[$url_key] . '\'...');
 
-            $contents = @file_get_contents($config[$url_key], false, $streamContext);
+            $contents = @fetchFileContents($config[$url_key], $httpOptions);
         }
 
         if ($contents !== false) {
@@ -1622,7 +1875,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
             define('SIGRTMIN', 34);
         }
 
-        if (posix_kill((int)$pid, SIGRTMIN)) {
+        if (posix_kill((int) $pid, SIGRTMIN)) {
             printAndLog(' done' . PHP_EOL);
         } else {
             printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
