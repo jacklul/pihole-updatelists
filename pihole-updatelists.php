@@ -83,18 +83,17 @@ function checkDependencies()
         exit(1);
     }
 
+    // These functions should be available but might be disabled by the user
     if ((!function_exists('posix_getuid') || !function_exists('posix_kill')) && empty(getenv('IGNORE_OS_CHECK'))) {
         printAndLog('Make sure PHP\'s functions \'posix_getuid\' and \'posix_kill\' are available!' . PHP_EOL, 'ERROR');
         exit(1);
     }
 
+    // Check for required PHP extensions
     $extensions = [
         'pdo',
         'pdo_sqlite',
-        'json',
     ];
-
-    // Required PHP extensions
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
             printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
@@ -109,16 +108,17 @@ function checkDependencies()
  */
 function checkOptionalDependencies()
 {
+    // Check for recommended PHP extensions
     $extensions = [
         'intl',
         'curl',
     ];
-
-    // Required PHP extensions
     $missingExtensions = [];
+    
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
-            printAndLog('Missing recommended PHP extension: php-' . $extension . PHP_EOL, 'NOTICE');
+            printAndLog('Missing recommended PHP extension: php-' . $extension . PHP_EOL, 'WARNING');
+            incrementStat('warnings');
             $missingExtensions[] = 'php-' . str_replace('_', '-', $extension);
         }
     }

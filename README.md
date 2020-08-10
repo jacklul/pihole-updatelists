@@ -7,7 +7,7 @@ User-created entries will not be touched and those removed from the remote list 
 ## Requirements
 
 - **Pi-hole v5+** installed (fresh install preferred)
-- **php-cli >=7.0** and **sqlite3 extension** (`sudo apt install php-cli php-sqlite3`)
+- **php-cli >=7.0** and **a few extensions** (`sudo apt-get install php-cli php-pdo php-pdo-sqlite php-sqlite3 php-intl php-curl`)
 - **systemd** is optional but recommended
 
 ## Install
