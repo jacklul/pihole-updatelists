@@ -1652,14 +1652,12 @@ foreach ($domainListTypes as $typeName => $typeId) {
             // Process internationalized domains
             foreach ($domainlist as &$domain) {
                 if (strpos($typeName, 'REGEX_') === false) {
-                    $domain = strtolower($domain);
-
                     // Conversion code 'borrowed' from `scripts/pi-hole/php/groups.php` - 'add_domain'
                     if (extension_loaded('intl')) {
                         $idn_domain = false;
 
                         if (defined('INTL_IDNA_VARIANT_UTS46')) {
-                            $idn_domain = idn_to_ascii($domain, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
+                            $idn_domain = @idn_to_ascii($domain, IDNA_NONTRANSITIONAL_TO_ASCII, INTL_IDNA_VARIANT_UTS46);
                         }
 
                         if ($idn_domain === false && defined('INTL_IDNA_VARIANT_2003')) {
@@ -1670,6 +1668,8 @@ foreach ($domainListTypes as $typeName => $typeId) {
                             $domain = $idn_domain;
                         }
                     }
+
+                    $domain = strtolower($domain);
                 }
             }
             unset($domain);
