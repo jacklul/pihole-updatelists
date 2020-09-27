@@ -1190,10 +1190,11 @@ function incrementStat($name, $deduplication = null)
  * Print summary after processing single list (to be used after 'Processing...' message)
  *
  * @param array $statData
+ * @param bool  $noSpace
  *
  * @return void
  */
-function printOperationSummary(array $statData)
+function printOperationSummary(array $statData, $noSpace = false)
 {
     $summary = [];
 
@@ -1205,7 +1206,7 @@ function printOperationSummary(array $statData)
     $statData['invalid'] > 0 && $summary[]  = $statData['invalid'] . ' invalid';
     $statData['conflict'] > 0 && $summary[] = $statData['conflict'] . ' conflicts';
 
-    printAndLog(' ' . implode(', ', $summary) . PHP_EOL);
+    printAndLog(($noSpace === false ? ' ' : 'Summary: ') . implode(', ', $summary) . PHP_EOL);
 }
 
 /** PROCEDURAL CODE STARTS HERE */
@@ -1362,7 +1363,7 @@ if (!empty($config['ADLISTS_URL'])) {
         $adlists = textToArray($contents);
         printAndLog(' done (' . count($adlists) . ' entries)' . PHP_EOL);
 
-        printAndLog('Processing...' . ($config['VERBOSE'] === true ? PHP_EOL : ''));
+        printAndLog('Processing...' . ($config['VERBOSE'] === true || $config['DEBUG'] === true ? PHP_EOL : ''));
         $dbh->beginTransaction();
 
         // Get enabled adlists managed by this script from the DB
@@ -1499,7 +1500,7 @@ if (!empty($config['ADLISTS_URL'])) {
         }
     }
 
-    printOperationSummary($stat);
+    printOperationSummary($stat, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
 
     if ($config['VERBOSE'] === false) {
         if (isset($summaryBuffer['invalid'])) {
@@ -1625,7 +1626,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
             $domainlist = textToArray($contents);
             printAndLog(' done (' . count($domainlist) . ' entries)' . PHP_EOL);
 
-            printAndLog('Processing...' . ($config['VERBOSE'] === true ? PHP_EOL : ''));
+            printAndLog('Processing...' . ($config['VERBOSE'] === true || $config['DEBUG'] === true ? PHP_EOL : ''));
             $dbh->beginTransaction();
 
             // Get enabled domains of this type managed by this script from the DB
@@ -1801,7 +1802,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
         foreach ($statCopy as $var => $val) {
             $statCopy[$var] = $stat[$var] - $statCopy[$var];
         }
-        printOperationSummary($statCopy);
+        printOperationSummary($statCopy, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
 
         if ($config['VERBOSE'] === false) {
             if (isset($summaryBuffer['invalid'])) {
