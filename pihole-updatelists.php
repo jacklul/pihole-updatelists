@@ -780,6 +780,7 @@ function loadConfig($options = [])
         'REGEX_BLACKLIST_URL'     => '',
         'COMMENT'                 => 'Managed by pihole-updatelists',
         'GROUP_ID'                => 0,
+        'PERSISTENT_GROUP'        => false,
         'REQUIRE_COMMENT'         => true,
         'UPDATE_GRAVITY'          => true,
         'VACUUM_DATABASE'         => false,
@@ -1487,6 +1488,30 @@ if (!empty($config['ADLISTS_URL'])) {
                     $config['VERBOSE'] === true && printAndLog('Ignored: ' . $address . PHP_EOL);
                     incrementStat('ignored');
                 }
+
+                if ($config['PERSISTENT_GROUP'] === true) {
+                    if ($absoluteGroupId > 0) {
+                        // Add to the specified group
+                        $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
+                        $sth->bindParam(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
+                        $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
+                        $sth->execute();
+                    }
+
+                    if ($config['GROUP_ID'] >= 0) {
+                        // Add to the default group
+                        $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
+                        $sth->bindParam(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
+                        $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                        $sth->execute();
+                    } else {
+                        // Remove from the default group
+                        $sth = $dbh->prepare('DELETE FROM `adlist_by_group` WHERE adlist_id = :adlist_id AND group_id = :group_id');
+                        $sth->bindParam(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
+                        $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                        $sth->execute();
+                    }
+                }
             }
         }
 
@@ -1785,6 +1810,30 @@ foreach ($domainListTypes as $typeName => $typeId) {
                     } elseif ($isTouchable === false) {
                         $config['VERBOSE'] === true && printAndLog('Ignored: ' . $domain . PHP_EOL);
                         incrementStat('ignored', $domain);
+                    }
+
+                    if ($config['PERSISTENT_GROUP'] === true) {
+                        if ($absoluteGroupId > 0) {
+                            // Add to the specified group
+                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
+                            $sth->bindParam(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
+                            $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
+                            $sth->execute();
+                        }
+
+                        if ($config['GROUP_ID'] >= 0) {
+                            // Add to the default group
+                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
+                            $sth->bindParam(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
+                            $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                            $sth->execute();
+                        } else {
+                            // Remove from the default group
+                            $sth = $dbh->prepare('DELETE FROM `domainlist_by_group` WHERE domainlist_id = :domainlist_id AND group_id = :group_id');
+                            $sth->bindParam(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
+                            $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                            $sth->execute();
+                        }
                     }
                 }
             }
