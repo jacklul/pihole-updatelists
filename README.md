@@ -120,7 +120,7 @@ sudo nano /etc/pihole-updatelists.conf
 | ADLISTS_URL | " " | Remote list URL containing list of adlists to import |
 | WHITELIST_URL | " " | Remote list URL containing exact domains to whitelist |
 | REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
-| BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist |
+| BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist <br>This is specifically for handcrafted lists only, do not use regular blocklists here! |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
 | COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script <br>You can still add your own comments to individual entries as long you keep this string intact |
 | GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page |
