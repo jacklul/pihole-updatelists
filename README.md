@@ -53,7 +53,7 @@ If you used [pihole5-list-tool](https://github.com/jessedp/pihole5-list-tool) to
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE adlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%Firebog |%' OR comment LIKE '%[ph5lt]'"
 sudo sqlite3 /etc/pihole/gravity.db "UPDATE domainlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%AndeepND |%' OR comment LIKE '%[ph5lt]'"
 ```
-_(code up to date as of pihole5-list-tool 0.5.0)_
+_(code up to date as of pihole5-list-tool 0.6.0)_
 
 Alternatively, some manual work is required - pick one:
 
