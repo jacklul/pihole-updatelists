@@ -50,8 +50,8 @@ If you already imported any of the remote lists manually you should migrate thei
 
 If you used [pihole5-list-tool](https://github.com/jessedp/pihole5-list-tool) to import adlists and whitelist you can use these commands to do this quickly:
 ```bash
-sudo sqlite3 /etc/pihole/gravity.db "UPDATE adlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%Firebog |%'"
-sudo sqlite3 /etc/pihole/gravity.db "UPDATE domainlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%AndeepND |%'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE adlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%Firebog |%' OR comment LIKE '%[ph5lt]'"
+sudo sqlite3 /etc/pihole/gravity.db "UPDATE domainlist SET comment = 'Managed by pihole-updatelists' WHERE comment LIKE '%AndeepND |%' OR comment LIKE '%[ph5lt]'"
 ```
 _(code up to date as of pihole5-list-tool 0.5.0)_
 
