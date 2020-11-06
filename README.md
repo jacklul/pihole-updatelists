@@ -129,7 +129,7 @@ sudo nano /etc/pihole-updatelists.conf
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
 | VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) <br>Will cause additional writes to disk |
 | VERBOSE | false | Show more information while the script is running |
-| DEBUG | false | Show debug messages |
+| DEBUG | false | Show debug messages for troubleshooting purposes |
 | DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout | 
 | IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists <br> This will cause entries from the lists that failed to download to be disabled |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
