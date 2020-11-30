@@ -69,6 +69,7 @@ Alternatively, some manual work is required - pick one:
 	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist_by_group"
 	```
   - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
+  - (only when `UPDATE_GRAVITY=false`) run `pihole updateGravity`
 
 ## Install with Docker
 
