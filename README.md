@@ -2,7 +2,9 @@
 
 When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) or [this](https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt) it's a hassle to manually check for changes and update - this script will do that for you!
 
-User-created entries will not be touched and those removed from the remote list will be disabled instead of removed.
+User-created entries will not be touched and those removed from the remote list will be disabled instead.
+
+__If you're not using remote lists like the ones mentioned above then this script will be useless to you - Pi-hole already updates the lists weekly automatically.__
 
 ## Requirements
 
@@ -107,6 +109,8 @@ services:
 If you already have existing `gravity.db` you should also check out [Migrating lists and domains](#migrating-lists-and-domains) section, keep in mind that you will have to adjust paths in the commands mentioned there.
 
 ## Configuration
+
+__This script does nothing by default (except running `pihole updateGravity`), you have to configure it.__
 
 Default configuration file is `/etc/pihole-updatelists.conf`.
 
