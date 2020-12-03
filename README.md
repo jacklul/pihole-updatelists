@@ -30,6 +30,8 @@ If **systemd** is available this will also add service and timer unit files to t
 
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
+__This script does nothing by default (except running `pihole updateGravity`), you have to [configure it](#configuration).__
+
 ### Disable default gravity update schedule
 
 _If you don't plan on updating adlists or want to keep Pi-hole's gravity update schedule you should skip this section and set `UPDATE_GRAVITY=false` in the configuration file._
@@ -109,8 +111,6 @@ services:
 If you already have existing `gravity.db` you should also check out [Migrating lists and domains](#migrating-lists-and-domains) section, keep in mind that you will have to adjust paths in the commands mentioned there.
 
 ## Configuration
-
-__This script does nothing by default (except running `pihole updateGravity`), you have to configure it.__
 
 Default configuration file is `/etc/pihole-updatelists.conf`.
 
