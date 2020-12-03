@@ -1216,6 +1216,14 @@ checkDependencies(); // Check script requirements
 $options = parseOptions(); // Parse options
 $config  = loadConfig($options); // Load config and process variables
 
+$remoteListsAreSet = false;
+foreach ($config as $var => $val) {
+    if (substr($var, -4) === '_URL' && !empty($val)) {
+        $remoteListsAreSet = true;
+        break;
+    }
+}
+
 // Exception handler, always log detailed information
 set_exception_handler(
     function (Throwable $e) use (&$config) {
@@ -1534,7 +1542,7 @@ if (!empty($config['ADLISTS_URL'])) {
     }
 
     print PHP_EOL;
-} elseif ($config['REQUIRE_COMMENT'] === true) {
+} elseif ($config['REQUIRE_COMMENT'] === true && $remoteListsAreSet) {
     // In case user decides to unset the URL - disable previously added entries
     $sth = $dbh->prepare('SELECT `id` FROM `adlist` WHERE `comment` LIKE :comment AND `enabled` = 1 LIMIT 1');
     $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
@@ -1868,7 +1876,7 @@ foreach ($domainListTypes as $typeName => $typeId) {
         }
 
         print PHP_EOL;
-    } elseif ($config['REQUIRE_COMMENT'] === true) {
+    } elseif ($config['REQUIRE_COMMENT'] === true && $remoteListsAreSet) {
         // In case user decides to unset the URL - disable previously added entries
         $sth = $dbh->prepare('SELECT id FROM `domainlist` WHERE `comment` LIKE :comment AND `enabled` = 1 AND `type` = :type LIMIT 1');
         $sth->bindValue(':comment', '%' . $config['COMMENT'] . '%', PDO::PARAM_STR);
@@ -1891,6 +1899,11 @@ foreach ($domainListTypes as $typeName => $typeId) {
             print PHP_EOL;
         }
     }
+}
+
+if ($remoteListsAreSet === false) {
+    printAndLog('No remote lists are set in the configuration - this is required for the script to do it\'s job!' . PHP_EOL . 'See README for instructions.' . PHP_EOL . PHP_EOL, 'ERROR');
+    $stat['errors']++;
 }
 
 // Update gravity (run `pihole updateGravity`) or sends signal to pihole-FTL to reload lists
