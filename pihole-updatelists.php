@@ -111,11 +111,11 @@ function checkOptionalDependencies()
 {
     // Check for recommended PHP extensions
     $missingExtensions = [];
-    $extensions = [
+    $extensions        = [
         'intl',
         'curl',
     ];
-    
+
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
             printAndLog('Missing recommended PHP extension: php-' . $extension . PHP_EOL, 'WARNING');
@@ -875,7 +875,7 @@ function acquireLock($lockfile, $debug = false)
 
 /**
  * Shutdown related tasks
- * 
+ *
  * @return void
  */
 function shutdownCleanup()
@@ -891,7 +891,7 @@ function shutdownCleanup()
 
 /**
  * Just print the header
- * 
+ *
  * @return void
  */
 function printHeader()
