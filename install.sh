@@ -153,6 +153,7 @@ if [ ! -L \"/etc/cron.d/pihole-updatelists\" ]; then
 fi
 
 if [ -e \"/etc/pihole/gravity.db\" ]; then
+	set +e
 	/usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS}
 else
 	echo \"Gravity database not found, skipping lists update!\"
