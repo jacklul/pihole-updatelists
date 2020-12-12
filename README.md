@@ -107,7 +107,7 @@ version: "3"
 services:
   pihole:
     container_name: pihole
-    image: jacklul/pihole:latest
+    image: pihole/pihole:latest   # <-- or jacklul/pihole:latest
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -142,21 +142,20 @@ sudo nano /etc/pihole-updatelists.conf
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| ADLISTS_URL | " " | Remote list URL containing list of adlists to import |
+| ADLISTS_URL | " " | Remote list URL containing list of adlists to import <br>**URLs to single adlists are not supported here!** |
 | WHITELIST_URL | " " | Remote list URL containing exact domains to whitelist |
 | REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
-| BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist <br>This is specifically for handcrafted lists only, do not use regular blocklists here! |
+| BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist <br>**This is specifically for handcrafted lists only, do not use regular blocklists here!** |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
 | COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script <br>You can still add your own comments to individual entries as long you keep this string intact |
-| GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page |
-| PERSISTENT_GROUP | false | Makes sure entries have the specified group assigned on each run <br>This does not prevent you from assigning more groups through the web interface but can remove entries from the default group if GROUP_ID is negative number <br>Do not enable this when you're running multiple different configs
-| REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When `false` any user-created entry will be disabled |
+| GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page <br>**Multiple groups are not supported** |
+| REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When `false` any user-created entry will be disabled, only those created by the script will be active |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
-| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) <br>Will cause additional writes to disk |
+| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) <br>**Will cause additional writes to disk, don't enable when running from SD card** |
 | VERBOSE | false | Show more information while the script is running |
-| DEBUG | false | Show debug messages for troubleshooting purposes |
+| DEBUG | false | Show debug messages for troubleshooting purposes <br>**If you're having issues - this might help tracking it down** |
 | DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout | 
-| IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists <br> This will cause entries from the lists that failed to download to be disabled |
+| IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists <br> **This will cause entries from the lists that failed to download to be disabled** |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
 | LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script from running <br>You shouldn't change it - unless `/var/lock` is unavailable |
 | LOG_FILE | " " | Log console output to file <br>In most cases you don't have to set this as you can view full log in the system journal <br>Put `-` before path to overwrite file instead of appending to it |
@@ -165,10 +164,6 @@ sudo nano /etc/pihole-updatelists.conf
 String values should be put between `" "`, otherwise weird things might happen.
 
 You can also give paths to the local files instead of URLs, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
-
-### Multiple configurations
-
-You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
 
 ### Multiple list URLs
 
@@ -180,17 +175,55 @@ ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick  https://raw.github
 
 If one of the lists fails to download nothing will be affected for that list type.
 
-### Recommended lists
+### Multiple configurations
 
-| List | URL | Description |
-|----------|-------------|-------------|
-| Adlist<br>(ADLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
-| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
-| Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
+You can specify alternative config file by passing the path to the script through config parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf`.
 
-## Extra information
+**A more advanced way is to use sections in the configuration file:**
 
-### Runtime options
+```
+(bottom of the file)
+
+[GroupA_adlists]
+WHITELIST_URL="https://raw.githubusercontent.com/you/adlists/master/my_whitelist1.txt"
+GROUP_ID=-1
+COMMENT="pihole-updatelists - whitelist1"
+
+[GroupB_adlists]
+WHITELIST_URL="https://raw.githubusercontent.com/you/adlists/master/my_whitelist2.txt"
+GROUP_ID=-2
+COMMENT="pihole-updatelists - whitelist2"
+```
+
+Configurations where one of the lists contains entries from the other are not officially supported but may work:
+
+```
+; When one of the lists contains entries from the other
+; it's best to have it defined after the other one
+
+; Group with ID=1 will use 'tick' list of adlists
+[GroupA_adlists]
+ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick"
+GROUP_ID=-1
+COMMENT="pihole-updatelists - firebog (tick)"
+
+; Group with ID=2 will use 'nocross' list of adlists
+[GroupB_adlists]
+ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=nocross"
+GROUP_ID=-2
+COMMENT="pihole-updatelists - firebog (nocross)"
+```
+
+**You will want to have a different `COMMENT` value in each section, they have to be unique and one must not match the other!**
+
+Main configuration (the one without section header) is processed first, then the sections in the order of their appearance.
+
+**IMPORTANT:** You can only use selected variables in sections:
+```
+ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, IGNORE_DOWNLOAD_FAILURE
+```
+
+## Runtime options
 
 These can be used when executing `pihole-updatelists`.
 
@@ -207,6 +240,16 @@ These can be used when executing `pihole-updatelists`.
 | `--update` | Update the script using selected git branch |
 | `--force` | Force update without checking for newest version |
 | `--version `| Show script checksum (and also if update is available) |
+
+## Extra information
+
+### Recommended lists
+
+| List | URL | Description |
+|----------|-------------|-------------|
+| Adlist<br>(ADLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
+| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
+| Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
 ### Changing the schedule
 
