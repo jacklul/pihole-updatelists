@@ -346,7 +346,7 @@ function registerHttpClient()
                  *
                  * @return mixed
                  */
-                public function __call($function, $parameters)
+                public function __call($function, array $parameters)
                 {
                     $function = strtolower($function);
 
@@ -430,7 +430,7 @@ function registerHttpClient()
                  *
                  * @return mixed
                  */
-                public function __call($function, $parameters)
+                public function __call($function, array $parameters)
                 {
                     return null;
                 }
@@ -487,7 +487,7 @@ function registerHttpClient()
 /**
  * Create HTTP client instance
  *
- * @param array $config
+ * @param array|null $config
  *
  * @return void
  */
@@ -607,7 +607,7 @@ function isUpToDate($branch = 'master')
  * @param array $options
  * @param array $config
  */
-function getBranch($options = [], $config = [])
+function getBranch(array $options = [], array $config = [])
 {
     $branch = 'master';
 
@@ -626,7 +626,7 @@ function getBranch($options = [], $config = [])
  * @param array $options
  * @param array $config
  */
-function printHelp($options = [], $config = [])
+function printHelp(array $options = [], array $config = [])
 {
     $definedOptions = getDefinedOptions();
     $help           = [];
@@ -680,7 +680,7 @@ function printHelp($options = [], $config = [])
  * @param array $options
  * @param array $config
  */
-function updateScript($options = [], $config = [])
+function updateScript(array $options = [], array $config = [])
 {
     if (strpos(basename($_SERVER['argv'][0]), '.php') !== false) {
         print 'It seems like this script haven\'t been installed - unable to update!' . PHP_EOL;
@@ -705,7 +705,7 @@ function updateScript($options = [], $config = [])
  * @param array $config
  * @param bool  $return
  */
-function printVersion($options = [], $config = [], $return = false)
+function printVersion(array $options = [], array $config = [], $return = false)
 {
     global $remoteScript;
 
@@ -743,9 +743,9 @@ function printVersion($options = [], $config = [], $return = false)
 /**
  * Validate important configuration variables
  *
- * @param $config
+ * @param array $config
  */
-function validateConfig($config)
+function validateConfig(array $config)
 {
     if ($config['COMMENT'] === '') {
         printAndLog('Variable COMMENT must be a string at least 1 characters long!' . PHP_EOL, 'ERROR');
@@ -765,7 +765,7 @@ function validateConfig($config)
  *
  * @return array
  */
-function loadConfig($options = [])
+function loadConfig(array $options = [])
 {
     // Default configuration
     $config = [
@@ -931,7 +931,7 @@ function printHeader()
  * @param array $config
  * @param array $options
  */
-function printDebugHeader($config, $options)
+function printDebugHeader(array $config, array $options)
 {
     printAndLog('Checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
     printAndLog('Git branch: ' . getBranch($options, $config) . PHP_EOL, 'DEBUG');
