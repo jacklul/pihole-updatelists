@@ -146,6 +146,8 @@ String values should be put between `" "`, otherwise weird things might happen.
 
 You can also give paths to the local files instead of URLs, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
 
+### Multiple configurations
+
 You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
 
 ### Multiple list URLs
