@@ -1,5 +1,5 @@
 #!/usr/bin/env php
-<?php declare (strict_types = 1);
+<?php declare(strict_types = 1);
 /**
  * Update Pi-hole lists from remote sources
  *
@@ -526,12 +526,13 @@ function fetchFileContents($url)
  * Fetch remote script file
  *
  * @param string $branch
+ * @param bool   $debug
  *
  * @return string|false
  */
-function fetchRemoteScript($branch = 'master')
+function fetchRemoteScript($branch = 'master', $debug = false)
 {
-    global $remoteScript;
+    global $remoteScript, $customError;
 
     if (isset($remoteScript[$branch])) {
         return $remoteScript[$branch];
@@ -542,13 +543,16 @@ function fetchRemoteScript($branch = 'master')
     $header_size = $httpClient->getHeaderSize();
 
     if ($response === false) {
+        $customError = 'HTTP request failed';
+        
         return false;
     }
 
     $headers = [];
     foreach (explode("\r\n", substr($response, 0, $header_size)) as $i => $line) {
         if ($i === 0) {
-            $headers['http_code'] = $line;
+            preg_match('/(\d{3})/', $line, $matches);
+            $headers['http_code'] = (int) $matches[1];
         } elseif (!empty($line)) {
             list($key, $value) = explode(': ', $line);
 
@@ -559,7 +563,7 @@ function fetchRemoteScript($branch = 'master')
     $remoteScript[$branch] = substr($response, $header_size);
 
     $isSuccessful = false;
-    if (strpos($headers['http_code'], '200 OK') !== false) {
+    if ($headers['http_code'] === 200) {
         $isSuccessful = true;
     }
 
@@ -567,13 +571,22 @@ function fetchRemoteScript($branch = 'master')
         $firstLine = strtok($remoteScript[$branch], "\n");
 
         if (strpos($firstLine, '#!/usr/bin/env php') === false) {
-            print 'Returned remote script data doesn\'t seem to be valid!' . PHP_EOL;
-            print 'First line: ' . $firstLine . PHP_EOL;
-            exit(1);
+            $customError = 'Returned remote script data doesn\'t seem to be valid';
+
+            if ($debug === true) {
+                print $customError . PHP_EOL;
+                print 'First line: ' . $firstLine . PHP_EOL;
+
+                exit(1);
+            }
+
+            return false;
         }
 
         return $remoteScript[$branch];
     }
+
+    $customError = 'Failed to fetch remote file';
 
     return false;
 }
@@ -582,13 +595,14 @@ function fetchRemoteScript($branch = 'master')
  * Check if script is up to date
  *
  * @param string $branch
+ * @param bool   $debug
  *
  * @return string
  */
-function isUpToDate($branch = 'master')
+function isUpToDate($branch = 'master', $debug = false)
 {
     $md5Self      = md5_file(__FILE__);
-    $remoteScript = fetchRemoteScript($branch);
+    $remoteScript = fetchRemoteScript($branch, $debug);
 
     if ($remoteScript === false) {
         return null;
@@ -940,17 +954,18 @@ function printDebugHeader(array $config, array $options)
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
     printAndLog('cURL: ' . (function_exists('curl_version') ? curl_version()['version'] : 'Unavailable') . PHP_EOL, 'DEBUG');
 
-    $piholeVersions = @file_get_contents('/etc/pihole/localversions') ?? '';
-    if ($piholeVersions !== false) {
+    if (file_exists('/etc/pihole/localversions')) {
+        $piholeVersions = file_get_contents('/etc/pihole/localversions');
         $piholeVersions = explode(' ', $piholeVersions);
     }
 
-    $piholeBranches = @file_get_contents('/etc/pihole/localbranches') ?? '';
-    if ($piholeBranches !== false) {
+    if (file_exists('/etc/pihole/localbranches')) {
+        $piholeBranches = file_get_contents('/etc/pihole/localbranches');
         $piholeBranches = explode(' ', $piholeBranches);
     }
 
     if (
+        isset($piholeVersions, $piholeBranches) &&
         $piholeVersions !== false && $piholeBranches !== false &&
         count($piholeVersions) === 3 && count($piholeBranches) === 3
     ) {
@@ -1119,7 +1134,14 @@ function textToArray($text)
  */
 function parseLastError($default = 'Unknown error')
 {
-    global $httpClient;
+    global $httpClient, $customError;
+
+    if (!empty($customError)) {
+        $returnCustom = $customError;
+        $customError = '';
+
+        return $returnCustom;
+    }
 
     $lastError = error_get_last();
 
@@ -1131,7 +1153,7 @@ function parseLastError($default = 'Unknown error')
         }
     }
 
-    return preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? $default));
+    return preg_replace('/file_get_contents(.*): /U', '', trim($lastError['message'] ?? $default)) . (isset($lastError['line']) ? ' (' . $lastError['line'] . ')' : '');
 }
 
 /**
@@ -1212,6 +1234,7 @@ function printOperationSummary(array $statData, $noSpace = false)
 
 /** PROCEDURAL CODE STARTS HERE */
 $startTime = microtime(true);
+$customError = '';
 checkDependencies(); // Check script requirements
 $options = parseOptions(); // Parse options
 $config  = loadConfig($options); // Load config and process variables
