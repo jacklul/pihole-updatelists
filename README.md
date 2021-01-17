@@ -185,6 +185,7 @@ These can be used when executing `pihole-updatelists`.
 | `--config=<file>` | Load alternative configuration file |
 | `--git-branch=<branch>` | Select git branch to pull remote checksum and update from <br>Can only be used with `--update` and `--version` |
 | `--update` | Update the script using selected git branch |
+| `--force` | Force update without checking for newest version |
 | `--version `| Show script checksum (and also if update is available) |
 
 ### Changing the schedule
