@@ -188,9 +188,9 @@ function getDefinedOptions()
             'description'           => 'Select git branch to pull remote checksum and update from',
             'parameter-description' => 'branch',
         ],
-        'force' => [
-            'long'                  => 'force',
-            'description'           => 'Force update',
+        'force'      => [
+            'long'        => 'force',
+            'description' => 'Force update without checking for newest version',
         ],
     ];
 }
