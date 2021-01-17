@@ -1444,7 +1444,7 @@ if (!empty($config['ADLISTS_URL'])) {
         };
 
         foreach ($adlists as $address) {
-            if (!filter_var($address, FILTER_VALIDATE_URL) || preg_match('/[^a-zA-Z0-9$\\-_.+!*\'(),;\/?:@=&%]/', $address) !== 0) {
+            if (!filter_var($address, FILTER_VALIDATE_URL) || preg_match('/[^-a-zA-Z0-9$\\-_.+!*\'(),;\/?:@=&%]/', $address) !== 0) {
                 if ($config['VERBOSE'] === true) {
                     printAndLog('Invalid: ' . $address . PHP_EOL, 'NOTICE');
                 } else {
