@@ -333,6 +333,7 @@ function registerHttpClient()
                 {
                     $this->init();
                     $this->setopt(CURLOPT_RETURNTRANSFER, true);
+                    $this->setopt(CURLOPT_FOLLOWLOCATION, true);
 
                     if (is_array($config)) {
                         isset($config['timeout']) && $this->setopt(CURLOPT_TIMEOUT, $config['timeout']);
@@ -373,6 +374,14 @@ function registerHttpClient()
                 }
 
                 /**
+                 * @return int|null
+                 */
+                public function getStatusCode()
+                {
+                    return (int) $this->getinfo(CURLINFO_HTTP_CODE);
+                }
+
+                /**
                  * @param string $url
                  *
                  * @return string|false
@@ -400,7 +409,7 @@ function registerHttpClient()
                 /**
                  * @var array
                  */
-                private $streamContext;
+                private $streamContextArray;
 
                 /**
                  * @param string
@@ -413,14 +422,13 @@ function registerHttpClient()
                 public function __construct(array $config = null)
                 {
                     if (is_array($config)) {
-                        $this->streamContext = stream_context_create(
-                            [
-                                'http' => [
-                                    'timeout'    => $config['timeout'],
-                                    'user_agent' => $config['user_agent'],
-                                ],
-                            ]
-                        );
+                        $this->streamContextArray = [
+                            'http' => [
+                                'timeout'         => $config['timeout'],
+                                'user_agent'      => $config['user_agent'],
+                                'follow_location' => true,
+                            ],
+                        ];
                     }
                 }
 
@@ -437,29 +445,54 @@ function registerHttpClient()
 
                 /**
                  * @param string $url
-                 * @param string $parseHeaders
+                 * @param string $withHeaders
                  *
                  * @return string|false
                  */
-                public function get($url, $parseHeaders = false)
+                public function get($url, $withHeaders = false)
                 {
-                    $return = file_get_contents($url, false, $this->streamContext);
+                    $streamContext = $this->streamContextArray;
+                    if ($withHeaders === true) {
+                        $streamContext['http']['ignore_errors'] = false;
 
-                    if ($return === false) {
-                        return false;
+                        global $http_response_header;
                     }
 
                     $this->headers = null;
-                    if ($parseHeaders === true) {
+                    $return = file_get_contents($url, false, stream_context_create($streamContext));
+
+                    if ($withHeaders === true) {
                         $headersAsString = '';
                         foreach ($http_response_header as $header) {
                             $headersAsString .= $header . "\r\n";
                         }
 
                         $this->headers = $headersAsString . "\r\n\r\n";
+
+                        return $this->headers . $return;
                     }
 
-                    return $this->headers . $return;
+                    if ($return === false || $return == '') {
+                        return false;
+                    }
+
+                    return $return;
+                }
+
+                /**
+                 * @return int|null
+                 */
+                public function getStatusCode()
+                {
+                    if ($this->headers !== null) {
+                        preg_match_all('/HTTP.*(\d{3})/', $this->headers, $matches);
+
+                        if (isset($matches[1]) && count($matches[1]) > 0) {
+                            return (int) $matches[1][count($matches[1]) - 1];
+                        }
+                    }
+
+                    return null;
                 }
 
                 /**
@@ -519,7 +552,17 @@ function fetchFileContents($url)
 
     global $httpClient;
 
-    return $httpClient->get($url);
+    $result = $httpClient->get($url);
+
+    if (is_int($httpStatusCode = $httpClient->getStatusCode()) && substr((string) $httpStatusCode, 0, 1) !== '2') {
+        global $customError;
+
+        $customError = 'HTTP request failed with status code ' . $httpStatusCode;
+
+        return false;
+    }
+
+    return $result;
 }
 
 /**
