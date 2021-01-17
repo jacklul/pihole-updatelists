@@ -188,6 +188,10 @@ function getDefinedOptions()
             'description'           => 'Select git branch to pull remote checksum and update from',
             'parameter-description' => 'branch',
         ],
+        'force' => [
+            'long'                  => 'force',
+            'description'           => 'Force update',
+        ],
     ];
 }
 
@@ -745,8 +749,12 @@ function updateScript(array $options = [], array $config = [])
     }
 
     requireRoot(); // Only root should be able to run this command
-    $status = printVersion($options, $config, true);
-    $branch = getBranch($options, $config);
+
+    $status = false;
+    if (!isset($options['force'])) {
+        $status = printVersion($options, $config, true);
+        $branch = getBranch($options, $config);
+    }
 
     if ($status === false) {
         print PHP_EOL;
