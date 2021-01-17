@@ -1,5 +1,5 @@
 #!/usr/bin/env php
-<?php declare(strict_types = 1);
+<?php declare (strict_types = 1);
 /**
  * Update Pi-hole lists from remote sources
  *
@@ -463,7 +463,7 @@ function registerHttpClient()
                     }
 
                     $this->headers = null;
-                    $return = file_get_contents($url, false, stream_context_create($streamContext));
+                    $return        = file_get_contents($url, false, stream_context_create($streamContext));
 
                     if ($withHeaders === true) {
                         $headersAsString = '';
@@ -591,7 +591,7 @@ function fetchRemoteScript($branch = 'master', $debug = false)
 
     if ($response === false) {
         $customError = 'HTTP request failed';
-        
+
         return false;
     }
 
@@ -1189,7 +1189,7 @@ function parseLastError($default = 'Unknown error')
 
     if (!empty($customError)) {
         $returnCustom = $customError;
-        $customError = '';
+        $customError  = '';
 
         return $returnCustom;
     }
@@ -1284,7 +1284,7 @@ function printOperationSummary(array $statData, $noSpace = false)
 }
 
 /** PROCEDURAL CODE STARTS HERE */
-$startTime = microtime(true);
+$startTime   = microtime(true);
 $customError = '';
 checkDependencies(); // Check script requirements
 $options = parseOptions(); // Parse options
