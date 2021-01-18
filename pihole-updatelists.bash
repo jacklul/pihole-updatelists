@@ -11,11 +11,11 @@ _pihole_updatelists()
     opts="--config= --git-branch= --help --no-gravity --no-vacuum --verbose --debug --update --version"
 
     case "${prev}" in
-            "--help")
-                opts="--update --version"
-            ;;
-            "--version"|"--update")
+            "--version")
                 opts="--git-branch="
+            ;;
+            "--update")
+                opts="--force --git-branch="
             ;;
     esac
 

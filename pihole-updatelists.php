@@ -750,11 +750,13 @@ function updateScript(array $options = [], array $config = [])
 
     requireRoot(); // Only root should be able to run this command
 
-    $status = false;
     if (!isset($options['force'])) {
         $status = printVersion($options, $config, true);
-        $branch = getBranch($options, $config);
+    } else {
+        $status = false;
     }
+
+    $branch = getBranch($options, $config);
 
     if ($status === false) {
         print PHP_EOL;
