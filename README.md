@@ -77,7 +77,27 @@ Alternatively, some manual work is required - pick one:
 
 ## Install with Docker
 
-Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) but use [`jacklul/pihole:latest`](https://hub.docker.com/r/jacklul/pihole) image instead of `pihole/pihole:latest` and add a volume for `/etc/pihole-updatelists/` directory.
+Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) and add a volume for `/etc/pihole-updatelists/` directory.
+
+### Using custom image
+
+Use [`jacklul/pihole:latest`](https://hub.docker.com/r/jacklul/pihole) image instead of `pihole/pihole:latest`.
+
+### Using official image
+
+If you don't want to use my image you can write custom `Dockerfile`:
+
+```
+FROM pihole/pihole:latest
+
+RUN apt-get update && apt-get install -Vy php-cli php-sqlite3 php-intl php-curl
+
+RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash
+```
+
+You will have to update script's layer manually when update is released.
+
+### Container Configuration
 
 Your `docker-compose.yml` file should look similar to this:
 
