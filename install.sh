@@ -89,6 +89,7 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 
 	wget -nv -O /etc/bash_completion.d/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.bash"
 else
+	echo "Missing required files for installation!"
 	exit 1
 fi
 
