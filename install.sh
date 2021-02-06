@@ -2,10 +2,7 @@
 set -e
 
 # Try re-running with sudo
-if [[ $(/usr/bin/id -u) -ne 0 ]]; then
-	exec sudo -- "$0" "$@"
-	exit
-fi
+[ "$UID" -eq 0 ] || exec sudo bash "$0" "$@"
 
 # Required to do when unit files are changed or removed
 function reloadSystemd() {
