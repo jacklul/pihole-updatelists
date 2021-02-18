@@ -558,7 +558,7 @@ function fetchFileContents($url)
 
     $result = $httpClient->get($url);
 
-    if (is_int($httpStatusCode = $httpClient->getStatusCode()) && substr((string) $httpStatusCode, 0, 1) !== '2') {
+    if (is_int($httpStatusCode = $httpClient->getStatusCode()) && $httpStatusCode > 0 && substr((string) $httpStatusCode, 0, 1) !== '2') {
         global $customError;
 
         $customError = 'HTTP request failed with status code ' . $httpStatusCode;
