@@ -153,11 +153,6 @@ function getDefinedOptions()
             'short'       => 'b',
             'description' => 'Force no lists reload',
         ],
-        'no-vacuum'  => [ // @TODO remove
-            'long'        => 'no-vacuum',
-            'short'       => 'm',
-            'description' => 'Force no database vacuuming',
-        ],
         'verbose'    => [
             'long'        => 'verbose',
             'short'       => 'v',
@@ -860,7 +855,6 @@ function loadConfig(array $options = [])
         'GROUP_ID'                => 0,
         'REQUIRE_COMMENT'         => true,
         'UPDATE_GRAVITY'          => true,
-        'VACUUM_DATABASE'         => false, // @TODO remove
         'VERBOSE'                 => false,
         'DEBUG'                   => false,
         'DOWNLOAD_TIMEOUT'        => 60,
@@ -916,10 +910,6 @@ function loadConfig(array $options = [])
 
     if (isset($options['no-reload']) && $config['UPDATE_GRAVITY'] === false) {
         $config['UPDATE_GRAVITY'] = null;
-    }
-
-    if (isset($options['no-vacuum'])) {  // @TODO remove
-        $config['VACUUM_DATABASE'] = false;
     }
 
     if (isset($options['verbose'])) {
@@ -2311,6 +2301,8 @@ if ($config['UPDATE_GRAVITY'] === true) {
     } else {
         printAndLog('Done' . PHP_EOL, 'INFO', true);
     }
+
+    print PHP_EOL;
 } elseif ($config['UPDATE_GRAVITY'] === false) {
     printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
 
@@ -2338,22 +2330,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
         printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
         incrementStat('errors');
     }
-}
 
-// Vacuum database (run `VACUUM` command) @TODO remove
-if ($config['VACUUM_DATABASE'] === true) {
-    $dbh === null && $dbh = openDatabase($config['GRAVITY_DB'], $config['DEBUG'], $config['DEBUG']);
-
-    printAndLog('Vacuuming database...');
-    if ($dbh->query('VACUUM')) {
-        clearstatcache();
-        printAndLog(' done (' . formatBytes(filesize($config['GRAVITY_DB'])) . ')' . PHP_EOL);
-    }
-
-    $dbh = null;
-}
-
-if ($config['UPDATE_GRAVITY'] !== null || $config['VACUUM_DATABASE'] !== false) {
     print PHP_EOL;
 }
 

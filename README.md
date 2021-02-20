@@ -151,7 +151,6 @@ sudo nano /etc/pihole-updatelists.conf
 | GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page <br>**Multiple groups are not supported** |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When `false` any user-created entry will be disabled, only those created by the script will be active |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
-| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) <br>**Will cause additional writes to disk, don't enable when running from SD card** |
 | VERBOSE | false | Show more information while the script is running |
 | DEBUG | false | Show debug messages for troubleshooting purposes <br>**If you're having issues - this might help tracking it down** |
 | DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout | 
@@ -232,7 +231,6 @@ These can be used when executing `pihole-updatelists`.
 | `--help, -h` | Show help message, which is simply this list |
 | `--no-gravity, -n` | Force gravity update to be skipped |
 | `--no-reload, -b` | Force lists reload to be skipped<br>Only if gravity update is disabled either by configuration (`UPDATE_GRAVITY=false`) or `--no-gravity` parameter |
-| `--no-vacuum, -m` | Force database vacuuming to be skipped |
 | `--verbose, -v` | Turn on verbose mode |
 | `--debug, -d`  | Turn on debug mode |
 | `--config=<file>` | Load alternative configuration file |
