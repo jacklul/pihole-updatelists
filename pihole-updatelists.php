@@ -1829,6 +1829,18 @@ foreach ($configSections as $configSectionName => $configSectionData) {
             }
 
             $dbh->commit();
+
+            foreach ($statCopy as $var => $val) {
+                $statCopy[$var] = $stat[$var] - $statCopy[$var];
+            }
+    
+            printOperationSummary($statCopy, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
+    
+            if ($config['VERBOSE'] === false) {
+                if (isset($summaryBuffer['invalid'])) {
+                    printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
+                }
+            }
         } else {
             if ($multipleLists) {
                 printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'NOTICE');
@@ -1837,19 +1849,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                 incrementStat('errors');
             }
         }
-
-        foreach ($statCopy as $var => $val) {
-            $statCopy[$var] = $stat[$var] - $statCopy[$var];
-        }
-
-        printOperationSummary($statCopy, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
-
-        if ($config['VERBOSE'] === false) {
-            if (isset($summaryBuffer['invalid'])) {
-                printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
-            }
-        }
-
+    
         print PHP_EOL;
     }
 
@@ -2245,31 +2245,31 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                 }
 
                 $dbh->commit();
+
+                foreach ($statCopy as $var => $val) {
+                    $statCopy[$var] = $stat[$var] - $statCopy[$var];
+                }
+                printOperationSummary($statCopy, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
+    
+                if ($config['VERBOSE'] === false) {
+                    if (isset($summaryBuffer['invalid'])) {
+                        printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
+                    }
+    
+                    if (isset($summaryBuffer['conflict'])) {
+                        foreach ($summaryBuffer['conflict'] as $duplicatedDomain => $onList) {
+                            $summaryBuffer['conflict'][$duplicatedDomain] = $duplicatedDomain . ' (' . $onList . ')';
+                        }
+    
+                        printAndLog('List of conflicting entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['conflict']) . PHP_EOL, 'NOTICE');
+                    }
+                }
             } else {
                 if ($multipleLists) {
                     printAndLog('One of the lists failed to download, operation aborted!' . PHP_EOL, 'NOTICE');
                 } else {
                     printAndLog(' ' . parseLastError() . PHP_EOL, 'ERROR');
                     incrementStat('errors');
-                }
-            }
-
-            foreach ($statCopy as $var => $val) {
-                $statCopy[$var] = $stat[$var] - $statCopy[$var];
-            }
-            printOperationSummary($statCopy, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
-
-            if ($config['VERBOSE'] === false) {
-                if (isset($summaryBuffer['invalid'])) {
-                    printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
-                }
-
-                if (isset($summaryBuffer['conflict'])) {
-                    foreach ($summaryBuffer['conflict'] as $duplicatedDomain => $onList) {
-                        $summaryBuffer['conflict'][$duplicatedDomain] = $duplicatedDomain . ' (' . $onList . ')';
-                    }
-
-                    printAndLog('List of conflicting entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['conflict']) . PHP_EOL, 'NOTICE');
                 }
             }
 
