@@ -147,13 +147,13 @@ function getDefinedOptions()
             'long'        => 'no-gravity',
             'short'       => 'n',
             'description' => 'Force no gravity update',
-            'conflicts'   => ['no-reload']
+            'conflicts'   => ['no-reload'],
         ],
         'no-reload'  => [
             'long'        => 'no-reload',
             'short'       => 'b',
             'description' => 'Force no lists reload',
-            'conflicts'   => ['no-gravity']
+            'conflicts'   => ['no-gravity'],
         ],
         'verbose'    => [
             'long'        => 'verbose',
@@ -165,36 +165,36 @@ function getDefinedOptions()
             'short'       => 'd',
             'description' => 'Turn on debug mode',
         ],
-        'yes'      => [
+        'yes'        => [
             'long'        => 'yes',
-            'short'        => 'y',
+            'short'       => 'y',
             'description' => 'Automatically reply YES to all questions',
         ],
         'force'      => [
             'long'        => 'force',
-            'short'        => 'f',
+            'short'       => 'f',
             'description' => 'Force update without checking for newest version',
-            'requires'   => ['update']
+            'requires'    => ['update'],
         ],
         'update'     => [
             'long'        => 'update',
             'function'    => 'updateScript',
             'description' => 'Update the script using selected git branch',
-            'conflicts'   => ['rollback']
+            'conflicts'   => ['rollback'],
         ],
-        'rollback'     => [
+        'rollback'   => [
             'long'        => 'rollback',
             'function'    => 'rollbackScript',
             'description' => 'Rollback script version to previous',
-            'conflicts'   => ['update']
+            'conflicts'   => ['update'],
         ],
         'version'    => [
             'long'        => 'version',
             'function'    => 'printVersion',
             'description' => 'Show script version checksum (and if update is available)',
-            'conflicts'   => ['update', 'rollback']
+            'conflicts'   => ['update', 'rollback'],
         ],
-        'debug-only'      => [
+        'debug-only' => [
             'long'        => 'debug-only',
             'function'    => 'showDebugOnly',
             'description' => 'Shows debug print only',
@@ -209,7 +209,7 @@ function getDefinedOptions()
             'long'                  => 'git-branch::',
             'description'           => 'Select git branch to pull remote checksum and update from',
             'parameter-description' => 'branch',
-            'requires'              => ['version', 'update']
+            'requires'              => ['version', 'update'],
         ],
     ];
 }
@@ -326,9 +326,9 @@ function parseOptions()
     unset($argv[0]); // Remove path to self
 
     // Split "-asdf" into "-a -s -d -f" to prevent a bug (issues/66#issuecomment-787836262)
-    foreach($argv as $key => $option) {
+    foreach ($argv as $key => $option) {
         if (substr($option, 0, 1) === '-' && substr($option, 0, 2) !== '--') {
-            foreach(str_split(substr($option, 1)) as $character) {
+            foreach (str_split(substr($option, 1)) as $character) {
                 $argv[] = '-' . $character;
             }
 
@@ -810,17 +810,17 @@ function printHelp(array $options = [], array $config = [])
  *
  * @param string $question
  * @param string $validAnswers
- * 
+ *
  * @return bool
  */
 function expectUserInput($question, array $validAnswers = [])
 {
     print $question . ' : ';
-    $stdin = fopen('php://stdin', 'r');
+    $stdin    = fopen('php://stdin', 'r');
     $response = fgetc($stdin);
 
     if (in_array(strtolower($response), $validAnswers)) {
-       return true;
+        return true;
     }
 
     return false;
@@ -911,7 +911,7 @@ function rollbackScript(array $options = [], array $config = [])
  *
  * @param array $options
  * @param array $config
- * 
+ *
  * @param bool  $return
  */
 function printVersion(array $options = [], array $config = [], $return = false)
@@ -954,7 +954,7 @@ function printVersion(array $options = [], array $config = [], $return = false)
  *
  * @param array $options
  * @param array $config
- * 
+ *
  * @return void
  */
 function showDebugOnly(array $options = [], array $config = [])
@@ -1626,7 +1626,7 @@ checkOptionalDependencies(); // Check for optional stuff
 $config['DEBUG'] === true && printDebugHeader($config, $options);
 
 // Show deprecated/removed options messages
-$deprecatedAndRemovedOptions = ['PERSISTENT_GROUP', 'VACUUM_DATABASE'];
+$deprecatedAndRemovedOptions      = ['PERSISTENT_GROUP', 'VACUUM_DATABASE'];
 $deprecatedAndRemovedOptionsFound = false;
 foreach ($config as $option => $value) {
     if (in_array($option, $deprecatedAndRemovedOptions)) {
@@ -2006,9 +2006,9 @@ foreach ($configSections as $configSectionName => $configSectionData) {
             foreach ($statCopy as $var => $val) {
                 $statCopy[$var] = $stat[$var] - $statCopy[$var];
             }
-    
+
             printOperationSummary($statCopy, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
-    
+
             if ($config['VERBOSE'] === false) {
                 if (isset($summaryBuffer['invalid'])) {
                     printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
@@ -2022,7 +2022,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                 incrementStat('errors');
             }
         }
-    
+
         print PHP_EOL;
     }
 
@@ -2172,7 +2172,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
 
                 // Pull entries assigned to this group ID
                 $sth = $dbh->prepare('SELECT * FROM `domainlist` LEFT JOIN `domainlist_by_group` ON `domainlist`.`id` = `domainlist_by_group`.`domainlist_id` WHERE `domainlist`.`enabled` = 1 AND `domainlist`.`type` = :type AND `domainlist_by_group`.`group_id` = :group_id');
-                
+
                 $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
                 $sth->bindValue(':group_id', $absoluteGroupId, PDO::PARAM_INT);
 
@@ -2423,17 +2423,17 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                     $statCopy[$var] = $stat[$var] - $statCopy[$var];
                 }
                 printOperationSummary($statCopy, ($config['VERBOSE'] === true || $config['DEBUG'] === true));
-    
+
                 if ($config['VERBOSE'] === false) {
                     if (isset($summaryBuffer['invalid'])) {
                         printAndLog('List of invalid entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['invalid']) . PHP_EOL, 'NOTICE');
                     }
-    
+
                     if (isset($summaryBuffer['conflict'])) {
                         foreach ($summaryBuffer['conflict'] as $duplicatedDomain => $onList) {
                             $summaryBuffer['conflict'][$duplicatedDomain] = $duplicatedDomain . ' (' . $onList . ')';
                         }
-    
+
                         printAndLog('List of conflicting entries:' . PHP_EOL . ' ' . implode(PHP_EOL . ' ', $summaryBuffer['conflict']) . PHP_EOL, 'NOTICE');
                     }
                 }
