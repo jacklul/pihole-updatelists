@@ -270,6 +270,17 @@ function parseOptions()
     global $argv;
     unset($argv[0]); // Remove path to self
 
+    // Split "-asdf" into "-a -s -d -f" to prevent a bug (issues/66#issuecomment-787836262)
+    foreach($argv as $key => $option) {
+        if (substr($option, 0, 1) === '-' && substr($option, 0, 2) !== '--') {
+            foreach(str_split(substr($option, 1)) as $character) {
+                $argv[] = '-' . $character;
+            }
+
+            unset($argv[$key]);
+        }
+    }
+
     // Remove recognized options from argv[]
     foreach ($options as $option => $data) {
         $result = array_filter($argv, function ($el) use ($option) {
@@ -288,7 +299,7 @@ function parseOptions()
             });
 
             if (!empty($result) && !preg_match('/^--' . $shortOption . '/', $argv[key($result)])) {
-                $argv[key($result)] = str_replace($shortOption, '', $argv[key($result)]);
+                $argv[key($result)] = str_replace('-' . $shortOption, '', $argv[key($result)]);
 
                 if ($argv[key($result)] === '-') {
                     unset($argv[key($result)]);
