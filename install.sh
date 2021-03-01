@@ -26,6 +26,10 @@ if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (i
 	rm -v /usr/local/sbin/pihole-updatelists
 	rm -v /etc/bash_completion.d/pihole-updatelists
 	
+	if [ -f "/usr/local/sbin/pihole-updatelists.old" ]; then
+		rm -v /etc/bash_completion.d/pihole-updatelists.old
+	fi
+
 	if [ "$SYSTEMD" == 1 ]; then
 		rm -v /etc/systemd/system/pihole-updatelists.service
 		rm -v /etc/systemd/system/pihole-updatelists.timer
@@ -58,6 +62,11 @@ if \
 	[ -f "$SPATH/pihole-updatelists.timer" ] && \
 	[ -f "$SPATH/pihole-updatelists.bash" ] \
 ; then
+	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
+		cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
+		chmod -v -x /usr/local/sbin/pihole-updatelists.old
+	fi
+
 	cp -v $SPATH/pihole-updatelists.php /usr/local/sbin/pihole-updatelists && \
 	chmod -v +x /usr/local/sbin/pihole-updatelists
 	
@@ -75,6 +84,11 @@ if \
 	# Convert line endings when dos2unix command is available
 	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
 elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
+	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
+		cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
+		chmod -v -x /usr/local/sbin/pihole-updatelists.old
+	fi
+
 	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php" && \
 	chmod -v +x /usr/local/sbin/pihole-updatelists
 	

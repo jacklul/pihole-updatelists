@@ -180,12 +180,19 @@ function getDefinedOptions()
             'long'        => 'update',
             'function'    => 'updateScript',
             'description' => 'Update the script using selected git branch',
+            'conflicts'   => ['rollback']
+        ],
+        'rollback'     => [
+            'long'        => 'rollback',
+            'function'    => 'rollbackScript',
+            'description' => 'Rollback script version to previous',
+            'conflicts'   => ['update']
         ],
         'version'    => [
             'long'        => 'version',
             'function'    => 'printVersion',
             'description' => 'Show script version checksum (and if update is available)',
-            'conflicts'   => ['update']
+            'conflicts'   => ['update', 'rollback']
         ],
         'debug-only'      => [
             'long'        => 'debug-only',
@@ -860,6 +867,42 @@ function updateScript(array $options = [], array $config = [])
         }
     }
 }
+
+/**
+ * This will rollback the script to previous version
+ *
+ * @param array $options
+ * @param array $config
+ */
+function rollbackScript(array $options = [], array $config = [])
+{
+    if (strpos(basename($_SERVER['argv'][0]), '.php') !== false) {
+        print 'It seems like this script haven\'t been installed - unable to rollback!' . PHP_EOL;
+        exit(1);
+    }
+
+    if (!file_exists('/usr/local/sbin/pihole-updatelists.old')) {
+        print 'Backup file does not exist, unable to rollback!' . PHP_EOL;
+        exit(1);
+    }
+
+    if (md5_file('/usr/local/sbin/pihole-updatelists') === md5_file('/usr/local/sbin/pihole-updatelists.old')) {
+        print 'Current script checksum matches checksum of the backup, unable to rollback!' . PHP_EOL;
+        exit(1);
+    }
+
+    requireRoot(); // Only root should be able to run this command
+
+    if (isset($options['yes']) || expectUserInput('Are you sure you want to rollback? [Y/N]', ['y', 'yes'])) {
+        if (rename('/usr/local/sbin/pihole-updatelists.old', '/usr/local/sbin/pihole-updatelists') && chmod('/usr/local/sbin/pihole-updatelists', 0755)) {
+            print 'Successfully rolled back the script!' . PHP_EOL;
+            exit;
+        }
+
+        print 'Failed to rollback!' . PHP_EOL;
+        exit(1);
+    } else {
+        print 'Aborted by user.' . PHP_EOL;
     }
 }
 
