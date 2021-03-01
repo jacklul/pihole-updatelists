@@ -356,7 +356,7 @@ function parseOptions()
             if (!empty($result) && !preg_match('/^--' . $shortOption . '/', $argv[key($result)])) {
                 $argv[key($result)] = str_replace('-' . $shortOption, '', $argv[key($result)]);
 
-                if ($argv[key($result)] === '-') {
+                if ($argv[key($result)] === '-' || $argv[key($result)] === '') {
                     unset($argv[key($result)]);
                 }
             }
