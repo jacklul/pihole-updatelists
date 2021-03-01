@@ -918,7 +918,7 @@ function printVersion(array $options = [], array $config = [], $return = false)
 {
     global $remoteScript;
 
-    $config['DEBUG'] === true && printDebugHeader($config, $options);
+    $config['DEBUG'] === true && printDebugHeader($options, $config);
     $branch = getBranch($options, $config);
 
     print 'Git branch: ' . $branch . PHP_EOL;
@@ -959,7 +959,9 @@ function printVersion(array $options = [], array $config = [], $return = false)
  */
 function showDebugPrint(array $options = [], array $config = [])
 {
-    printDebugHeader($config, $options);
+    printDebugHeader($options, $config);
+    print 'Update check:' . PHP_EOL;
+    printVersion($options, $config);
     exit;
 }
 
@@ -1232,10 +1234,10 @@ function printHeader()
 /**
  * Print debug information
  *
- * @param array $config
  * @param array $options
+ * @param array $config
  */
-function printDebugHeader(array $config, array $options)
+function printDebugHeader(array $options, array $config)
 {
     printAndLog('Checksum: ' . md5_file(__FILE__) . PHP_EOL, 'DEBUG');
     printAndLog('Git branch: ' . getBranch($options, $config) . PHP_EOL, 'DEBUG');
@@ -1623,7 +1625,7 @@ printHeader(); // Hi
 checkOptionalDependencies(); // Check for optional stuff
 
 // Show initial debug messages
-$config['DEBUG'] === true && printDebugHeader($config, $options);
+$config['DEBUG'] === true && printDebugHeader($options, $config);
 
 // Show deprecated/removed options messages
 $deprecatedAndRemovedOptions      = ['PERSISTENT_GROUP', 'VACUUM_DATABASE'];
