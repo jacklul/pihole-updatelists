@@ -147,11 +147,13 @@ function getDefinedOptions()
             'long'        => 'no-gravity',
             'short'       => 'n',
             'description' => 'Force no gravity update',
+            'conflicts'   => ['no-reload']
         ],
         'no-reload'  => [
             'long'        => 'no-reload',
             'short'       => 'b',
             'description' => 'Force no lists reload',
+            'conflicts'   => ['no-gravity']
         ],
         'verbose'    => [
             'long'        => 'verbose',
@@ -163,6 +165,17 @@ function getDefinedOptions()
             'short'       => 'd',
             'description' => 'Turn on debug mode',
         ],
+        'yes'      => [
+            'long'        => 'yes',
+            'short'        => 'y',
+            'description' => 'Automatically reply YES to all questions',
+        ],
+        'force'      => [
+            'long'        => 'force',
+            'short'        => 'f',
+            'description' => 'Force update without checking for newest version',
+            'requires'   => ['update']
+        ],
         'update'     => [
             'long'        => 'update',
             'function'    => 'updateScript',
@@ -171,7 +184,14 @@ function getDefinedOptions()
         'version'    => [
             'long'        => 'version',
             'function'    => 'printVersion',
-            'description' => 'Show script checksum (and also if update is available)',
+            'description' => 'Show script version checksum (and if update is available)',
+            'conflicts'   => ['update']
+        ],
+        'debug-only'      => [
+            'long'        => 'debug-only',
+            'function'    => 'showDebugOnly',
+            'description' => 'Shows debug print only',
+            'hidden'      => true,
         ],
         'config'     => [
             'long'                  => 'config::',
@@ -182,10 +202,7 @@ function getDefinedOptions()
             'long'                  => 'git-branch::',
             'description'           => 'Select git branch to pull remote checksum and update from',
             'parameter-description' => 'branch',
-        ],
-        'force'      => [
-            'long'        => 'force',
-            'description' => 'Force update without checking for newest version',
+            'requires'              => ['version', 'update']
         ],
     ];
 }
@@ -232,6 +249,13 @@ function parseOptions()
 
     $options = getopt(implode('', $shortOpts), $longOpts);
 
+    // --help will take priority always
+    if ((isset($options['help']) || isset($options['h'])) && isset($definedOptions['help']['function'])) {
+        $runFunction = $definedOptions['help']['function'];
+        $runFunction($options, loadConfig($options));
+        exit;
+    }
+
     // If short is used set the long one
     foreach ($options as $option => $data) {
         foreach ($definedOptions as $definedOptionsIndex => $definedOptionsData) {
@@ -242,22 +266,51 @@ function parseOptions()
                 $definedOptionsData['short'] === $option ||
                 $definedOptionsData['long'] === $option
             ) {
+                // Replaces short option with long in $options
                 if (
-                    !empty($definedOptionsData['short']) && $definedOptionsData['short'] === $option &&
-                    !empty($definedOptionsData['long'])
+                    !empty($definedOptionsData['short']) &&
+                    !empty($definedOptionsData['long']) &&
+                    $definedOptionsData['short'] === $option
                 ) {
-                    $optionStr                            = '-' . $definedOptionsData['short'];
                     $options[$definedOptionsData['long']] = $data;
-
                     unset($options[$option]);
-                } elseif (!empty($definedOptionsData['long']) && $definedOptionsData['long'] === $option) {
-                    $optionStr = '--' . $definedOptionsData['long'];
                 }
 
                 // Set function to run if it is defined for this option
                 if (!isset($runFunction) && isset($definedOptionsData['function']) && function_exists($definedOptionsData['function'])) {
                     $runFunction = $definedOptionsData['function'];
                 }
+            }
+        }
+    }
+
+    foreach ($options as $option => $data) {
+        if (isset($definedOptions[$option]['conflicts'])) {
+            foreach ($definedOptions[$option]['conflicts'] as $conflictingOption) {
+                if (isset($options[$conflictingOption])) {
+                    print 'Options "--' . $option . '" and "--' . $conflictingOption . '" cannot be used together' . PHP_EOL;
+                    exit(1);
+                }
+            }
+        } elseif (isset($definedOptions[$option]['requires'])) {
+            $requirementsMet = 0;
+
+            $anotherOptionsList = '';
+            foreach ($definedOptions[$option]['requires'] as $requiredOption) {
+                if (isset($options[$requiredOption])) {
+                    $requirementsMet++;
+                }
+
+                if (!empty($anotherOptionsList)) {
+                    $anotherOptionsList .= ', ';
+                }
+
+                $anotherOptionsList .= '"--' . $requiredOption . '"';
+            }
+
+            if ($requirementsMet === 0) {
+                print 'Option "--' . $option . '" can only be used with specific option(s) (' . $anotherOptionsList . ')' . PHP_EOL;
+                exit(1);
             }
         }
     }
@@ -700,6 +753,10 @@ function printHelp(array $options = [], array $config = [])
     $maxLen         = 0;
 
     foreach ($definedOptions as $option) {
+        if (isset($option['hidden']) && $option['hidden'] === true) {
+            continue;
+        }
+
         $line = ' ';
 
         if (!isset($option['description'])) {
@@ -742,6 +799,27 @@ function printHelp(array $options = [], array $config = [])
 }
 
 /**
+ * CLI interactive question
+ *
+ * @param string $question
+ * @param string $validAnswers
+ * 
+ * @return bool
+ */
+function expectUserInput($question, array $validAnswers = [])
+{
+    print $question . ' : ';
+    $stdin = fopen('php://stdin', 'r');
+    $response = fgetc($stdin);
+
+    if (in_array(strtolower($response), $validAnswers)) {
+       return true;
+    }
+
+    return false;
+}
+
+/**
  * This will update the script to newest version
  *
  * @param array $options
@@ -765,9 +843,23 @@ function updateScript(array $options = [], array $config = [])
     $branch = getBranch($options, $config);
 
     if ($status === false) {
-        print PHP_EOL;
-        passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash /dev/stdin ' . $branch, $return);
-        exit($return);
+        print 'See changes in commit history - https://github.com/jacklul/pihole-updatelists/commits/' . $branch . PHP_EOL . PHP_EOL;
+
+        if (isset($options['yes']) || isset($options['force']) || expectUserInput('Update now? [Y/N]', ['y', 'yes'])) {
+            print PHP_EOL . 'Downloading install script from "' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh"...' . PHP_EOL;
+
+            passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash /dev/stdin ' . $branch, $return);
+
+            if ($return === 0 && file_exists('/usr/local/sbin/pihole-updatelists.old')) {
+                print 'Use "' . basename(__FILE__) . ' --rollback" to return to the previous script version!';
+            }
+
+            exit($return);
+        } else {
+            print 'Aborted by user.' . PHP_EOL;
+        }
+    }
+}
     }
 }
 
@@ -776,6 +868,7 @@ function updateScript(array $options = [], array $config = [])
  *
  * @param array $options
  * @param array $config
+ * 
  * @param bool  $return
  */
 function printVersion(array $options = [], array $config = [], $return = false)
@@ -811,6 +904,20 @@ function printVersion(array $options = [], array $config = [], $return = false)
     if ($return === true) {
         return false;
     }
+}
+
+/**
+ * Prints only the debug output and exits
+ *
+ * @param array $options
+ * @param array $config
+ * 
+ * @return void
+ */
+function showDebugOnly(array $options = [], array $config = [])
+{
+    printDebugHeader($config, $options);
+    exit;
 }
 
 /**
