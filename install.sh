@@ -63,8 +63,11 @@ if \
 	[ -f "$SPATH/pihole-updatelists.bash" ] \
 ; then
 	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
-		cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
-		chmod -v -x /usr/local/sbin/pihole-updatelists.old
+		if ! cmp -s "$SPATH/pihole-updatelists.php" "/usr/local/sbin/pihole-updatelists"; then
+			echo "Backing up previous version..."
+			cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
+			chmod -v -x /usr/local/sbin/pihole-updatelists.old
+		fi
 	fi
 
 	cp -v $SPATH/pihole-updatelists.php /usr/local/sbin/pihole-updatelists && \
@@ -85,13 +88,21 @@ if \
 	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
 elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
-		cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
-		chmod -v -x /usr/local/sbin/pihole-updatelists.old
+		wget -nv -O /tmp/pihole-updatelists.php "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php"
+
+		if ! cmp -s "/tmp/pihole-updatelists.php" "/usr/local/sbin/pihole-updatelists"; then
+			echo "Backing up previous version..."
+			cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
+			chmod -v -x /usr/local/sbin/pihole-updatelists.old
+		fi
+
+		mv -v /tmp/pihole-updatelists.php /usr/local/sbin/pihole-updatelists && \
+		chmod -v +x /usr/local/sbin/pihole-updatelists
+	else
+		wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php" && \
+		chmod -v +x /usr/local/sbin/pihole-updatelists
 	fi
 
-	wget -nv -O /usr/local/sbin/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php" && \
-	chmod -v +x /usr/local/sbin/pihole-updatelists
-	
 	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
 		wget -nv -O /etc/pihole-updatelists.conf "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.conf"
 	fi
