@@ -194,9 +194,9 @@ function getDefinedOptions()
             'description' => 'Show script version checksum (and if update is available)',
             'conflicts'   => ['update', 'rollback'],
         ],
-        'debug-only' => [
-            'long'        => 'debug-only',
-            'function'    => 'showDebugOnly',
+        'debug-print' => [
+            'long'        => 'debug-print',
+            'function'    => 'showDebugPrint',
             'description' => 'Shows debug print only',
             'hidden'      => true,
         ],
@@ -957,7 +957,7 @@ function printVersion(array $options = [], array $config = [], $return = false)
  *
  * @return void
  */
-function showDebugOnly(array $options = [], array $config = [])
+function showDebugPrint(array $options = [], array $config = [])
 {
     printDebugHeader($config, $options);
     exit;
