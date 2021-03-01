@@ -1475,6 +1475,18 @@ checkOptionalDependencies(); // Check for optional stuff
 // Show initial debug messages
 $config['DEBUG'] === true && printDebugHeader($config, $options);
 
+// Show deprecated/removed options messages
+$deprecatedAndRemovedOptions = ['PERSISTENT_GROUP', 'VACUUM_DATABASE'];
+$deprecatedAndRemovedOptionsFound = false;
+foreach ($config as $option => $value) {
+    if (in_array($option, $deprecatedAndRemovedOptions)) {
+        printAndLog('Configuration option ' . $option . ' has been removed.' . PHP_EOL, 'WARNING');
+        incrementStat('warnings');
+        $deprecatedAndRemovedOptionsFound = true;
+    }
+}
+$deprecatedAndRemovedOptionsFound && print PHP_EOL;
+
 // Open the database
 $dbh = openDatabase($config['GRAVITY_DB'], true, $config['DEBUG']);
 
