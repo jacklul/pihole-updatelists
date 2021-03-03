@@ -45,6 +45,10 @@ Put a `#` before this line (numbers might be different):
 ```
 #49 4   * * 7   root    PATH="$PATH:/usr/local/bin/" pihole updateGravity >/var/log/pihole_updateGravity.log || cat /var/log/pihole_updateGravity.log
 ```
+Alternatively, the following `sed` command will disable the same entry:
+```bash
+sudo sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
+```
 
 **You might have to do this after each Pi-hole update.**
 
