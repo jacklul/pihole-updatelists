@@ -233,11 +233,13 @@ These can be used when executing `pihole-updatelists`.
 | `--no-reload, -b` | Force lists reload to be skipped<br>Only if gravity update is disabled either by configuration (`UPDATE_GRAVITY=false`) or `--no-gravity` parameter |
 | `--verbose, -v` | Turn on verbose mode |
 | `--debug, -d`  | Turn on debug mode |
+| `--yes, -y` | Automatically reply YES to all questions |
+| `--force, -f` | Force update without checking for newest version |
+| `--update` | Update the script using selected git branch |
+| `--rollback` | Rollback script version to previous |
+| `--version `| Show script checksum (and also if update is available) |
 | `--config=<file>` | Load alternative configuration file |
 | `--git-branch=<branch>` | Select git branch to pull remote checksum and update from <br>Can only be used with `--update` and `--version` |
-| `--update` | Update the script using selected git branch |
-| `--force` | Force update without checking for newest version |
-| `--version `| Show script checksum (and also if update is available) |
 
 ## Extra information
 
