@@ -69,7 +69,7 @@ fi
 read -p "Build image(s)? [Y/n] " -n 1 -r && ! [[ -z $REPLY ]] && echo 
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
     if [ -z "${ARCHITECTURES_TO_BUILD}" ]; then
-        POSSIBLE_ARCHITECTURES=(amd64 arm64 armhf)
+        POSSIBLE_ARCHITECTURES=(amd64 arm64 armhf i386)
 
         for arch in ${POSSIBLE_ARCHITECTURES[@]}; do
             read -p "Build image for ${arch}? [Y/n] " -n 1 -r && ! [[ -z $REPLY ]] && echo  

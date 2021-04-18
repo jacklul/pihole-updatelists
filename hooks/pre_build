@@ -26,6 +26,9 @@ MANIFEST_FILE="${PWD}/manifest-$(echo ${BASE_IMAGE_NAME} | sed -e 's/[^A-Za-z0-9
 if [ ! -f "${MANIFEST_FILE}" ] || ! grep -q '[^[:space:]]' < ${MANIFEST_FILE} || test `find "${MANIFEST_FILE}" -mmin +60 &> /dev/null`; then
     echo "Fetching manifest for ${BASE_IMAGE_NAME}"
     echo "$(docker manifest inspect ${BASE_IMAGE_NAME})" > ${MANIFEST_FILE}
+    echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
+    cat ${MANIFEST_FILE}
+    echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
 fi
 
 # Generate separate Dockerfile for each architecture
