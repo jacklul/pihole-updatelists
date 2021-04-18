@@ -9,8 +9,13 @@ for ARCH in ${ARCHITECTURES_TO_BUILD[@]}; do
   echo "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯"
   echo "Building for ${ARCH}"
 
+  VARIANT=
+  if [ "${manifest_variant_map[${ARCH}]}" != "" ]; then
+    VARIANT="/${manifest_variant_map[${ARCH}]}"
+  fi
+
   docker build \
-    --platform "${image_platform_map[${ARCH}]}" \
+    --platform "linux/${manifest_architecture_map[${ARCH}]}${VARIANT}" \
     --file "${DOCKERFILE_PATH}_${ARCH}" \
     --tag "${IMAGE_NAME}-${ARCH}" \
     .
