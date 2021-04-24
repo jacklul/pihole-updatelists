@@ -152,6 +152,9 @@ if [ ! -L \"/etc/cron.d/pihole-updatelists\" ]; then
 	ln -sv /etc/pihole-updatelists/crontab /etc/cron.d/pihole-updatelists
 fi
 
+chown -v root:root /etc/pihole-updatelists/*
+chmod -v 644 /etc/pihole-updatelists/*
+
 if [ -e \"/etc/pihole/gravity.db\" ]; then
 	set +e
 	/usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS}
