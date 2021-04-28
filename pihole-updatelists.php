@@ -2012,31 +2012,15 @@ if ($config['UPDATE_GRAVITY'] === true) {
         printAndLog('Done' . PHP_EOL, 'INFO', true);
     }
 } elseif ($config['UPDATE_GRAVITY'] === false) {
-    printAndLog('Sending reload signal to Pi-hole\'s DNS server...');
+    printAndLog('Reloading Pi-hole\'s lists...');
 
-    exec('pidof pihole-FTL 2>/dev/null', $return);
-    if (isset($return[0])) {
-        $pid = $return[0];
+    system('/usr/local/bin/pihole restartdns reload-lists', $return);
 
-        if (strpos($pid, ' ') !== false) {
-            $pid = explode(' ', $pid);
-            $pid = $pid[count($pid) - 1];
-        }
-
-        if (!defined('SIGRTMIN')) {
-            $config['DEBUG'] === true && printAndLog('Signal SIGRTMIN is not defined!' . PHP_EOL, 'DEBUG');
-            define('SIGRTMIN', 34);
-        }
-
-        if (posix_kill((int) $pid, SIGRTMIN)) {
-            printAndLog(' done' . PHP_EOL);
-        } else {
-            printAndLog(' failed to send signal' . PHP_EOL, 'ERROR');
-            incrementStat('errors');
-        }
-    } else {
-        printAndLog(' failed to find process PID' . PHP_EOL, 'ERROR');
+    if ($return !== 0) {
+        printAndLog('Error occurred while reloading lists!' . PHP_EOL, 'ERROR');
         incrementStat('errors');
+    } else {
+        printAndLog(' done' . PHP_EOL, 'INFO');
     }
 }
 
