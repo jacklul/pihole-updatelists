@@ -155,7 +155,9 @@ fi
 chown -v root:root /etc/pihole-updatelists/*
 chmod -v 644 /etc/pihole-updatelists/*
 
-if [ -e \"/etc/pihole/gravity.db\" ]; then
+if [[ ! -z \"\${SKIPGRAVITYONBOOT}\" ]]; then
+	echo \"Lists update skipped!\"
+elif [ -e \"/etc/pihole/gravity.db\" ]; then
 	set +e
 	/usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS}
 else
