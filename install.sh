@@ -20,11 +20,6 @@ SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"` # Is systemd availabl
 SYSTEMD_INSTALLED=`[ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0"` # Is systemd timer installed already?
 DOCKER=`[ "$(awk -F/ '$2 == "docker"' /proc/self/cgroup)" == "" ] && echo "0" || echo "1"` # Is this a Docker installation?
 
-# Do not install systemd unit files inside Docker container
-if [ "$DOCKER" == 1 ]; then
-	SYSTEMD=0
-fi
-
 if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
 	rm -v /usr/local/sbin/pihole-updatelists
 	rm -v /etc/bash_completion.d/pihole-updatelists
@@ -38,6 +33,8 @@ if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (i
 	fi
 
 	exit 0
+elif [ "$1" == "docker" ]; then	# Force Docker install
+	DOCKER=1
 elif [ "$1" != "" ]; then	# Install using different branch
 	GIT_BRANCH=$1
 
@@ -46,6 +43,11 @@ elif [ "$1" != "" ]; then	# Install using different branch
 		echo "Invalid branch: ${GIT_BRANCH}"
 		exit 1
 	fi
+fi
+
+# Do not install systemd unit files inside Docker container
+if [ "$DOCKER" == 1 ]; then
+	SYSTEMD=0
 fi
 
 # We require some stuff before continuing
