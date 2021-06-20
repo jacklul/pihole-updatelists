@@ -83,6 +83,8 @@ Alternatively, some manual work is required - pick one:
 
 Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) and add a volume for `/etc/pihole-updatelists/` directory.
 
+If you need to pull a specific version of Pi-hole image you have no other choice but to use [custom Dockerfile](#using-official-image).
+
 ### Using custom image
 
 Use [`jacklul/pihole:latest`](https://hub.docker.com/r/jacklul/pihole) image instead of `pihole/pihole:latest`.
@@ -99,7 +101,8 @@ RUN apt-get update && apt-get install -Vy php-cli php-sqlite3 php-intl php-curl
 RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash
 ```
 
-You will have to update script's layer manually when update is released.
+Then build your image locally and use that image in your `docker-composer.yml` or launch command line.
+You will have to update your local image manually each time update is released.
 
 ### Container Configuration
 
@@ -153,10 +156,10 @@ sudo nano /etc/pihole-updatelists.conf
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
 | COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script <br>You can still add your own comments to individual entries as long you keep this string intact |
 | GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page |
-| PERSISTENT_GROUP | false | Makes sure entries have the specified group assigned on each run <br>This does not prevent you from assigning more groups through the web interface but can remove entries from the default group if GROUP_ID is negative number <br>Do not enable this when you're running multiple different configs <br>**This option will be removed soon!**
+| PERSISTENT_GROUP | false | Makes sure entries have the specified group assigned on each run <br>This does not prevent you from assigning more groups through the web interface but can remove entries from the default group if GROUP_ID is negative number <br>Do not enable this when you're running multiple different configs <br>**This option will be removed in the future version!**
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When `false` any user-created entry will be disabled |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
-| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) <br>Will cause additional writes to disk <br>**This option will be removed soon!** |
+| VACUUM_DATABASE | false | Vacuum database at the end? (runs `VACUUM` SQLite command) <br>Will cause additional writes to disk <br>**This option will be removed in the future version!** |
 | VERBOSE | false | Show more information while the script is running |
 | DEBUG | false | Show debug messages for troubleshooting purposes |
 | DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout | 
@@ -173,6 +176,8 @@ You can also give paths to the local files instead of URLs, for example setting 
 ### Multiple configurations
 
 You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf` - this combined with different `COMMENT` string can allow multiple script configurations for the same Pi-hole instance.
+
+Alternatively, you could try [config_sections](https://github.com/jacklul/pihole-updatelists/tree/config_sections) branch which currently has test version that can achieve the same configuration in just one config file.
 
 ### Multiple list URLs
 
@@ -203,7 +208,7 @@ These can be used when executing `pihole-updatelists`.
 | `--help, -h` | Show help message, which is simply this list |
 | `--no-gravity, -n` | Force gravity update to be skipped |
 | `--no-reload, -b` | Force lists reload to be skipped<br>Only if gravity update is disabled either by configuration (`UPDATE_GRAVITY=false`) or `--no-gravity` parameter |
-| `--no-vacuum, -m` | Force database vacuuming to be skipped |
+| `--no-vacuum, -m` | Force database vacuuming to be skipped<br>**This parameter will be removed in the future version!** |
 | `--verbose, -v` | Turn on verbose mode |
 | `--debug, -d`  | Turn on debug mode |
 | `--config=<file>` | Load alternative configuration file |
@@ -226,6 +231,12 @@ OnCalendar=
 OnCalendar=Sat *-*-* 00:00:00
 ```
 
+If systemd is not available you just modify the crontab entry in `/etc/cron.d/pihole-updatelists`:
+
+```bash
+14 6 * * 6   root   /usr/local/sbin/pihole-updatelists
+```
+
 ### Running custom commands before/after scheduled run
 
 Override [service unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html) file:
@@ -239,6 +250,14 @@ Type=oneshot
 ExecStartPre=echo "before"
 ExecStartPost=echo "after"
 ```
+
+If systemd is not available you just modify the crontab entry in `/etc/cron.d/pihole-updatelists`:
+
+```bash
+30 3 * * 6   root   /home/pi/before.sh && /usr/local/sbin/pihole-updatelists && /home/pi/after.sh
+```
+
+_You can use `;` instead of `&&` if you don't want the execution to stop on previous command failure._
 
 ### Changing comment value after running the script
 
@@ -266,7 +285,9 @@ You can also add your comments directly through the Pi-hole's web interface by e
 ```bash
 wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash /dev/stdin uninstall
 ```
+
 or remove files manually:
+
 ```bash
 sudo rm -vf /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists /etc/systemd/system/pihole-updatelists.service /etc/systemd/system/pihole-updatelists.timer /etc/cron.d/pihole-updatelists
 ```
