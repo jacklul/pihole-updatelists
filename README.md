@@ -83,6 +83,8 @@ Alternatively, some manual work is required - pick one:
 
 Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) and add a volume for `/etc/pihole-updatelists/` directory.
 
+If you need to pull a specific version of Pi-hole image you have no other choice but to use [custom Dockerfile](#using-official-image).
+
 ### Using custom image
 
 Use [`jacklul/pihole:latest`](https://hub.docker.com/r/jacklul/pihole) image instead of `pihole/pihole:latest`.
@@ -99,7 +101,8 @@ RUN apt-get update && apt-get install -Vy php-cli php-sqlite3 php-intl php-curl
 RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash
 ```
 
-You will have to update script's layer manually when update is released.
+Then build your image locally and use that image in your `docker-composer.yml` or launch command line.
+You will have to update your local image manually each time update is released.
 
 ### Container Configuration
 
@@ -269,6 +272,12 @@ OnCalendar=
 OnCalendar=Sat *-*-* 00:00:00
 ```
 
+If systemd is not available you just modify the crontab entry in `/etc/cron.d/pihole-updatelists`:
+
+```bash
+14 6 * * 6   root   /usr/local/sbin/pihole-updatelists
+```
+
 ### Running custom commands before/after scheduled run
 
 Override [service unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html) file:
@@ -282,6 +291,14 @@ Type=oneshot
 ExecStartPre=echo "before"
 ExecStartPost=echo "after"
 ```
+
+If systemd is not available you just modify the crontab entry in `/etc/cron.d/pihole-updatelists`:
+
+```bash
+30 3 * * 6   root   /home/pi/before.sh && /usr/local/sbin/pihole-updatelists && /home/pi/after.sh
+```
+
+_You can use `;` instead of `&&` if you don't want the execution to stop on previous command failure._
 
 ### Changing comment value after running the script
 
@@ -309,7 +326,9 @@ You can also add your comments directly through the Pi-hole's web interface by e
 ```bash
 wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash /dev/stdin uninstall
 ```
+
 or remove files manually:
+
 ```bash
 sudo rm -vf /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists /etc/systemd/system/pihole-updatelists.service /etc/systemd/system/pihole-updatelists.timer /etc/cron.d/pihole-updatelists
 ```
