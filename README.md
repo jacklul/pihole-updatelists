@@ -183,7 +183,7 @@ If one of the lists fails to download nothing will be affected for that list typ
 
 ### Multiple configurations
 
-You can specify alternative config file by passing the path to the script through config parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf`.
+You can specify alternative config file by passing the path to the script through `config` parameter: `pihole-updatelists --config=/home/pi/pihole-updatelists2.conf`.
 
 **A more advanced way is to use sections in the configuration file:**
 
@@ -252,11 +252,13 @@ These can be used when executing `pihole-updatelists`.
 
 ### Recommended lists
 
+These are the lists you should start your setup with.
+
 | List | URL | Description |
 |----------|-------------|-------------|
 | Adlist<br>(ADLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
-| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
 | Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
+| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt https://raw.githubusercontent.com/mmotti/pihole-regex/master/whitelist.list | https://github.com/anudeepND/whitelist - commonly whitelisted <br>https://github.com/mmotti/pihole-regex reported false positives|
 
 ### Changing the schedule
 
