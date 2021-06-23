@@ -191,11 +191,11 @@ If one of the lists fails to download nothing will be affected for that list typ
 
 ### Recommended lists
 
-| List | URL | Description |
+| List | URL/Variable value | Description |
 |----------|-------------|-------------|
-| Adlist<br>(ADLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
-| Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
-| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt https://raw.githubusercontent.com/mmotti/pihole-regex/master/whitelist.list | https://github.com/anudeepND/whitelist - commonly whitelisted <br>https://github.com/mmotti/pihole-regex reported false positives|
+| Adlist<br>(ADLISTS_URL) | "https://v.firebog.net/hosts/lists.php?type=tick" | https://firebog.net - safe lists only |
+| Regex blacklist<br>(REGEX_BLACKLIST_URL) | "https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list" | https://github.com/mmotti/pihole-regex - basic regex rules |
+| Whitelist<br>(WHITELIST_URL) | "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt https://raw.githubusercontent.com/mmotti/pihole-regex/master/whitelist.list" | https://github.com/anudeepND/whitelist - commonly whitelisted <br>https://github.com/mmotti/pihole-regex - reported false positives|
 
 ## Extra information
 
