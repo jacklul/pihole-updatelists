@@ -193,9 +193,11 @@ If one of the lists fails to download nothing will be affected for that list typ
 
 | List | URL/Variable value | Description |
 |----------|-------------|-------------|
-| Adlist<br>(ADLISTS_URL) | "https://v.firebog.net/hosts/lists.php?type=tick" | https://firebog.net - safe lists only |
-| Regex blacklist<br>(REGEX_BLACKLIST_URL) | "https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list" | https://github.com/mmotti/pihole-regex - basic regex rules |
-| Whitelist<br>(WHITELIST_URL) | "https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt https://raw.githubusercontent.com/mmotti/pihole-regex/master/whitelist.list" | https://github.com/anudeepND/whitelist - commonly whitelisted <br>https://github.com/mmotti/pihole-regex - reported false positives|
+| Adlist<br>(ADLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
+| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
+| Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
+
+Please note that [mmotti/pihole-regex](https://github.com/mmotti/pihole-regex) list can sometimes block domains that should not be blocked - any false positives should be [reported to the repository](https://github.com/mmotti/pihole-regex/issues) to be included in the [whitelist](https://github.com/mmotti/pihole-regex/blob/master/whitelist.list) (in that case you might consider adding that list to the `WHITELIST_URL` too).
 
 ## Extra information
 
