@@ -9,11 +9,11 @@ if [[ $(/usr/bin/id -u) -ne 0 ]]; then
 fi
 
 function executeHook() {
-    if [ -f "hooks/$1" ]; then
+    if [ -f ".dockerhub/hooks/$1" ]; then
         cd ${BASE_PATH}
 
         echo "Executing $(basename $1) hook..."
-        source "hooks/$1"
+        source ".dockerhub/hooks/$1"
     fi
 }
 
@@ -66,6 +66,8 @@ if command -v git &> /dev/null; then
     fi
 fi
 
+echo "WARNING: This script is using deprecated scripts - consider building directly from Dockerfile instead!"
+
 read -p "Build image(s)? [Y/n] " -n 1 -r && ! [[ -z $REPLY ]] && echo 
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
     if [ -z "${ARCHITECTURES_TO_BUILD}" ]; then
@@ -99,7 +101,6 @@ if \
 ; then
     read -p "Push image(s)? [Y/n] " -n 1 -r && ! [[ -z $REPLY ]] && echo  
     if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-  
         executeHook "pre_push"
         executeHook "push"
         executeHook "post_push"
