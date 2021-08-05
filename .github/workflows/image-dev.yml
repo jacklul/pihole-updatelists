@@ -1,9 +1,10 @@
-name: Build Docker images (latest)
+name: Build Docker images (dev)
 
 on:
   push:
     branches:
-      - 'master'
+      - 'develop'
+  workflow_dispatch:
 
 jobs:
   docker:
@@ -31,4 +32,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64/v8,linux/arm/v7,linux/386
           push: true
-          tags: jacklul/pihole:latest
+          tags: jacklul/pihole:dev
