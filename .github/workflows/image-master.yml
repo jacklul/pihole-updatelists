@@ -1,4 +1,4 @@
-name: ci
+name: Build Docker images (latest)
 
 on:
   push:
