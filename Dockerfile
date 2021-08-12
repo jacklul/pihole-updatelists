@@ -8,5 +8,5 @@ RUN apt-get update && \
     rm -fr /var/cache/apt/* /var/lib/apt/lists/*.lz4
 
 RUN chmod +x /tmp/pihole-updatelists/install.sh && \
-    bash /tmp/pihole-updatelists/install.sh && \
+    bash /tmp/pihole-updatelists/install.sh docker && \
     rm -fr /tmp/pihole-updatelists

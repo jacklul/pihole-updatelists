@@ -98,7 +98,7 @@ FROM pihole/pihole:latest
 
 RUN apt-get update && apt-get install -Vy php-cli php-sqlite3 php-intl php-curl
 
-RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash
+RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash /dev/stdin docker
 ```
 
 Then build your image locally and use that image in your `docker-composer.yml` or launch command line.
