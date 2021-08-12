@@ -98,8 +98,9 @@ FROM pihole/pihole:latest
 
 RUN apt-get update && apt-get install -Vy php-cli php-sqlite3 php-intl php-curl
 
-RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash /dev/stdin docker
+RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash
 ```
+_(if the above doesn't create container startup script for pihole-updatelists replace "| bash" with "| bash /dev/stdin docker")_
 
 Then build your image locally and use that image in your `docker-composer.yml` or launch command line.
 You will have to update your local image manually each time update is released.
