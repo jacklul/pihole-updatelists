@@ -24,10 +24,10 @@ if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (i
 	rm -v /usr/local/sbin/pihole-updatelists
 	rm -v /etc/bash_completion.d/pihole-updatelists
 	rm -vf /etc/cron.d/pihole-updatelists
+	rm -vf /etc/systemd/system/pihole-updatelists.service
+	rm -vf /etc/systemd/system/pihole-updatelists.timer
 	
 	if [ "$SYSTEMD" == 1 ]; then
-		rm -v /etc/systemd/system/pihole-updatelists.service
-		rm -v /etc/systemd/system/pihole-updatelists.timer
 		reloadSystemd
 	fi
 
