@@ -537,7 +537,7 @@ function registerHttpClient()
  *
  * @param array|null $config
  *
- * @return void
+ * @return HttpClient|void
  */
 function createHttpClient(array $config = null)
 {
