@@ -304,6 +304,10 @@ function parseOptions()
                 if ($argv[key($result)] === '-') {
                     unset($argv[key($result)]);
                 }
+
+                if (empty($argv[key($result)])) {
+                    unset($argv[key($result)]);
+                }
             }
         }
     }
