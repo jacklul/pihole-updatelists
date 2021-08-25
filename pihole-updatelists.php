@@ -359,6 +359,10 @@ function parseOptions()
                 if ($argv[key($result)] === '-' || $argv[key($result)] === '') {
                     unset($argv[key($result)]);
                 }
+
+                if (empty($argv[key($result)])) {
+                    unset($argv[key($result)]);
+                }
             }
         }
     }
@@ -592,7 +596,7 @@ function registerHttpClient()
  *
  * @param array|null $config
  *
- * @return void
+ * @return HttpClient|void
  */
 function createHttpClient(array $config = null)
 {
@@ -2466,9 +2470,10 @@ if ($config['UPDATE_GRAVITY'] === true) {
         printAndLog('Closed database handles.' . PHP_EOL, 'DEBUG');
     }
 
-    printAndLog('Updating Pi-hole\'s gravity...' . PHP_EOL);
+    $command = '/usr/local/bin/pihole updateGravity';
+    printAndLog('Updating Pi-hole\'s gravity using command \'' . $command . '\'...');
 
-    passthru('/usr/local/bin/pihole updateGravity', $return);
+    passthru($command, $return);
 
     if ($return !== 0) {
         printAndLog('Error occurred while updating gravity!' . PHP_EOL, 'ERROR');
@@ -2479,9 +2484,10 @@ if ($config['UPDATE_GRAVITY'] === true) {
 
     print PHP_EOL;
 } elseif ($config['UPDATE_GRAVITY'] === false) {
-    printAndLog('Reloading Pi-hole\'s lists...');
+    $command = '/usr/local/bin/pihole restartdns reload-lists';
+    printAndLog('Reloading Pi-hole\'s lists using command \'' . $command . '\'...');
 
-    system('/usr/local/bin/pihole restartdns reload-lists', $return);
+    system($command, $return);
 
     if ($return !== 0) {
         printAndLog('Error occurred while reloading lists!' . PHP_EOL, 'ERROR');

@@ -15,22 +15,21 @@ REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists # Remote
 GIT_BRANCH=master # Git branch to use, user can specify custom branch as first argument
 SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"` # Is systemd available?
 SYSTEMD_INSTALLED=`[ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0"` # Is systemd timer installed already?
-DOCKER=`[ "$(awk -F/ '$2 == "docker"' /proc/self/cgroup)" == "" ] && echo "0" || echo "1"` # Is this a Docker installation?
+DOCKER=`[ "$(cat /proc/1/cgroup | grep "docker")" == "" ] && echo "0" || echo "1"` # Is this a Docker installation?
 
 if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
 	rm -v /usr/local/sbin/pihole-updatelists
 	rm -v /etc/bash_completion.d/pihole-updatelists
+	rm -vf /etc/cron.d/pihole-updatelists
+	rm -vf /etc/systemd/system/pihole-updatelists.service
+	rm -vf /etc/systemd/system/pihole-updatelists.timer
 	
 	if [ -f "/usr/local/sbin/pihole-updatelists.old" ]; then
 		rm -v /etc/bash_completion.d/pihole-updatelists.old
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
-		rm -v /etc/systemd/system/pihole-updatelists.service
-		rm -v /etc/systemd/system/pihole-updatelists.timer
 		reloadSystemd
-	else
-		rm -v /etc/cron.d/pihole-updatelists
 	fi
 
 	exit 0
