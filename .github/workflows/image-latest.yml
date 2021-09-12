@@ -17,7 +17,7 @@ jobs:
         uses: lucacome/docker-image-update-checker@v1
         with:
           base-image: pihole/pihole:latest
-          image: jacklul/pihole
+          image: jacklul/pihole:latest
         if: ${{ github.event_name == 'schedule' }}
 
   build:
