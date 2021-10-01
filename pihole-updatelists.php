@@ -147,13 +147,11 @@ function getDefinedOptions()
             'long'        => 'no-gravity',
             'short'       => 'n',
             'description' => 'Force no gravity update',
-            'conflicts'   => ['no-reload'],
         ],
         'no-reload'  => [
             'long'        => 'no-reload',
             'short'       => 'b',
             'description' => 'Force no lists reload',
-            'conflicts'   => ['no-gravity'],
         ],
         'verbose'    => [
             'long'        => 'verbose',
