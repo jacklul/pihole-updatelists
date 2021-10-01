@@ -11,6 +11,8 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    outputs:
+      image-needs-updating: ${{ steps.check.outputs.needs-updating }}
     steps:
       - name: Docker Image Update Checker
         id: check
@@ -22,7 +24,7 @@ jobs:
 
   build:
     needs: check
-    if: ${{ github.event_name != 'schedule' || needs.check.outputs.needs-updating == 'true' }}
+    if: ${{ github.event_name != 'schedule' || needs.check.outputs.image-needs-updating == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
