@@ -8,7 +8,7 @@
  * @link    https://github.com/jacklul/pihole-updatelists
  */
 
-// A hash in case we're gonna force an update - RQwj7ZKThUF8LmDdYtfHVV7v44QMtZ25
+// A hash in case we're gonna force an update - f362448aaf23adbf8a900b3616a6719c
 define('GITHUB_LINK', 'https://github.com/jacklul/pihole-updatelists'); // Link to Github page
 define('GITHUB_LINK_RAW', 'https://raw.githubusercontent.com/jacklul/pihole-updatelists'); // URL serving raw files from the repository
 
