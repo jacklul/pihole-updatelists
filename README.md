@@ -154,9 +154,9 @@ sudo nano /etc/pihole-updatelists.conf
 | REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist <br>**This is specifically for handcrafted lists only, do not use regular blocklists here!** |
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
-| COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script <br>You can still add your own comments to individual entries as long you keep this string intact |
+| COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script <br>**You can still add your own comments to individual entries as long you keep this string intact** |
 | GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page <br>**Multiple groups are not supported** |
-| PERSISTENT_GROUP | false | Makes sure entries have the specified group assigned on each script run <br>This does not prevent you from assigning more groups through the web interface but can remove entries from the default group if GROUP_ID is a negative number <br>Do not enable this when you're running multiple different configurations |
+| PERSISTENT_GROUP | false | Makes sure entries have the specified group assigned on each script run <br>This does not prevent you from assigning more groups through the web interface but can remove entries from the default group if GROUP_ID is a negative number <br>**Do not enable this when you're running multiple different configurations** |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When `false` any user-created entry will be disabled, only those created by the script will be active |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
 | VERBOSE | false | Show more information while the script is running |
@@ -164,7 +164,7 @@ sudo nano /etc/pihole-updatelists.conf
 | DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout | 
 | IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists <br> **This will cause entries from the lists that failed to download to be disabled** |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
-| LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script from running <br>You shouldn't change it - unless `/var/lock` is unavailable |
+| LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script from running <br>**You shouldn't change it - unless `/var/lock` is unavailable** |
 | LOG_FILE | " " | Log console output to file <br>In most cases you don't have to set this as you can view full log in the system journal <br>Put `-` before path to overwrite file instead of appending to it |
 | GIT_BRANCH | "master" | Branch to pull remote checksum and update from |
 
