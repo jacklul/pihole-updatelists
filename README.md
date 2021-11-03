@@ -149,7 +149,7 @@ sudo nano /etc/pihole-updatelists.conf
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| ADLISTS_URL | " " | Remote list URL containing list of adlists to import <br>**URLs to single adlists are not supported here!** |
+| ADLISTS_URL | " " | Remote list URL containing list of adlists to import <br> |
 | WHITELIST_URL | " " | Remote list URL containing exact domains to whitelist |
 | REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist <br>**This is specifically for handcrafted lists only, do not use regular blocklists here!** |

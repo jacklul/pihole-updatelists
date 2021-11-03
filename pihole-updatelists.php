@@ -67,7 +67,7 @@ function printAndLog($str, $severity = 'INFO', $logOnly = false)
 /**
  * Check for required stuff
  *
- * Setting invironment variable IGNORE_OS_CHECK allows to run this script on Windows
+ * Setting environment variable IGNORE_OS_CHECK allows to run this script on Windows
  */
 function checkDependencies()
 {
@@ -1401,7 +1401,7 @@ function textToArray($text)
 
     foreach ($array as $var => &$val) {
         // Ignore empty lines and those with only a comment
-        if (empty($val) || strpos(trim($val), '#') === 0) {
+        if (empty($val) || strpos(trim($val), '#') === 0 || strpos(trim($val), '=') === 0) {
             unset($array[$var]);
             continue;
         }
@@ -1419,6 +1419,23 @@ function textToArray($text)
     unset($val);
 
     return array_values($array);
+}
+
+/**
+ *
+ * Checks if a given entry is a single adlist by checking if the first entry in the given $content is a domain
+ * instead of an URL
+ * @param string $content
+ *
+ * @return boolean
+ */
+function isSingleAdlist($content) {
+    $list = textToArray($content);
+    if (!empty($list)) {
+        $row_content = explode(' ', $list[0]);
+        return filter_var($row_content[sizeof($row_content) - 1], FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
+    }
+    return false;
 }
 
 /**
@@ -1738,6 +1755,10 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                     printAndLog('Fetching ADLISTS from \'' . $url . '\'...');
 
                     $listContents = @fetchFileContents($url, $httpOptions);
+
+                    if (isSingleAdlist($listContents)) {
+                        $listContents = $url;
+                    }
 
                     if ($listContents !== false) {
                         printAndLog(' done' . PHP_EOL);
