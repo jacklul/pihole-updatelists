@@ -1422,19 +1422,22 @@ function textToArray($text)
 }
 
 /**
- *
  * Checks if a given entry is a single adlist by checking if the first entry in the given $content is a domain
  * instead of an URL
+ * 
  * @param string $content
  *
  * @return boolean
  */
 function isSingleAdlist($content) {
     $list = textToArray($content);
+
     if (!empty($list)) {
         $row_content = explode(' ', $list[0]);
+        
         return filter_var($row_content[sizeof($row_content) - 1], FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
     }
+
     return false;
 }
 
