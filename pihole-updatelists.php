@@ -2475,7 +2475,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
     }
 
     $command = '/usr/local/bin/pihole updateGravity';
-    printAndLog('Updating Pi-hole\'s gravity using command \'' . $command . '\'...');
+    printAndLog('Updating Pi-hole\'s gravity using command \'' . $command . '\'...' . PHP_EOL);
 
     passthru($command, $return);
 
