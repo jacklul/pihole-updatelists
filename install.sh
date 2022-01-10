@@ -35,6 +35,10 @@ if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (i
 	exit 0
 elif [ "$1" == "docker" ]; then	# Force Docker install
 	DOCKER=1
+elif [ "$1" == "systemd" ]; then # Force systemd unit files installation
+	SYSTEMD=1
+elif [ "$1" == "crontab" ]; then # Force crontab installation
+	SYSTEMD=0
 elif [ "$1" != "" ]; then	# Install using different branch
 	GIT_BRANCH=$1
 
@@ -121,6 +125,11 @@ fi
 
 # Install schedule related files
 if [ "$SYSTEMD" == 1 ]; then
+	if [ -f "/etc/cron.d/pihole-updatelists" ]; then
+		# Comment out the existing cron job
+		sed -e 's/^#*/#/' -i /etc/cron.d/pihole-updatelists
+	fi
+
 	if [ "$SYSTEMD_INSTALLED" == 0 ]; then
 		echo "Enabling and starting pihole-updatelists.timer..."
 		systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer

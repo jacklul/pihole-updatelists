@@ -24,13 +24,15 @@ wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/in
 
 _Alternatively you can clone this repo and `sudo bash install.sh`._
 
-If **systemd** is available this will also add service and timer unit files to the system, otherwise a crontab entry in `/etc/cron.d/pihole-updatelists` will be created.
+If **systemd** is available this script will also add service and timer unit files to the system, otherwise a crontab entry in `/etc/cron.d/pihole-updatelists` will be created.
 
-**In the future to quickly update the script you can use `sudo pihole-updatelists --update`.**
+If for some reasons the install script does not copy service and timer files while your distro has systemd scheduler available you can force the installation by passing `systemd` as a parameter to the install script - modifying the install command above with `sudo bash /dev/stdin systemd` instead.
 
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
 __This script does nothing by default (except running `pihole updateGravity`), you have to [configure it](#configuration).__
+
+**You can quickly update the script with `sudo pihole-updatelists --update` which checks for script difference and re-runs the install script when needed.**
 
 ### Disable default gravity update schedule
 
