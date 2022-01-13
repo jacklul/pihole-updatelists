@@ -189,14 +189,18 @@ chown -v root:root /etc/pihole-updatelists/*
 chmod -v 644 /etc/pihole-updatelists/*
 
 if [[ ! -z \"\${SKIPGRAVITYONBOOT}\" ]]; then
+	[ ! -e \"/etc/cron.d/updatelists-on-boot\" ] || rm -v /etc/cron.d/updatelists-on-boot
+
 	echo \"Lists update skipped!\"
 elif [ -e \"/etc/pihole/gravity.db\" ]; then
-	set +e
-	/usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS}
+	echo '@reboot root /usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists.log' > /etc/cron.d/updatelists-on-boot
+	
+	echo \"Modifying /etc/cron.d/gravity-on-boot to delay the gravity update for 60 seconds so that pihole-updatelists has a chance to run before it!\"
+	sed -e 's/root PATH=/root sleep 60 ; PATH=/' -i /etc/cron.d/gravity-on-boot
 else
 	echo \"Gravity database not found, skipping lists update!\"
 fi
-" > /etc/cont-init.d/10-pihole-updatelists.sh
+" > /etc/cont-init.d/30-pihole-updatelists.sh
 
-	echo "Installed container startup script (/etc/cont-init.d/10-pihole-updatelists.sh)"
+	echo "Installed container startup script (/etc/cont-init.d/30-pihole-updatelists.sh)"
 fi
