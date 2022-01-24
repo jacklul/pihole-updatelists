@@ -4,10 +4,27 @@ on:
   push:
     branches:
       - 'develop'
+  schedule:
+      - cron:  '0 * * * *'
   workflow_dispatch:
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      image-needs-updating: ${{ steps.check.outputs.needs-updating }}
+    steps:
+      - name: Docker Image Update Checker
+        id: check
+        uses: lucacome/docker-image-update-checker@v1
+        with:
+          base-image: pihole/pihole:latest
+          image: jacklul/pihole:dev
+        if: ${{ github.event_name == 'schedule' }}
+
   build:
+    needs: check
+    if: ${{ github.event_name != 'schedule' || needs.check.outputs.image-needs-updating == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
