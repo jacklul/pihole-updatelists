@@ -122,20 +122,17 @@ services:
       - "53:53/udp"
       - "67:67/udp"
       - "80:80/tcp"
-      - "443:443/tcp"
     environment:
       TZ: 'America/Chicago'
     volumes:
       - './etc-pihole/:/etc/pihole/'
       - './etc-dnsmasq.d/:/etc/dnsmasq.d/'
       - './etc-pihole-updatelists/:/etc/pihole-updatelists/'
-    dns:
-      - 127.0.0.1
-      - 1.1.1.1
     cap_add:
       - NET_ADMIN
     restart: unless-stopped
 ```
+_(for more up to date `docker-compose.yml` see [pi-hole/docker-pi-hole](https://github.com/pi-hole/docker-pi-hole/#quick-start))_
 
 If you already have existing `gravity.db` you should also check out [Migrating lists and domains](#migrating-lists-and-domains) section, keep in mind that you will have to adjust paths in the commands mentioned there.
 
