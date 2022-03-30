@@ -155,7 +155,6 @@ sudo nano /etc/pihole-updatelists.conf
 | REGEX_BLACKLIST_URL | " " | Remote list URL containing regex rules for blacklisting |
 | COMMENT | "Managed by pihole-updatelists" | Comment string used to know which entries were created by the script <br>**You can still add your own comments to individual entries as long you keep this string intact** |
 | GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page <br>**Multiple groups are not supported** |
-| PERSISTENT_GROUP | false | Makes sure entries have the specified group assigned on each script run <br>This does not prevent you from assigning more groups through the web interface but can remove entries from the default group if GROUP_ID is a negative number <br>**Do not enable this when you're running multiple different configurations** |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When `false` any user-created entry will be disabled, only those created by the script will be active |
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
 | VERBOSE | false | Show more information while the script is running |
