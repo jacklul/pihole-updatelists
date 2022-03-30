@@ -1834,13 +1834,40 @@ foreach ($configSections as $configSectionName => $configSectionData) {
 
                 $foreignGroups = [];
                 foreach ($adlistsGroupsAll[$id] as $groupId) {
-                    if (!in_array($groupId, $allConfigurationsGroups)) {
+                    if (!in_array($groupId, $allConfigurationsGroups) && ($groupId !== 0 || $configSectionData['GROUP_ID'] < 0)) {
                         $foreignGroups[] = $groupId;
                     }
                 }
+    
+                if (checkIfTouchable($adlistsAll[$id], $configSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
+                    $removed = 0;
 
-                // Disable entry instead when it's touchable and no user groups are assigned
-                if (count($adlistsGroupsAll[$id]) <= 1 && count($foreignGroups) === 0) {
+                    // Remove from the set group
+                    if ($absoluteGroupId > 0) {
+                        $sth = $dbh->prepare('DELETE FROM `adlist_by_group` WHERE `adlist_id` = :adlist_id AND group_id = :group_id');
+                        $sth->bindParam(':adlist_id', $id, PDO::PARAM_INT);
+                        $sth->bindValue(':group_id', $absoluteGroupId, PDO::PARAM_INT);
+                        $sth->execute();
+                        $removed += $sth->rowCount();
+                    }
+
+                    // Remove from the default group
+                    if ($configSectionData['GROUP_ID'] >= 0) {
+                        $sth = $dbh->prepare('DELETE FROM `adlist_by_group` WHERE adlist_id = :adlist_id AND group_id = :group_id');
+                        $sth->bindParam(':adlist_id', $id, PDO::PARAM_INT);
+                        $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                        $sth->execute();
+                        $removed += $sth->rowCount();
+                    }
+
+                    if ($removed > 0) {
+                        $config['VERBOSE'] === true && printAndLog('Disabled: ' . $address . PHP_EOL);
+                        incrementStat('disabled');
+                    }
+                }
+                
+                // Disable entry when it's touchable and no user groups are assigned
+                if (count($foreignGroups) === 0) {
                     foreach ($configSections as $testConfigSectionName => $testConfigSectionData) {
                         if (checkIfTouchable($adlistsAll[$id], $testConfigSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
                             $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 0 WHERE `id` = :id');
@@ -1852,18 +1879,6 @@ foreach ($configSections as $configSectionName => $configSectionData) {
 
                             break;
                         }
-                    }
-                }
-
-                // Remove from the set group (from the default only if touchable)
-                if ($absoluteGroupId !== 0 || checkIfTouchable($adlistsAll[$id], $configSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
-                    $sth = $dbh->prepare('DELETE FROM `adlist_by_group` WHERE `adlist_id` = :adlist_id AND group_id = :group_id');
-                    $sth->bindParam(':adlist_id', $id, PDO::PARAM_INT);
-                    $sth->bindValue(':group_id', $absoluteGroupId, PDO::PARAM_INT);
-
-                    if ($sth->execute() && $sth->rowCount() > 0 || $adlistsAll[$id]['enabled'] === false) {
-                        $config['VERBOSE'] === true && printAndLog('Disabled: ' . $address . PHP_EOL);
-                        incrementStat('disabled');
                     }
                 }
             }
@@ -2248,13 +2263,40 @@ foreach ($configSections as $configSectionName => $configSectionData) {
 
                     $foreignGroups = [];
                     foreach ($domainsGroupsAll[$id] as $groupId) {
-                        if (!in_array($groupId, $allConfigurationsGroups)) {
+                        if (!in_array($groupId, $allConfigurationsGroups) && ($groupId !== 0 || $configSectionData['GROUP_ID'] < 0)) {
                             $foreignGroups[] = $groupId;
                         }
                     }
 
-                    // Disable entry instead when it's touchable and no user groups are assigned
-                    if (count($domainsGroupsAll[$id]) <= 1 && count($foreignGroups) === 0) {
+                    if (checkIfTouchable($domainsAll[$id], $configSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
+                        $removed = 0;
+
+                        // Remove from the set group
+                        if ($absoluteGroupId > 0) {
+                            $sth = $dbh->prepare('DELETE FROM `domainlist_by_group` WHERE `domainlist_id` = :domainlist_id AND group_id = :group_id');
+                            $sth->bindParam(':domainlist_id', $id, PDO::PARAM_INT);
+                            $sth->bindValue(':group_id', $absoluteGroupId, PDO::PARAM_INT);
+                            $sth->execute();
+                            $removed += $sth->rowCount();
+                        }
+
+                        // Remove from the default group
+                        if ($configSectionData['GROUP_ID'] >= 0) {
+                            $sth = $dbh->prepare('DELETE FROM `domainlist_by_group` WHERE `domainlist_id` = :domainlist_id AND group_id = :group_id');
+                            $sth->bindParam(':domainlist_id', $id, PDO::PARAM_INT);
+                            $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                            $sth->execute();
+                            $removed += $sth->rowCount();
+                        }
+
+                        if ($removed > 0) {
+                            $config['VERBOSE'] === true && printAndLog('Disabled: ' . $address . PHP_EOL);
+                            incrementStat('disabled');
+                        }
+                    }
+
+                    // Disable entry when it's touchable and no user groups are assigned
+                    if (count($foreignGroups) === 0) {
                         foreach ($configSections as $testConfigSectionName => $testConfigSectionData) {
                             if (checkIfTouchable($domainsAll[$id], $testConfigSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
                                 $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 0 WHERE `id` = :id');
@@ -2263,19 +2305,9 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                                 if ($sth->execute()) {
                                     $domainsAll[$id]['enabled'] = false;
                                 }
+
+                                break;
                             }
-                        }
-                    }
-
-                    // Remove from the set group (from the default only if touchable)
-                    if ($absoluteGroupId !== 0 || checkIfTouchable($domainsAll[$id], $configSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
-                        $sth = $dbh->prepare('DELETE FROM `domainlist_by_group` WHERE `domainlist_id` = :domainlist_id AND group_id = :group_id');
-                        $sth->bindParam(':domainlist_id', $id, PDO::PARAM_INT);
-                        $sth->bindValue(':group_id', $absoluteGroupId, PDO::PARAM_INT);
-
-                        if (($sth->execute() && $sth->rowCount() > 0) || $domainsAll[$id]['enabled'] === false) {
-                            $config['VERBOSE'] === true && printAndLog('Disabled: ' . $domain . PHP_EOL);
-                            incrementStat('disabled');
                         }
                     }
                 }
