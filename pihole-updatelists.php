@@ -1018,6 +1018,7 @@ function loadConfig(array $options = [])
         'REGEX_BLACKLIST_URL'     => '',
         'COMMENT'                 => 'Managed by pihole-updatelists',
         'GROUP_ID'                => 0,
+        'PERSISTENT_GROUP'        => false,
         'REQUIRE_COMMENT'         => true,
         'UPDATE_GRAVITY'          => true,
         'VERBOSE'                 => false,
@@ -1105,6 +1106,7 @@ function processConfigSection(array $section)
         'REGEX_BLACKLIST_URL',
         'COMMENT',
         'GROUP_ID',
+        'PERSISTENT_GROUP',
         'IGNORE_DOWNLOAD_FAILURE',
     ];
 
@@ -2016,30 +2018,32 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         }
                     }
 
-                    // (Re)Add to the specified group when not added
-                    if (
-                        $absoluteGroupId > 0 &&
-                        (isset($adlistsGroupsAll[$adlistUrl['id']]) && !in_array($absoluteGroupId, $adlistsGroupsAll[$adlistUrl['id']], true))
-                    ) {
-                        $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
-                        $sth->bindParam(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
-                        $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
-                        $sth->execute();
+                    if ($configSectionData['PERSISTENT_GROUP'] === true) {
+                        // (Re)Add to the specified group when not added
+                        if (
+                            $absoluteGroupId > 0 &&
+                            (isset($adlistsGroupsAll[$adlistUrl['id']]) && !in_array($absoluteGroupId, $adlistsGroupsAll[$adlistUrl['id']], true))
+                        ) {
+                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
+                            $sth->bindParam(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
+                            $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
+                            $sth->execute();
 
-                        $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $address . '\' to the group with ID = ' . $absoluteGroupId . PHP_EOL);
-                    }
+                            $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $address . '\' to the group with ID = ' . $absoluteGroupId . PHP_EOL);
+                        }
 
-                    // (Re)Add to the default group when not added
-                    if (
-                        $configSectionData['GROUP_ID'] >= 0 &&
-                        (isset($adlistsGroupsAll[$adlistUrl['id']]) && !in_array(0, $adlistsGroupsAll[$adlistUrl['id']], true))
-                    ) {
-                        $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
-                        $sth->bindParam(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
-                        $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
-                        $sth->execute();
+                        // (Re)Add to the default group when not added
+                        if (
+                            $configSectionData['GROUP_ID'] >= 0 &&
+                            (isset($adlistsGroupsAll[$adlistUrl['id']]) && !in_array(0, $adlistsGroupsAll[$adlistUrl['id']], true))
+                        ) {
+                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `adlist_by_group` (adlist_id, group_id) VALUES (:adlist_id, :group_id)');
+                            $sth->bindParam(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
+                            $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                            $sth->execute();
 
-                        $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $address . '\' to the default group' . PHP_EOL);
+                            $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $address . '\' to the default group' . PHP_EOL);
+                        }
                     }
                 }
             }
@@ -2449,30 +2453,32 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                             }
                         }
 
-                        // (Re)Add to the specified group when not added
-                        if (
-                            $absoluteGroupId > 0 &&
-                            (isset($domainsGroupsAll[$domainlistDomain['id']]) && !in_array($absoluteGroupId, $domainsGroupsAll[$domainlistDomain['id']], true))
-                        ) {
-                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
-                            $sth->bindParam(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
-                            $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
-                            $sth->execute();
+                        if ($configSectionData['PERSISTENT_GROUP'] === true) {
+                            // (Re)Add to the specified group when not added
+                            if (
+                                $absoluteGroupId > 0 &&
+                                (isset($domainsGroupsAll[$domainlistDomain['id']]) && !in_array($absoluteGroupId, $domainsGroupsAll[$domainlistDomain['id']], true))
+                            ) {
+                                $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
+                                $sth->bindParam(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
+                                $sth->bindParam(':group_id', $absoluteGroupId, PDO::PARAM_INT);
+                                $sth->execute();
 
-                            $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $domain . '\' to the group with ID = ' . $absoluteGroupId . PHP_EOL);
-                        }
+                                $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $domain . '\' to the group with ID = ' . $absoluteGroupId . PHP_EOL);
+                            }
 
-                        // (Re)Add to the default group when not added
-                        if (
-                            $configSectionData['GROUP_ID'] >= 0 &&
-                            (isset($domainsGroupsAll[$domainlistDomain['id']]) && !in_array(0, $domainsGroupsAll[$domainlistDomain['id']], true))
-                        ) {
-                            $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
-                            $sth->bindParam(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
-                            $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
-                            $sth->execute();
+                            // (Re)Add to the default group when not added
+                            if (
+                                $configSectionData['GROUP_ID'] >= 0 &&
+                                (isset($domainsGroupsAll[$domainlistDomain['id']]) && !in_array(0, $domainsGroupsAll[$domainlistDomain['id']], true))
+                            ) {
+                                $sth = $dbh->prepare('INSERT OR IGNORE INTO `domainlist_by_group` (domainlist_id, group_id) VALUES (:domainlist_id, :group_id)');
+                                $sth->bindParam(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
+                                $sth->bindValue(':group_id', 0, PDO::PARAM_INT);
+                                $sth->execute();
 
-                            $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $domain . '\' the default group' . PHP_EOL);
+                                $config['VERBOSE'] === true && $sth->rowCount() && printAndLog('Added \'' . $domain . '\' the default group' . PHP_EOL);
+                            }
                         }
                     }
                 }
