@@ -1018,7 +1018,7 @@ function loadConfig(array $options = [])
         'REGEX_BLACKLIST_URL'     => '',
         'COMMENT'                 => 'Managed by pihole-updatelists',
         'GROUP_ID'                => 0,
-        'PERSISTENT_GROUP'        => false,
+        'PERSISTENT_GROUP'        => true,
         'REQUIRE_COMMENT'         => true,
         'UPDATE_GRAVITY'          => true,
         'VERBOSE'                 => false,
@@ -1955,6 +1955,16 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                     $isTouchable          = checkIfTouchable($adlistUrl, $configSectionData['COMMENT'], $config['REQUIRE_COMMENT']);
                     $adlistUrl['enabled'] = (bool) $adlistUrl['enabled'] === true;
 
+                    // Check if entry has any groups assigned
+                    $hasGroups = true;
+                    if ($configSectionData['PERSISTENT_GROUP'] === false) {
+                        $sth = $dbh->prepare('SELECT * FROM `adlist_by_group` WHERE `adlist_by_group`.`adlist_id` = :adlist_id');
+                        $sth->bindValue(':adlist_id', $adlistUrl['id'], PDO::PARAM_INT);
+                        if ($sth->execute() && empty($sth->fetchAll(PDO::FETCH_ASSOC))) {
+                            $hasGroups = false;
+                        }
+                    }
+
                     // Enable existing entry but only if it's managed by this script
                     if ($adlistUrl['enabled'] !== true && $isTouchable === true) {
                         $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 1 WHERE `id` = :id');
@@ -2018,7 +2028,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         }
                     }
 
-                    if ($configSectionData['PERSISTENT_GROUP'] === true) {
+                    if ($configSectionData['PERSISTENT_GROUP'] === true || $hasGroups == false) {
                         // (Re)Add to the specified group when not added
                         if (
                             $absoluteGroupId > 0 &&
@@ -2379,6 +2389,16 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         $isTouchable                 = checkIfTouchable($domainlistDomain, $configSectionData['COMMENT'], $config['REQUIRE_COMMENT']);
                         $domainlistDomain['enabled'] = (bool) $domainlistDomain['enabled'] === true;
                         $domainlistDomain['type']    = (int) $domainlistDomain['type'];
+                        
+                        // Check if entry has any groups assigned
+                        $hasGroups = true;
+                        if ($configSectionData['PERSISTENT_GROUP'] === false) {
+                            $sth = $dbh->prepare('SELECT * FROM `domainlist_by_group` WHERE `domainlist_by_group`.`domainlist_id` = :domainlist_id');
+                            $sth->bindValue(':domainlist_id', $domainlistDomain['id'], PDO::PARAM_INT);
+                            if ($sth->execute() && empty($sth->fetchAll(PDO::FETCH_ASSOC))) {
+                                $hasGroups = false;
+                            }
+                        }
 
                         // Enable existing entry but only if it's managed by this script
                         if ($domainlistDomain['type'] === $typeId && $domainlistDomain['enabled'] === false && $isTouchable === true) {
@@ -2453,7 +2473,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                             }
                         }
 
-                        if ($configSectionData['PERSISTENT_GROUP'] === true) {
+                        if ($configSectionData['PERSISTENT_GROUP'] === true || $hasGroups === false) {
                             // (Re)Add to the specified group when not added
                             if (
                                 $absoluteGroupId > 0 &&
