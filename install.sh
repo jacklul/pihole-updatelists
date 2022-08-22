@@ -201,6 +201,7 @@ else
 	echo \"Gravity database not found, skipping lists update!\"
 fi
 " > /etc/cont-init.d/30-pihole-updatelists.sh
+chmod -v +x /etc/cont-init.d/30-pihole-updatelists.sh
 
 	echo "Installed container startup script (/etc/cont-init.d/30-pihole-updatelists.sh)"
 fi
