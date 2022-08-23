@@ -151,14 +151,16 @@ fi
 
 # Docker-related tasks
 if [ "$DOCKER" == 1 ]; then
-	# Create directory that will contain the configuration
-	if [ ! -d "/etc/pihole-updatelists" ]; then
-		mkdir -v /etc/pihole-updatelists
-	fi
+	mkdir -v /etc/pihole-updatelists
+	mkdir -v /etc/s6-overlay/s6-rc.d/_updatelistsonboot
 
-	# Create or update container startup script
-	echo "#!/usr/bin/env bash
-set -e
+	echo "pihole-FTL" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies
+	echo "oneshot" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/type
+	echo "#!/command/execlineb
+background { bash -e /updatelistsonboot.sh }" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/up
+	echo "#!/bin/bash
+
+gravityDBfile=\"/etc/pihole/gravity.db\"
 
 if [ \"\${PH_VERBOSE:-0}\" -gt 0 ]; then
     set -x
@@ -171,7 +173,7 @@ if [ ! -L \"/etc/pihole-updatelists.conf\" ]; then
 	else
 		rm -v /etc/pihole-updatelists.conf
 	fi
-
+	
 	ln -sv /etc/pihole-updatelists/pihole-updatelists.conf /etc/pihole-updatelists.conf
 fi
 
@@ -181,27 +183,23 @@ if [ ! -L \"/etc/cron.d/pihole-updatelists\" ]; then
 	else
 		rm -v /etc/cron.d/pihole-updatelists
 	fi
-
+	
 	ln -sv /etc/pihole-updatelists/crontab /etc/cron.d/pihole-updatelists
 fi
 
 chown -v root:root /etc/pihole-updatelists/*
 chmod -v 644 /etc/pihole-updatelists/*
 
-if [[ ! -z \"\${SKIPGRAVITYONBOOT}\" ]]; then
-	[ ! -e \"/etc/cron.d/updatelists-on-boot\" ] || rm -v /etc/cron.d/updatelists-on-boot
-
-	echo \"Lists update skipped!\"
-elif [ -e \"/etc/pihole/gravity.db\" ]; then
-	echo '@reboot root /usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists.log' > /etc/cron.d/updatelists-on-boot
-	
-	echo \"Modifying /etc/cron.d/gravity-on-boot to delay the gravity update for 60 seconds so that pihole-updatelists has a chance to run before it!\"
-	sed -e 's/root PATH=/root sleep 60 ; PATH=/' -i /etc/cron.d/gravity-on-boot
-else
+if [ ! -z \"\${SKIPGRAVITYONBOOT}\" ]; then
+	echo \"Lists update skipped by user!\"
+elif [ ! -f \"${gravityDBfile}\" ]; then
 	echo \"Gravity database not found, skipping lists update!\"
+else
+    /usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists-onboot.log
 fi
-" > /etc/cont-init.d/30-pihole-updatelists.sh
-chmod -v +x /etc/cont-init.d/30-pihole-updatelists.sh
-
-	echo "Installed container startup script (/etc/cont-init.d/30-pihole-updatelists.sh)"
+" > /updatelistsonboot.sh
+	echo "Installed container service files!"
+	
+	echo " _updatelistsonboot" > /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies
+	echo "Appended dependency to _gravityonboot service (/etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies)!"
 fi
