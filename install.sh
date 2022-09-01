@@ -157,49 +157,35 @@ if [ "$DOCKER" == 1 ]; then
 	echo "pihole-FTL" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies
 	echo "oneshot" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/type
 	echo "#!/command/execlineb
-background { bash -e /updatelistsonboot.sh }" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/up
+background { bash -e /usr/local/bin/_updatelistsonboot.sh }" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/up
 	echo "#!/bin/bash
 
 gravityDBfile=\"/etc/pihole/gravity.db\"
 
 if [ \"\${PH_VERBOSE:-0}\" -gt 0 ]; then
-    set -x
+	set -x
 	SCRIPT_ARGS=\"--verbose --debug\"
 fi
 
-if [ ! -L \"/etc/pihole-updatelists.conf\" ]; then
-	if [ ! -e \"/etc/pihole-updatelists/pihole-updatelists.conf\" ]; then
-		mv -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
-	else
-		rm -v /etc/pihole-updatelists.conf
-	fi
-	
-	ln -sv /etc/pihole-updatelists/pihole-updatelists.conf /etc/pihole-updatelists.conf
-fi
-
-if [ ! -L \"/etc/cron.d/pihole-updatelists\" ]; then
-	if [ ! -e \"/etc/pihole-updatelists/crontab\" ]; then
-		mv -v /etc/cron.d/pihole-updatelists /etc/pihole-updatelists/crontab
-	else
-		rm -v /etc/cron.d/pihole-updatelists
-	fi
-	
-	ln -sv /etc/pihole-updatelists/crontab /etc/cron.d/pihole-updatelists
+if [ ! -e \"/etc/pihole-updatelists/pihole-updatelists.conf\" ]; then
+	cp -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
 fi
 
 chown -v root:root /etc/pihole-updatelists/*
 chmod -v 644 /etc/pihole-updatelists/*
 
 if [ ! -z \"\${SKIPGRAVITYONBOOT}\" ]; then
-	echo \"Lists update skipped by user!\"
-elif [ ! -f \"${gravityDBfile}\" ]; then
-	echo \"Gravity database not found, skipping lists update!\"
+	echo \"Lists update skipped - SKIPGRAVITYONBOOT=true\"
+elif [ ! -f \"\${gravityDBfile}\" ]; then
+	echo \"Lists update skipped - gravity database not found\"
 else
-    /usr/bin/php /usr/local/sbin/pihole-updatelists --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists-onboot.log
+	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists-onboot.log
 fi
-" > /updatelistsonboot.sh
+" > /usr/local/bin/_updatelistsonboot.sh
+	chmod -v +x /usr/local/bin/_updatelistsonboot.sh
 	echo "Installed container service files!"
-	
-	echo " _updatelistsonboot" > /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies
-	echo "Appended dependency to _gravityonboot service (/etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies)!"
+
+	mkdir -pv /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d
+	echo "" > /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d/_updatelistsonboot
+	echo "Added dependency to _gravityonboot service (/etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d/_updatelistsonboot)!"
 fi
