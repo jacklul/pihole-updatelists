@@ -167,7 +167,7 @@ if [ \"\${PH_VERBOSE:-0}\" -gt 0 ]; then
 	SCRIPT_ARGS=\"--verbose --debug\"
 fi
 
-if [ ! -e \"/etc/pihole-updatelists/pihole-updatelists.conf\" ]; then
+if [ ! -f \"/etc/pihole-updatelists/pihole-updatelists.conf\" ]; then
 	cp -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
 fi
 
