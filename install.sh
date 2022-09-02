@@ -153,11 +153,13 @@ fi
 if [ "$DOCKER" == 1 ]; then
 	mkdir -v /etc/pihole-updatelists
 	mkdir -v /etc/s6-overlay/s6-rc.d/_updatelistsonboot
+	mkdir -v /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies.d
 
-	echo "pihole-FTL" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies
+	echo "" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies.d/pihole-FTL
 	echo "oneshot" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/type
 	echo "#!/command/execlineb
 background { bash -e /usr/local/bin/_updatelistsonboot.sh }" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/up
+
 	echo "#!/bin/bash
 
 gravityDBfile=\"/etc/pihole/gravity.db\"
