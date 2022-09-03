@@ -127,7 +127,7 @@ fi
 if [ "$SYSTEMD" == 1 ]; then
 	if [ -f "/etc/cron.d/pihole-updatelists" ]; then
 		# Comment out the existing cron job
-		sed -e 's/^#*/#/' -i /etc/cron.d/pihole-updatelists
+		sed "s/^#*/#/" -i /etc/cron.d/pihole-updatelists
 	fi
 
 	if [ "$SYSTEMD_INSTALLED" == 0 ]; then
@@ -143,7 +143,7 @@ else
 
 #30 3 * * 6   root   /usr/local/sbin/pihole-updatelists
 " > /etc/cron.d/pihole-updatelists
-		sed -i "s/#30 /$((1 + RANDOM % 58)) /" /etc/cron.d/pihole-updatelists
+		sed "s/#30 /$((1 + RANDOM % 58)) /" -i /etc/cron.d/pihole-updatelists
 
 		echo "Created crontab (/etc/cron.d/pihole-updatelists)"
 	fi
@@ -190,4 +190,7 @@ fi
 	mkdir -pv /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d
 	echo "" > /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d/_updatelistsonboot
 	echo "Added dependency to _gravityonboot service (/etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d/_updatelistsonboot)!"
+
+	sed "s_/usr/local/sbin/pihole-updatelists_/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf_" -i /etc/cron.d/pihole-updatelists
+	echo "Updated crontab command line to use /etc/pihole-updatelists/pihole-updatelists.conf config!"
 fi
