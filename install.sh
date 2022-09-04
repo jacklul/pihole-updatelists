@@ -60,7 +60,7 @@ command -v php >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, i
 
 # Use local files when possible, otherwise install from remote repository
 if \
-	[ "$1" == "" ] && \
+	[ "$GIT_BRANCH" == "master" ] && \
 	[ -f "$SPATH/pihole-updatelists.php" ] && \
 	[ -f "$SPATH/pihole-updatelists.conf" ] && \
 	[ -f "$SPATH/pihole-updatelists.service" ] && \
