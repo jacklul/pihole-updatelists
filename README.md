@@ -87,6 +87,9 @@ Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) and 
 
 If you need to pull a specific version of Pi-hole image you have no other choice but to use [custom Dockerfile](#using-official-image).
 
+**Please note that if you're setting this up for the first time (`gravity.db` is missing) you will have to restart the container after initial launch is complete, otherwise you will have to wait for the scheduled run to fetch the lists.**
+_You could also execute `/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf` in the container instead if you prefer to not restart the container._
+
 ### Using custom image
 
 Use [`jacklul/pihole:latest`](https://hub.docker.com/r/jacklul/pihole) image instead of `pihole/pihole:latest`.
