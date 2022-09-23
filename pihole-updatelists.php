@@ -1250,12 +1250,29 @@ function printDebugHeader(array $options, array $config)
     printAndLog('SQLite: ' . (new PDO('sqlite::memory:'))->query('select sqlite_version()')->fetch()[0] . PHP_EOL, 'DEBUG');
     printAndLog('cURL: ' . (function_exists('curl_version') ? curl_version()['version'] : 'Unavailable') . PHP_EOL, 'DEBUG');
 
-    if (file_exists('/etc/pihole/localversions')) {
+    if (file_exists('/etc/pihole/versions')) {
+        $versions = file_get_contents('/etc/pihole/versions');
+        $versions = parse_ini_string($versions);
+
+        $piholeVersions = [
+            $versions['CORE_VERSION'],
+            $versions['WEB_VERSION'],
+            $versions['FTL_VERSION'],
+        ];
+
+        $piholeBranches = [
+            $versions['CORE_BRANCH'],
+            $versions['WEB_BRANCH'],
+            $versions['FTL_BRANCH'],
+        ];
+    }
+
+    if (empty($versions) && file_exists('/etc/pihole/localversions')) {
         $piholeVersions = file_get_contents('/etc/pihole/localversions');
         $piholeVersions = explode(' ', $piholeVersions);
     }
 
-    if (file_exists('/etc/pihole/localbranches')) {
+    if (empty($versions) && file_exists('/etc/pihole/localbranches')) {
         $piholeBranches = file_get_contents('/etc/pihole/localbranches');
         $piholeBranches = explode(' ', $piholeBranches);
     }
@@ -1269,7 +1286,7 @@ function printDebugHeader(array $options, array $config)
         printAndLog('Pi-hole Web: ' . $piholeVersions[1] . ' (' . $piholeBranches[1] . ')' . PHP_EOL, 'DEBUG');
         printAndLog('Pi-hole FTL: ' . $piholeVersions[2] . ' (' . $piholeBranches[2] . ')' . PHP_EOL, 'DEBUG');
     } else {
-        printAndLog('Pi-hole: Unavailable (make sure files `localversions` and `localbranches` exist in `/etc/pihole`)' . PHP_EOL, 'WARNING');
+        printAndLog('Pi-hole: Unavailable' . PHP_EOL, 'WARNING');
         incrementStat('warnings');
     }
 
