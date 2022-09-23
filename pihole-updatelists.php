@@ -1563,7 +1563,9 @@ function printOperationSummary(array $statData, $noSpace = false)
     $statData['conflict'] > 0 && $summary[] = $statData['conflict'] . ' conflicts';
     $statData['migrated'] > 0 && $summary[] = $statData['migrated'] . ' migrated';
 
-    printAndLog(($noSpace === false ? ' ' : 'Summary: ') . implode(', ', $summary) . PHP_EOL);
+    if (!empty($summary)) {
+        printAndLog(($noSpace === false ? ' ' : 'Summary: ') . implode(', ', $summary) . PHP_EOL);
+    }
 }
 
 /**
