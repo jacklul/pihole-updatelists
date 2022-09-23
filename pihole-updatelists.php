@@ -1337,10 +1337,10 @@ function registerPDOLogger()
                             $value = '"' . $data['value'] . '"';
                             break;
                         case PDO::PARAM_INT:
-                            $value = (int) $data['value'];
+                            $value = (string) $data['value'];
                             break;
                         case PDO::PARAM_BOOL:
-                            $value = (bool) $data['value'];
+                            $value = $data['value'] ? 'true' : 'false';
                             break;
                         default:
                             $value = null;
