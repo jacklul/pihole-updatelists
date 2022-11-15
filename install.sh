@@ -187,9 +187,14 @@ fi
 	chmod -v +x /usr/local/bin/_updatelistsonboot.sh
 	echo "Installed container service files!"
 
-	mkdir -pv /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d
-	echo "" > /etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d/_updatelistsonboot
-	echo "Added dependency to _gravityonboot service (/etc/s6-overlay/s6-rc.d/_gravityonboot/dependencies.d/_updatelistsonboot)!"
+	if [ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ]; then
+		echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL directory"
+		exit 1
+	fi
+	
+	mkdir -pv /etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d
+	echo "" > /etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d/_updatelistsonboot
+	echo "Added dependency to _postFTL service (/etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d/_updatelistsonboot)!"
 
 	sed "s_/usr/local/sbin/pihole-updatelists_/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf_" -i /etc/cron.d/pihole-updatelists
 	echo "Updated crontab command line to use /etc/pihole-updatelists/pihole-updatelists.conf config!"
