@@ -26,7 +26,7 @@ _Alternatively you can clone this repo and `sudo bash install.sh`._
 
 If **systemd** is available this script will also add service and timer unit files to the system, otherwise a crontab entry in `/etc/cron.d/pihole-updatelists` will be created.
 
-If for some reasons the install script does not copy service and timer files while your distro has systemd scheduler available you can force the installation by passing `systemd` as a parameter to the install script - modifying the install command above with `sudo bash /dev/stdin systemd` instead.
+If for some reasons the install script does not copy service and timer files while your distro has systemd scheduler available you can force the installation by passing `systemd` as a parameter to the install script - modifying the install command above with `sudo bash -s systemd` instead.
 
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
@@ -103,7 +103,7 @@ FROM pihole/pihole:latest
 
 RUN apt-get update && apt-get install -Vy wget php-cli php-sqlite3 php-intl php-curl
 
-RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash /dev/stdin docker
+RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash -s docker
 ```
 
 Then build your image locally and use that image in your `docker-composer.yml` or launch command line.
@@ -329,7 +329,7 @@ You can also add your comments directly through the Pi-hole's web interface by e
 ### Uninstalling
 
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash /dev/stdin uninstall
+wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | sudo bash -s uninstall
 ```
 
 or remove files manually:
