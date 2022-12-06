@@ -209,6 +209,11 @@ function getDefinedOptions()
             'parameter-description' => 'branch',
             'requires'              => ['version', 'update'],
         ],
+        'env'        => [
+            'long'        => 'env',
+            'short'       => 'e',
+            'description' => 'Load configuration from environment variables',
+        ],
     ];
 }
 
@@ -1029,7 +1034,7 @@ function loadConfig(array $options = [])
     ];
 
     if (isset($options['config'])) {
-        if (!file_exists($options['config'])) {
+        if (!file_exists($options['config']) && !isset($options['env'])) {
             printAndLog('Invalid file: ' . $options['config'] . PHP_EOL, 'ERROR');
             exit(1);
         }
@@ -1068,6 +1073,10 @@ function loadConfig(array $options = [])
         }
     }
 
+    if (isset($options['env'])) {
+        $config = loadConfigFromEnvironment($config);
+    }
+
     $config = validateConfig($config);
 
     if (isset($options['no-gravity']) && $config['UPDATE_GRAVITY'] === true) {
@@ -1084,6 +1093,58 @@ function loadConfig(array $options = [])
 
     if (isset($options['debug'])) {
         $config['DEBUG'] = true;
+    }
+
+    return $config;
+}
+
+/**
+ * Load supported environment config variables
+ *
+ * @param array $config
+ * 
+ * @return array
+ */
+function loadConfigFromEnvironment(array $config)
+{
+    $renamedVariables = [ // These variables with be prefixed with "PHUL_"
+        'CONFIG_FILE',
+        'GRAVITY_DB',
+        'LOCK_FILE',
+        'LOG_FILE',
+        'VERBOSE',
+        'DEBUG',
+        'GIT_BRANCH',
+    ];
+
+    foreach ($config as $var => $val) {
+        if (in_array($var, $renamedVariables)) {
+            $env = getenv('PHUL_' . $var);
+        } else {
+            $env = getenv($var);
+        }
+
+        if (!empty($env))
+        {
+            switch (gettype($val)) {
+                case "int":
+                case "integer":
+                    $env = (int)$env;
+                    break;
+                case "float":
+                    $env = (float)$env;
+                    break;
+                case "string":
+                    $env = (string)$env;
+                    break;
+                case "bool":
+                case "boolean":
+                    $env = (bool)$env;
+                    break;
+            }
+
+            $config[$var] = $env;
+        }
     }
 
     return $config;

@@ -181,7 +181,7 @@ if [ ! -z \"\${SKIPGRAVITYONBOOT}\" ]; then
 elif [ ! -f \"\${gravityDBfile}\" ]; then
 	echo \"Lists update skipped - gravity database not found\"
 else
-	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists-onboot.log
+	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists-onboot.log
 fi
 " > /usr/local/bin/_updatelistsonboot.sh
 	chmod -v +x /usr/local/bin/_updatelistsonboot.sh

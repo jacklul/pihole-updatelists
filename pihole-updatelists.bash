@@ -8,7 +8,7 @@ _pihole_updatelists()
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="--config= --git-branch= --help --no-gravity --no-reload --verbose --debug --update --rollback	--version"
+    opts="--config= --git-branch= --help --no-gravity --no-reload --verbose --debug --update --rollback --version --env"
 
     case "${prev}" in
             "--version")
