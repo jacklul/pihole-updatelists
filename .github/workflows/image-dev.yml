@@ -15,6 +15,7 @@ jobs:
       image-needs-updating: ${{ steps.check.outputs.needs-updating }}
     steps:
       - name: Docker Image Update Checker
+        continue-on-error: true
         id: check
         uses: lucacome/docker-image-update-checker@v1
         with:
