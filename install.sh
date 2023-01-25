@@ -24,8 +24,8 @@ if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (i
 	rm -vf /etc/systemd/system/pihole-updatelists.service
 	rm -vf /etc/systemd/system/pihole-updatelists.timer
 	
-	if [ -f "/usr/local/sbin/pihole-updatelists.old" ]; then
-		rm -v /etc/bash_completion.d/pihole-updatelists.old
+	if [ -f "/var/tmp/pihole-updatelists.old" ]; then
+		rm -v /var/tmp/pihole-updatelists.old
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
@@ -70,8 +70,8 @@ if \
 	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
 		if ! cmp -s "$SPATH/pihole-updatelists.php" "/usr/local/sbin/pihole-updatelists"; then
 			echo "Backing up previous version..."
-			cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
-			chmod -v -x /usr/local/sbin/pihole-updatelists.old
+			cp -v /usr/local/sbin/pihole-updatelists /var/tmp/pihole-updatelists.old && \
+			chmod -v -x /var/tmp/pihole-updatelists.old
 		fi
 	fi
 
@@ -97,8 +97,8 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 
 		if ! cmp -s "/tmp/pihole-updatelists.php" "/usr/local/sbin/pihole-updatelists"; then
 			echo "Backing up previous version..."
-			cp -v /usr/local/sbin/pihole-updatelists /usr/local/sbin/pihole-updatelists.old && \
-			chmod -v -x /usr/local/sbin/pihole-updatelists.old
+			cp -v /usr/local/sbin/pihole-updatelists /var/tmp/pihole-updatelists.old && \
+			chmod -v -x /var/tmp/pihole-updatelists.old
 		fi
 
 		mv -v /tmp/pihole-updatelists.php /usr/local/sbin/pihole-updatelists && \
@@ -121,6 +121,10 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 else
 	echo "Missing required files for installation!"
 	exit 1
+fi
+
+if [ -f "/usr/local/sbin/pihole-updatelists.old" ]; then
+	rm -v /usr/local/sbin/pihole-updatelists.old
 fi
 
 # Install schedule related files

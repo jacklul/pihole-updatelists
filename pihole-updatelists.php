@@ -864,7 +864,7 @@ function updateScript(array $options = [], array $config = [])
 
             passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash /dev/stdin ' . $branch, $return);
 
-            if ($return === 0 && file_exists('/usr/local/sbin/pihole-updatelists.old')) {
+            if ($return === 0 && file_exists('/var/tmp/pihole-updatelists.old')) {
                 print PHP_EOL . 'Use "' . basename(__FILE__) . ' --rollback" to return to the previous script version!' . PHP_EOL;
             }
 
@@ -888,12 +888,12 @@ function rollbackScript(array $options = [], array $config = [])
         exit(1);
     }
 
-    if (!file_exists('/usr/local/sbin/pihole-updatelists.old')) {
+    if (!file_exists('/var/tmp/pihole-updatelists.old')) {
         print 'Backup file does not exist, unable to rollback!' . PHP_EOL;
         exit(1);
     }
 
-    if (md5_file('/usr/local/sbin/pihole-updatelists') === md5_file('/usr/local/sbin/pihole-updatelists.old')) {
+    if (md5_file('/usr/local/sbin/pihole-updatelists') === md5_file('/var/tmp/pihole-updatelists.old')) {
         print 'Current script checksum matches checksum of the backup, unable to rollback!' . PHP_EOL;
         exit(1);
     }
@@ -901,7 +901,7 @@ function rollbackScript(array $options = [], array $config = [])
     requireRoot(); // Only root should be able to run this command
 
     if (isset($options['yes']) || expectUserInput('Are you sure you want to rollback? [Y/N]', ['y', 'yes'])) {
-        if (rename('/usr/local/sbin/pihole-updatelists.old', '/usr/local/sbin/pihole-updatelists') && chmod('/usr/local/sbin/pihole-updatelists', 0755)) {
+        if (rename('/var/tmp/pihole-updatelists.old', '/usr/local/sbin/pihole-updatelists') && chmod('/usr/local/sbin/pihole-updatelists', 0755)) {
             print 'Successfully rolled back the script!' . PHP_EOL;
             exit;
         }
