@@ -83,12 +83,6 @@ function checkDependencies()
         exit(1);
     }
 
-    // These functions should be available but might be disabled by the user
-    if ((!function_exists('posix_getuid') || !function_exists('posix_kill')) && empty(getenv('IGNORE_OS_CHECK'))) {
-        printAndLog('Make sure PHP\'s functions \'posix_getuid\' and \'posix_kill\' are available!' . PHP_EOL, 'ERROR');
-        exit(1);
-    }
-
     // Check for required PHP extensions
     $extensions = [
         'pdo',
@@ -224,9 +218,21 @@ function getDefinedOptions()
  */
 function requireRoot()
 {
-    if (function_exists('posix_getuid') && posix_getuid() !== 0 && strpos(basename($_SERVER['argv'][0]), '.php') === false) {
-        passthru('sudo ' . implode(' ', $_SERVER['argv']), $return);
-        exit($return);
+    global $isRoot;
+
+    if (!isset($isRoot) || $isRoot === null) {
+        $isRoot = null;
+
+        if (function_exists('posix_getuid')) {
+            $isRoot = posix_getuid() === 0;
+        } else {
+            $isRoot = shell_exec('whoami') === 'root';
+        }
+    }
+    
+    if (!$isRoot && strpos(basename($_SERVER['argv'][0]), '.php') === false) {
+        print 'root privileges required' . PHP_EOL;
+        exit(1);
     }
 }
 

@@ -12,8 +12,6 @@ __If you're not using remote lists like the ones mentioned above then this scrip
 - **php-cli >=7.0** and **a few extensions** (`sudo apt-get install php-cli php-sqlite3 php-intl php-curl`)
 - **systemd** is optional but recommended
 
-_If you're getting error about missing `posix_*` functions install **php-process** package._
-
 ## Install
 
 _Docker users - [look below](#install-with-docker)._
