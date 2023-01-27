@@ -866,11 +866,14 @@ function updateScript(array $options = [], array $config = [])
         print 'See changes in commit history - https://github.com/jacklul/pihole-updatelists/commits/' . $branch . PHP_EOL . PHP_EOL;
 
         if (isset($options['yes']) || isset($options['force']) || expectUserInput('Update now? [Y/N]', ['y', 'yes'])) {
+            $script_md5 = md5_file(__FILE__);
+            
             print 'Downloading and running install script from "' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh"...' . PHP_EOL . PHP_EOL;
-
             passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash /dev/stdin ' . $branch, $return);
 
-            if ($return === 0 && file_exists('/var/tmp/pihole-updatelists.old')) {
+            clearstatcache();
+
+            if (file_exists('/var/tmp/pihole-updatelists.old') && $script_md5 != md5_file(__FILE__)) {
                 print PHP_EOL . 'Use "' . basename(__FILE__) . ' --rollback" to return to the previous script version!' . PHP_EOL;
             }
 
