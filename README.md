@@ -56,6 +56,16 @@ sudo sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
 
 **You might have to do this after each Pi-hole update.**
 
+You can override `pihole-FTL.service` to disable the cron entry automatically after each update:
+
+```bash
+sudo systemctl edit pihole-FTL.service
+```
+```
+[Service]
+ExecStartPre=-/bin/sh -c "[ -w /etc/cron.d/pihole ] && /bin/sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
+```
+
 ### Migrating lists and domains
 
 If you already imported any of the remote lists manually you should migrate their entries to allow the script to disable them in case they are removed from the remote list.
