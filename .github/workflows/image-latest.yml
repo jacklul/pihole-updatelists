@@ -42,6 +42,7 @@ jobs:
         id: latest-tag
         with:
           repository: pi-hole/docker-pi-hole
+          excludes: prerelease, draft
           
       - name: Login to DockerHub
         uses: docker/login-action@v1 
