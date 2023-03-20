@@ -10,3 +10,6 @@ RUN apt-get update && \
 RUN chmod +x /tmp/pihole-updatelists/install.sh && \
     bash /tmp/pihole-updatelists/install.sh docker && \
     rm -fr /tmp/pihole-updatelists
+
+# Disable default gravity update schedule
+RUN sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
