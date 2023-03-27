@@ -159,7 +159,7 @@ if [ "$DOCKER" == 1 ]; then
 	
 	if [ -f "$SPATH/pihole-updatelists.php" ]; then
 		cp -v $SPATH/docker.sh /usr/local/bin/_updatelistsonboot.sh
-	elif [ "$REMOTE_URL" != "" ]
+	elif [ "$REMOTE_URL" != "" ]; then
 		wget -nv -O /usr/local/bin/_updatelistsonboot.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
 	else
 		echo "Missing required file (docker.sh) for installation!"
