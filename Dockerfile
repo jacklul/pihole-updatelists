@@ -1,6 +1,6 @@
 FROM pihole/pihole:latest
 
-COPY install.sh pihole-updatelists.* /tmp/pihole-updatelists/
+COPY install.sh docker.sh pihole-updatelists.* /tmp/pihole-updatelists/
 
 RUN apt-get update && \
     apt-get install -Vy wget php-cli php-sqlite3 php-intl php-curl && \
