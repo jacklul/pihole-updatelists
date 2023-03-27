@@ -156,6 +156,22 @@ fi
 # Docker-related tasks
 if [ "$DOCKER" == 1 ]; then
 	mkdir -v /etc/pihole-updatelists
+	
+	if [ -f "$SPATH/pihole-updatelists.php" ]; then
+		cp -v $SPATH/docker.sh /usr/local/bin/_updatelistsonboot.sh
+	elif [ "$REMOTE_URL" != "" ]
+		wget -nv -O /usr/local/bin/_updatelistsonboot.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
+	else
+		echo "Missing required file (docker.sh) for installation!"
+	fi
+
+	if [ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ]; then
+		echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL directory"
+		exit 1
+	fi
+	
+	chmod -v +x /usr/local/bin/_updatelistsonboot.sh
+
 	mkdir -v /etc/s6-overlay/s6-rc.d/_updatelistsonboot
 	mkdir -v /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies.d
 
@@ -164,43 +180,8 @@ if [ "$DOCKER" == 1 ]; then
 	echo "#!/command/execlineb
 background { bash -e /usr/local/bin/_updatelistsonboot.sh }" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/up
 
-	echo "#!/bin/bash
-
-gravityDBfile=\"/etc/pihole/gravity.db\"
-
-if [ \"\${PH_VERBOSE:-0}\" -gt 0 ]; then
-	set -x
-	SCRIPT_ARGS=\"--verbose --debug\"
-fi
-
-if [ ! -f \"/etc/pihole-updatelists/pihole-updatelists.conf\" ]; then
-	cp -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
-fi
-
-chown -v root:root /etc/pihole-updatelists/*
-chmod -v 644 /etc/pihole-updatelists/*
-
-if [ \"$(cat /etc/cron.d/pihole grep 'pihole updateGravity' | cut -c1-1)\" != \"#\" ]; then
-	sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
-	echo \"Disabled default gravity update schedule in /etc/cron.d/pihole\"
-fi
-
-if [ ! -z \"\${SKIPGRAVITYONBOOT}\" ]; then
-	echo \"Lists update skipped - SKIPGRAVITYONBOOT=true\"
-elif [ ! -f \"\${gravityDBfile}\" ]; then
-	echo \"Lists update skipped - gravity database not found\"
-else
-	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env --no-gravity --no-reload \${SCRIPT_ARGS} > /var/log/pihole-updatelists-onboot.log
-fi
-" > /usr/local/bin/_updatelistsonboot.sh
-	chmod -v +x /usr/local/bin/_updatelistsonboot.sh
 	echo "Installed container service files!"
 
-	if [ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ]; then
-		echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL directory"
-		exit 1
-	fi
-	
 	mkdir -pv /etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d
 	echo "" > /etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d/_updatelistsonboot
 	echo "Added dependency to _postFTL service (/etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d/_updatelistsonboot)!"
