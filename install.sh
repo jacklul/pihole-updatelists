@@ -188,4 +188,8 @@ background { bash -e /usr/local/bin/_updatelistsonboot.sh }" > /etc/s6-overlay/s
 
 	sed "s_/usr/local/sbin/pihole-updatelists_/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf_" -i /etc/cron.d/pihole-updatelists
 	echo "Updated crontab command line to use /etc/pihole-updatelists/pihole-updatelists.conf config!"
+
+	mkdir -pv /etc/profile.d
+	echo "alias pihole-updatelists='/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf'" > /etc/profile.d/pihole-updatelists
+	echo "Created alias for pihole-updatelists command"
 fi
