@@ -13,9 +13,9 @@ function reloadSystemd() {
 SPATH=$(dirname "$0") # Path to the script
 REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists # Remote URL that serves raw files from the repository
 GIT_BRANCH=master # Git branch to use, user can specify custom branch as first argument
-SYSTEMD=`pidof systemd >/dev/null && echo "1" || echo "0"` # Is systemd available?
-SYSTEMD_INSTALLED=`[ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0"` # Is systemd timer installed already?
-DOCKER=`[ "$(cat /proc/1/cgroup | grep "docker")" == "" ] && echo "0" || echo "1"` # Is this a Docker installation?
+SYSTEMD=$(pidof systemd >/dev/null && echo "1" || echo "0") # Is systemd available?
+SYSTEMD_INSTALLED=$([ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0") # Is systemd timer installed already?
+DOCKER=$([ "$(grep "docker" < /proc/1/cgroup)" == "" ] && echo "0" || echo "1") # Is this a Docker installation?
 
 if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
 	rm -v /usr/local/sbin/pihole-updatelists
@@ -42,8 +42,7 @@ elif [ "$1" == "crontab" ]; then # Force crontab installation
 elif [ "$1" != "" ]; then	# Install using different branch
 	GIT_BRANCH=$1
 
-	wget -q --spider "$REMOTE_URL/$GIT_BRANCH/install.sh"
-	if [ $? -ne 0 ] ; then
+	if ! wget -q --spider "$REMOTE_URL/$GIT_BRANCH/install.sh" ; then
 		echo "Invalid branch: ${GIT_BRANCH}"
 		exit 1
 	fi
@@ -56,7 +55,7 @@ fi
 
 # We require some stuff before continuing
 command -v php >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, install it with 'sudo apt install php-cli'."; exit 1; }
-[[ $(php -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") < 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
+[[ $(php -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
 
 # Use local files when possible, otherwise install from remote repository
 if \
@@ -75,19 +74,19 @@ if \
 		fi
 	fi
 
-	cp -v $SPATH/pihole-updatelists.php /usr/local/sbin/pihole-updatelists && \
+	cp -v "$SPATH/pihole-updatelists.php" /usr/local/sbin/pihole-updatelists && \
 	chmod -v +x /usr/local/sbin/pihole-updatelists
 	
 	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
-		cp -v $SPATH/pihole-updatelists.conf /etc/pihole-updatelists.conf
+		cp -v "$SPATH/pihole-updatelists.conf" /etc/pihole-updatelists.conf
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
-		cp -v $SPATH/pihole-updatelists.service /etc/systemd/system
-		cp -v $SPATH/pihole-updatelists.timer /etc/systemd/system
+		cp -v "$SPATH/pihole-updatelists.service" /etc/systemd/system
+		cp -v "$SPATH/pihole-updatelists.timer" /etc/systemd/system
 	fi
 
-	cp -v $SPATH/pihole-updatelists.bash /etc/bash_completion.d/pihole-updatelists
+	cp -v "$SPATH/pihole-updatelists.bash" /etc/bash_completion.d/pihole-updatelists
 
 	# Convert line endings when dos2unix command is available
 	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
@@ -158,7 +157,7 @@ if [ "$DOCKER" == 1 ]; then
 	mkdir -v /etc/pihole-updatelists
 	
 	if [ -f "$SPATH/pihole-updatelists.php" ]; then
-		cp -v $SPATH/docker.sh /usr/local/bin/_updatelistsonboot.sh
+		cp -v "$SPATH/docker.sh" /usr/local/bin/_updatelistsonboot.sh
 	elif [ "$REMOTE_URL" != "" ]; then
 		wget -nv -O /usr/local/bin/_updatelistsonboot.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
 	else
