@@ -1,4 +1,4 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
 # https://unix.stackexchange.com/a/55622
 
 _pihole_updatelists()
