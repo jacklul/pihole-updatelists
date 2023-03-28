@@ -12,7 +12,7 @@ if [ "${PH_VERBOSE:-0}" -gt 0 ]; then
 	SCRIPT_ARGS="--verbose --debug"
 fi
 
-# If the config file is missing in the target directory the recreate it
+# If the config file is missing in the target directory then recreate it
 if [ ! -f "/etc/pihole-updatelists/pihole-updatelists.conf" ]; then
 	cp -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
 fi
