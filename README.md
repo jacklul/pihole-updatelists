@@ -155,6 +155,8 @@ _(for more up to date `docker-compose.yml` see [pi-hole/docker-pi-hole](https://
 
 If you already have existing `gravity.db` you should also check out [Migrating lists and domains](#migrating-lists-and-domains) section, keep in mind that you will have to adjust paths in the commands mentioned there.
 
+If you do not have existing `gravity.db` then first boot will not run `pihole-updatelists`, restart the container for it to run!
+
 ## Configuration
 
 Default configuration file is `/etc/pihole-updatelists.conf`.

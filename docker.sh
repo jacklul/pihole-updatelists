@@ -1,8 +1,8 @@
 #!/bin/bash
-# This is the startup file (_updatelistsonboot.sh) for Docker installation
+# This is the startup file for Docker installation that runs before actual _postFTL service is started
 
-if [ ! -d "/etc/s6-overlay/s6-rc.d/_updatelistsonboot" ]; then
-	echo "Missing /etc/s6-overlay/s6-rc.d/_updatelistsonboot - not a Docker installation?"
+if [ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ]; then
+	echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL - not a Docker installation?"
 	exit
 fi
 
@@ -12,26 +12,24 @@ if [ "${PH_VERBOSE:-0}" -gt 0 ]; then
 	SCRIPT_ARGS="--verbose --debug"
 fi
 
-# If the config file is missing in the target directory then recreate it
+# Recreate the config file if it is missing
 if [ ! -f "/etc/pihole-updatelists/pihole-updatelists.conf" ]; then
 	cp -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
 fi
 
-# Fix permissions when mounted as a volume
+# Fix permissions (when config directory is mounted as a volume)
 chown -v root:root /etc/pihole-updatelists/*
 chmod -v 644 /etc/pihole-updatelists/*
 
-# Disable default gravity schedule when enabled
-if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ]; then
-	sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
-	echo "Disabled default gravity update schedule in /etc/cron.d/pihole"
-fi
-
-if [ ! -z "${SKIPGRAVITYONBOOT}" ]; then
+if [ -n "$SKIPGRAVITYONBOOT" ]; then
 	echo "Lists update skipped - SKIPGRAVITYONBOOT=true"
 elif [ ! -f "/etc/pihole/gravity.db" ]; then
 	echo "Lists update skipped - gravity database not found"
 else
+	if [ -z "$(printenv PHUL_LOG_FILE)" ]; then
+		export PHUL_LOG_FILE="-/var/log/pihole-updatelists-boot.log"
+	fi
+
 	# shellcheck disable=SC2086
-	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env --no-gravity --no-reload ${SCRIPT_ARGS} > /var/log/pihole-updatelists-onboot.log
+	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env --no-gravity --no-reload ${SCRIPT_ARGS}
 fi

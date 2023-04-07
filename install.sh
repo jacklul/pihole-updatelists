@@ -154,41 +154,33 @@ fi
 
 # Docker-related tasks
 if [ "$DOCKER" == 1 ]; then
+	[ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ] && { echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL directory!"; exit 1; }
+	[ ! -f "/usr/local/bin/_postFTL.sh" ] && { echo "Missing /usr/local/bin/_postFTL.sh file!"; exit 1; }
+	
 	mkdir -v /etc/pihole-updatelists
 	
-	if [ -f "$SPATH/pihole-updatelists.php" ]; then
-		cp -v "$SPATH/docker.sh" /usr/local/bin/_updatelistsonboot.sh
+	if [ -f "$SPATH/docker.sh" ]; then
+		cp -v "$SPATH/docker.sh" /usr/local/bin/_updatelists.sh
 	elif [ "$REMOTE_URL" != "" ]; then
-		wget -nv -O /usr/local/bin/_updatelistsonboot.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
+		wget -nv -O /usr/local/bin/_updatelists.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
 	else
 		echo "Missing required file (docker.sh) for installation!"
 	fi
 
-	if [ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ]; then
-		echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL directory"
-		exit 1
-	fi
-	
-	chmod -v +x /usr/local/bin/_updatelistsonboot.sh
+	chmod -v +x /usr/local/bin/_updatelists.sh
 
-	mkdir -v /etc/s6-overlay/s6-rc.d/_updatelistsonboot
-	mkdir -v /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies.d
-
-	echo "" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/dependencies.d/pihole-FTL
-	echo "oneshot" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/type
-	echo "#!/command/execlineb
-background { bash -e /usr/local/bin/_updatelistsonboot.sh }" > /etc/s6-overlay/s6-rc.d/_updatelistsonboot/up
-
-	echo "Installed container service files!"
-
-	mkdir -pv /etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d
-	echo "" > /etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d/_updatelistsonboot
-	echo "Added dependency to _postFTL service (/etc/s6-overlay/s6-rc.d/_postFTL/dependencies.d/_updatelistsonboot)!"
+	echo "#!/command/execlineb" > /etc/s6-overlay/s6-rc.d/_postFTL/up
+    echo "background { bash -ec \"/usr/local/bin/_updatelists.sh && /usr/local/bin/_postFTL.sh\" }" >> /etc/s6-overlay/s6-rc.d/_postFTL/up
+	echo "Modified \"/etc/s6-overlay/s6-rc.d/_postFTL/up\" to launch pihole-updatelists first!"
 
 	sed "s_/usr/local/sbin/pihole-updatelists_/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf_" -i /etc/cron.d/pihole-updatelists
-	echo "Updated crontab command line to use /etc/pihole-updatelists/pihole-updatelists.conf config!"
+	echo "Updated crontab command line in \"/etc/cron.d/pihole-updatelists\"!"
 
-	mkdir -pv /etc/profile.d
-	echo "alias pihole-updatelists='/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf'" > /etc/profile.d/pihole-updatelists
-	echo "Created alias for pihole-updatelists command"
+	if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ]; then
+		sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
+		echo "Disabled default gravity update schedule in \"/etc/cron.d/pihole\""
+	fi
+
+	echo "alias pihole-updatelists='/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env'" >> /root/.bashrc
+	echo "Created alias for pihole-updatelists command in \"/root/.bashrc\""
 fi
