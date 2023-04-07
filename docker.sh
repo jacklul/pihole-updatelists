@@ -22,7 +22,7 @@ chown -v root:root /etc/pihole-updatelists/*
 chmod -v 644 /etc/pihole-updatelists/*
 
 # Disable default gravity schedule when enabled
-if [ "$(cat /etc/cron.d/pihole grep 'pihole updateGravity' | cut -c1-1)" != "#" ]; then
+if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ]; then
 	sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
 	echo "Disabled default gravity update schedule in /etc/cron.d/pihole"
 fi
