@@ -170,7 +170,7 @@ if [ "$DOCKER" == 1 ]; then
 	chmod -v +x /usr/local/bin/_updatelists.sh
 
 	echo "#!/command/execlineb" > /etc/s6-overlay/s6-rc.d/_postFTL/up
-    echo "background { bash -ec \"/usr/local/bin/_updatelists.sh && /usr/local/bin/_postFTL.sh\" }" >> /etc/s6-overlay/s6-rc.d/_postFTL/up
+	echo "background { bash -ec \"/usr/local/bin/_updatelists.sh && /usr/local/bin/_postFTL.sh\" }" >> /etc/s6-overlay/s6-rc.d/_postFTL/up
 	echo "Modified \"/etc/s6-overlay/s6-rc.d/_postFTL/up\" to launch pihole-updatelists first!"
 
 	sed "s_/usr/local/sbin/pihole-updatelists_/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf_" -i /etc/cron.d/pihole-updatelists
