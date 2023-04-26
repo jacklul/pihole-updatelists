@@ -23,9 +23,12 @@ chmod -v 644 /etc/pihole-updatelists/*
 
 if [ -n "$SKIPGRAVITYONBOOT" ]; then
 	echo "Lists update skipped - SKIPGRAVITYONBOOT=true"
-elif [ ! -f "/etc/pihole/gravity.db" ]; then
-	echo "Lists update skipped - gravity database not found"
 else
+	if [ ! -f "/etc/pihole/gravity.db" ]; then
+		echo "Gravity database not found - running 'pihole -g' command..."
+		pihole -g
+	fi
+
 	if [ -z "$(printenv PHUL_LOG_FILE)" ]; then
 		export PHUL_LOG_FILE="-/var/log/pihole-updatelists-boot.log"
 	fi
