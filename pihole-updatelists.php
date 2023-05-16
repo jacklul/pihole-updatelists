@@ -405,7 +405,7 @@ function registerHttpClient()
             class HttpClient
             {
                 /**
-                 * @var Resource
+                 * @var CurlHandle
                  */
                 private $curl;
 
