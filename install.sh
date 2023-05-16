@@ -85,6 +85,10 @@ if \
 		cp -v "$SPATH/pihole-updatelists.service" /etc/systemd/system
 		cp -v "$SPATH/pihole-updatelists.timer" /etc/systemd/system
 	fi
+	
+	if [ ! -d "/etc/bash_completion.d" ]; then
+		mkdir -vp /etc/bash_completion.d
+	fi
 
 	cp -v "$SPATH/pihole-updatelists.bash" /etc/bash_completion.d/pihole-updatelists
 
@@ -114,6 +118,10 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 	if [ "$SYSTEMD" == 1 ]; then
 		wget -nv -O /etc/systemd/system/pihole-updatelists.service "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.service"
 		wget -nv -O /etc/systemd/system/pihole-updatelists.timer "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.timer"
+	fi
+
+	if [ ! -d "/etc/bash_completion.d" ]; then
+		mkdir -vp /etc/bash_completion.d
 	fi
 
 	wget -nv -O /etc/bash_completion.d/pihole-updatelists "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.bash"
