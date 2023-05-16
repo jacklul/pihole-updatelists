@@ -1024,6 +1024,7 @@ function loadConfig(array $options = [])
         'CONFIG_FILE'             => '/etc/pihole-updatelists.conf',
         'GRAVITY_DB'              => '/etc/pihole/gravity.db',
         'LOCK_FILE'               => '/var/lock/pihole-updatelists.lock',
+        'PIHOLE_CMD'              => '/usr/local/bin/pihole',
         'LOG_FILE'                => '',
         'ADLISTS_URL'             => '',
         'WHITELIST_URL'           => '',
@@ -1120,6 +1121,7 @@ function loadConfigFromEnvironment(array $config)
         'CONFIG_FILE',
         'GRAVITY_DB',
         'LOCK_FILE',
+        'PIHOLE_CMD',
         'LOG_FILE',
         'VERBOSE',
         'DEBUG',
@@ -2639,7 +2641,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
         printAndLog('Closed database handles.' . PHP_EOL, 'DEBUG');
     }
 
-    $command = '/usr/local/bin/pihole updateGravity';
+    $command = $config['PIHOLE_CMD'] . ' updateGravity';
     printAndLog('Updating Pi-hole\'s gravity using command \'' . $command . '\'...' . PHP_EOL);
 
     passthru($command, $return);
@@ -2653,7 +2655,7 @@ if ($config['UPDATE_GRAVITY'] === true) {
 
     print PHP_EOL;
 } elseif ($config['UPDATE_GRAVITY'] === false) {
-    $command = '/usr/local/bin/pihole restartdns reload-lists';
+    $command = $config['PIHOLE_CMD'] . ' restartdns reload-lists';
     printAndLog('Reloading Pi-hole\'s lists using command \'' . $command . '\'...');
 
     system($command, $return);
