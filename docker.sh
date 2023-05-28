@@ -14,12 +14,13 @@ fi
 
 # Recreate the config file if it is missing
 if [ ! -f "/etc/pihole-updatelists/pihole-updatelists.conf" ]; then
-	cp -v /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
+	cp /etc/pihole-updatelists.conf /etc/pihole-updatelists/pihole-updatelists.conf
+	echo "Created /etc/pihole-updatelists/pihole-updatelists.conf"
 fi
 
 # Fix permissions (when config directory is mounted as a volume)
-chown -v root:root /etc/pihole-updatelists/*
-chmod -v 644 /etc/pihole-updatelists/*
+chown root:root /etc/pihole-updatelists/*
+chmod 644 /etc/pihole-updatelists/*
 
 if [ -n "$SKIPGRAVITYONBOOT" ]; then
 	echo "Lists update skipped - SKIPGRAVITYONBOOT=true"
