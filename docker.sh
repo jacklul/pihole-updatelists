@@ -22,6 +22,16 @@ fi
 chown root:root /etc/pihole-updatelists/*
 chmod 644 /etc/pihole-updatelists/*
 
+# Disable default gravity update schedule
+if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ]; then
+	sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
+	echo "Disabled default gravity update schedule in \"/etc/cron.d/pihole\""
+fi
+
+# Create new schedule with random time
+echo "#30 3 * * 6   root   /usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf" > /etc/cron.d/pihole-updatelists
+sed "s/#30 /$((1 + RANDOM % 58)) /" -i /etc/cron.d/pihole-updatelists
+
 if [ -n "$SKIPGRAVITYONBOOT" ]; then
 	echo "Lists update skipped - SKIPGRAVITYONBOOT=true"
 else

@@ -181,14 +181,6 @@ if [ "$DOCKER" == 1 ]; then
 	echo "background { bash -ec \"/usr/local/bin/_updatelists.sh && /usr/local/bin/_postFTL.sh\" }" >> /etc/s6-overlay/s6-rc.d/_postFTL/up
 	echo "Modified \"/etc/s6-overlay/s6-rc.d/_postFTL/up\" to launch pihole-updatelists first!"
 
-	sed "s_/usr/local/sbin/pihole-updatelists_/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf_" -i /etc/cron.d/pihole-updatelists
-	echo "Updated crontab command line in \"/etc/cron.d/pihole-updatelists\"!"
-
-	if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ]; then
-		sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
-		echo "Disabled default gravity update schedule in \"/etc/cron.d/pihole\""
-	fi
-
 	echo "alias pihole-updatelists='/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env'" >> /root/.bashrc
 	echo "Created alias for pihole-updatelists command in \"/root/.bashrc\""
 fi
