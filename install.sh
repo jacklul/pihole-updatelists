@@ -179,8 +179,8 @@ if [ "$DOCKER" == 1 ]; then
 
 	echo "#!/command/execlineb" > /etc/s6-overlay/s6-rc.d/_postFTL/up
 	echo "background { bash -ec \"/usr/local/bin/_updatelists.sh && /usr/local/bin/_postFTL.sh\" }" >> /etc/s6-overlay/s6-rc.d/_postFTL/up
-	echo "Modified \"/etc/s6-overlay/s6-rc.d/_postFTL/up\" to launch pihole-updatelists first!"
+	echo "Modified /etc/s6-overlay/s6-rc.d/_postFTL/up to launch pihole-updatelists first!"
 
 	echo "alias pihole-updatelists='/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env'" >> /root/.bashrc
-	echo "Created alias for pihole-updatelists command in \"/root/.bashrc\""
+	echo "Created alias for pihole-updatelists command in /root/.bashrc"
 fi
