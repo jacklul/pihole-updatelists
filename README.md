@@ -8,7 +8,7 @@ __If you're not using remote lists like the ones mentioned above then this scrip
 
 ## Requirements
 
-- **Pi-hole v5+** installed (fresh install preferred)
+- **Pi-hole V5** installed (fresh install preferred)
 - **php-cli >=7.0** and **a few extensions** (`sudo apt-get install php-cli php-sqlite3 php-intl php-curl`)
 - **systemd** is optional but recommended
 
