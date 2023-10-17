@@ -97,7 +97,7 @@ if \
 	cp -v "$SPATH/pihole-updatelists.bash" /etc/bash_completion.d/pihole-updatelists
 
 	# Convert line endings when dos2unix command is available
-	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
+	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists /etc/bash_completion.d/pihole-updatelists
 elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 	if [ ! -d "/usr/local/sbin" ]; then
 		mkdir -vp /usr/local/sbin && chmod -v 0755 /usr/local/sbin
