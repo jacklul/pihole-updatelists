@@ -2226,7 +2226,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
         $result = array_filter(
             $domainsAll,
             static function ($array) use ($domain, $type) {
-                return isset($array['domain']) && $array['domain'] === $domain && $array['type'] === $type;
+                return isset($array['domain']) && $array['domain'] === $domain && (int)$array['type'] === (int)$type;
             }
         );
 
