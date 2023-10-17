@@ -2221,12 +2221,12 @@ foreach ($configSections as $configSectionName => $configSectionData) {
     // Instead of calling this function multiple times later we save the result here...
     $canConvertIdn = extension_loaded('intl');
 
-    // Helper function to check whenever domain already exists
-    $checkDomainExists = static function ($domain) use (&$domainsAll) {
+    // Helper function to check whenever domain with specific type already exists
+    $checkDomainExists = static function ($domain, $type) use (&$domainsAll) {
         $result = array_filter(
             $domainsAll,
-            static function ($array) use ($domain) {
-                return isset($array['domain']) && $array['domain'] === $domain;
+            static function ($array) use ($domain, $type) {
+                return isset($array['domain']) && $array['domain'] === $domain && $array['type'] === $type;
             }
         );
 
@@ -2432,7 +2432,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         }
                     }
 
-                    $domainlistDomain = $checkDomainExists($domain);
+                    $domainlistDomain = $checkDomainExists($domain, $typeId);
                     if ($domainlistDomain === false) {
                         // Add entry if it doesn't exist
                         $sth = $dbh->prepare('INSERT INTO `domainlist` (domain, type, enabled, comment) VALUES (:domain, :type, 1, :comment)');
@@ -2502,7 +2502,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                                 $config['VERBOSE'] === true && printAndLog('Enabled: ' . $domain . PHP_EOL);
                                 incrementStat('enabled');
                             }
-                        } elseif ($domainlistDomain['type'] !== $typeId) {
+                        } elseif ($domainlistDomain['type'] !== $typeId) { // After adding 'type' to $checkDomainExists this should never be reached
                             $existsOnList = (array_search($domainlistDomain['type'], $domainListTypes, true) ?: 'type=' . $domainlistDomain['type']);
 
                             if ($config['VERBOSE'] === true) {
