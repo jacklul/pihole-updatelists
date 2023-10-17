@@ -66,6 +66,10 @@ if \
 	[ -f "$SPATH/pihole-updatelists.timer" ] && \
 	[ -f "$SPATH/pihole-updatelists.bash" ] \
 ; then
+	if [ ! -d "/usr/local/sbin" ]; then
+		mkdir -vp /usr/local/sbin && chmod -v 0755 /usr/local/sbin
+	fi
+
 	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
 		if ! cmp -s "$SPATH/pihole-updatelists.php" "/usr/local/sbin/pihole-updatelists"; then
 			echo "Backing up previous version..."
@@ -95,6 +99,10 @@ if \
 	# Convert line endings when dos2unix command is available
 	command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/sbin/pihole-updatelists
 elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
+	if [ ! -d "/usr/local/sbin" ]; then
+		mkdir -vp /usr/local/sbin && chmod -v 0755 /usr/local/sbin
+	fi
+	
 	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
 		wget -nv -O /tmp/pihole-updatelists.php "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php"
 
