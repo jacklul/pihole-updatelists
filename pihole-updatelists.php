@@ -1035,6 +1035,7 @@ function loadConfig(array $options = [])
         'GROUP_ID'                => 0,
         'PERSISTENT_GROUP'        => true,
         'REQUIRE_COMMENT'         => true,
+        'MIGRATION_MODE'          => 1,
         'UPDATE_GRAVITY'          => true,
         'VERBOSE'                 => false,
         'DEBUG'                   => false,
@@ -2074,7 +2075,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         // Migration in this context means replacing comment field if current one is also managed by the script
                         $canBeMigrated = false;
 
-                        if ($adlistUrl['enabled'] === false) {
+                        if ((int)$config['MIGRATION_MODE'] > 0 && $adlistUrl['enabled'] === false) {
                             foreach ($configSections as $testConfigSectionName => $testConfigSectionData) {
                                 if (checkIfTouchable($adlistUrl, $testConfigSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
                                     $canBeMigrated = true;
@@ -2083,7 +2084,13 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                             }
 
                             if ($canBeMigrated) {
-                                $newComment = str_replace($testConfigSectionData['COMMENT'], $configSectionData['COMMENT'], $adlistUrl['comment']);
+                                if ((int)$config['MIGRATION_MODE'] === 1) {
+                                    $newComment = str_replace($testConfigSectionData['COMMENT'], $configSectionData['COMMENT'], $adlistUrl['comment']);
+                                } elseif ((int)$config['MIGRATION_MODE'] === 2) {
+                                    $newComment = $adlistUrl['comment'] . ' | ' . $configSectionData['COMMENT'];
+                                } else {
+                                    throw new RuntimeException('Invalid migration mode specified');
+                                }
 
                                 $sth = $dbh->prepare('UPDATE `adlist` SET `enabled` = 1, `comment` = :comment WHERE `id` = :id');
                                 $sth->bindParam(':id', $adlistUrl['id'], PDO::PARAM_INT);
@@ -2395,7 +2402,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         }
 
                         if ($removed > 0) {
-                            $config['VERBOSE'] === true && printAndLog('Disabled: ' . $address . PHP_EOL);
+                            $config['VERBOSE'] === true && printAndLog('Disabled: ' . $domain . PHP_EOL);
                             incrementStat('disabled');
                         }
                     }
@@ -2519,7 +2526,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                             // Migration in this context means replacing comment field if current one is also managed by the script
                             $canBeMigrated = false;
 
-                            if ($domainlistDomain['enabled'] === false) {
+                            if ((int)$config['MIGRATION_MODE'] > 0 && $domainlistDomain['enabled'] === false) {
                                 foreach ($configSections as $testConfigSectionName => $testConfigSectionData) {
                                     if (checkIfTouchable($domainlistDomain, $testConfigSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
                                         $canBeMigrated = true;
@@ -2528,8 +2535,14 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                                 }
 
                                 if ($canBeMigrated) {
-                                    $newComment = str_replace($testConfigSectionData['COMMENT'], $configSectionData['COMMENT'], $domainlistDomain['comment']);
-
+                                    if ((int)$config['MIGRATION_MODE'] === 1) {
+                                        $newComment = str_replace($testConfigSectionData['COMMENT'], $configSectionData['COMMENT'], $domainlistDomain['comment']);
+                                    } elseif ((int)$config['MIGRATION_MODE'] === 2) {
+                                        $newComment = $domainlistDomain['comment'] . ' | ' . $configSectionData['COMMENT'];
+                                    } else {
+                                        throw new RuntimeException('Invalid migration mode specified');
+                                    }
+                                    
                                     $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 1, `comment` = :comment WHERE `id` = :id');
                                     $sth->bindParam(':id', $domainlistDomain['id'], PDO::PARAM_INT);
                                     $sth->bindParam(':comment', $newComment, PDO::PARAM_STR);
@@ -2549,10 +2562,10 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                                             unset($domainsGroupsAll[$domainlistDomain['id']][$key]);
                                         }
 
-                                        $config['VERBOSE'] === true && printAndLog('Migrated: ' . $address . PHP_EOL);
+                                        $config['VERBOSE'] === true && printAndLog('Migrated: ' . $domain . PHP_EOL);
                                         incrementStat('migrated');
                                     } else {
-                                        printAndLog('Failed to migrate: ' . $address . PHP_EOL);
+                                        printAndLog('Failed to migrate: ' . $domain . PHP_EOL);
                                         incrementStat('errors');
                                     }
                                 }
