@@ -209,6 +209,8 @@ You can specify alternative config file by passing the path to the script throug
 
 **A more advanced way is to use sections in the configuration file:**
 
+_**Warning: this method can sometimes be buggy or have weird behaviors!**_
+
 ```
 (bottom of the file)
 
