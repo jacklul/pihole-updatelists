@@ -1906,7 +1906,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
             }
 
             // Pull entries assigned to this group ID
-            $sth = $dbh->prepare('SELECT * FROM `adlist` LEFT JOIN `adlist_by_group` ON `adlist`.`id` = `adlist_by_group`.`adlist_id` WHERE `adlist`.`enabled` = 1 AND `adlist_by_group`.`group_id` = :group_id');
+            /*$sth = $dbh->prepare('SELECT * FROM `adlist` LEFT JOIN `adlist_by_group` ON `adlist`.`id` = `adlist_by_group`.`adlist_id` WHERE `adlist`.`enabled` = 1 AND `adlist_by_group`.`group_id` = :group_id');
             $sth->bindValue(':group_id', $absoluteGroupId, PDO::PARAM_INT);
 
             if ($sth->execute()) {
@@ -1915,7 +1915,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         $enabledLists[$adlist['id']] = $adlist['address'];
                     }
                 }
-            }
+            }*/
 
             // Entries that no longer exist in remote list
             $removedLists = array_diff($enabledLists, $adlists);
@@ -2326,7 +2326,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                 }
 
                 // Pull entries assigned to this group ID
-                $sth = $dbh->prepare('SELECT * FROM `domainlist` LEFT JOIN `domainlist_by_group` ON `domainlist`.`id` = `domainlist_by_group`.`domainlist_id` WHERE `domainlist`.`enabled` = 1 AND `domainlist`.`type` = :type AND `domainlist_by_group`.`group_id` = :group_id');
+                /*$sth = $dbh->prepare('SELECT * FROM `domainlist` LEFT JOIN `domainlist_by_group` ON `domainlist`.`id` = `domainlist_by_group`.`domainlist_id` WHERE `domainlist`.`enabled` = 1 AND `domainlist`.`type` = :type AND `domainlist_by_group`.`group_id` = :group_id');
 
                 $sth->bindParam(':type', $typeId, PDO::PARAM_INT);
                 $sth->bindValue(':group_id', $absoluteGroupId, PDO::PARAM_INT);
@@ -2337,7 +2337,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                             $enabledDomains[$domain['id']] = $domain['domain'];
                         }
                     }
-                }
+                }*/
 
                 // Process internationalized domains
                 foreach ($domainlist as &$domain) {
