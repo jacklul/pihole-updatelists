@@ -178,7 +178,8 @@ sudo nano /etc/pihole-updatelists.conf
 | GROUP_ID | 0 | Assign additional group to all inserted entries, to assign only the specified group (do not add to the default) make the number negative <br>`0` is the default group, you can view ID of the group in Pi-hole's web interface by hovering mouse cursor over group name field on the 'Group management' page <br>**Multiple groups are not supported** |
 | PERSISTENT_GROUP | true | Makes sure entries have the specified group assigned on each script run <br>This does not prevent you from assigning more groups through the web interface but can remove entries from the default group if GROUP_ID is a negative number <br>**When disabled but an entry has no groups assigned and is about to be enabled then it will be re-added to the groups it's supposed to be in** <br>**WARNING: This option might be buggy when running multiple different configurations with same lists** |
 | REQUIRE_COMMENT | true | Prevent touching entries not created by this script by comparing comment field <br>When `false` any user-created entry will be disabled, only those created by the script will be active |
-| MIGRATION_MODE | 1 | Decides how to migrate disabled entries from another config sections<br>1 - replace comment field<br>2 - append to comment field<br>0 - disables migration, entry will be ignored
+| MIGRATION_MODE | 1 | Decides how to migrate disabled entries from another config sections <br>1 - replace comment field <br>2 - append to comment field <br>0 - disables migration, entry will be ignored
+| GROUP_EXCLUSIVE | false | Causes defined group in `GROUP_ID` to contain one defined list exclusively - only entries from the last list inserted will be enabled <br>**This option is experimental**
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
 | VERBOSE | false | Show more information while the script is running |
 | DEBUG | false | Show debug messages for troubleshooting purposes <br>**If you're having issues - this might help tracking it down** |
@@ -250,7 +251,7 @@ Main configuration (the one without section header) is processed first, then the
 
 **IMPORTANT:** You can only use selected variables in sections:
 ```
-ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, IGNORE_DOWNLOAD_FAILURE
+ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, GROUP_EXCLUSIVE, IGNORE_DOWNLOAD_FAILURE
 ```
 
 ### Multiple list URLs
