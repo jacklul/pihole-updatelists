@@ -97,9 +97,6 @@ Follow the [official instructions](https://hub.docker.com/r/pihole/pihole/) but 
 
 If you need to pull a specific version of Pi-hole image you have no other choice but to use [custom Dockerfile](#using-official-image).
 
-**Please note that if you're setting this up for the first time (`gravity.db` is missing) you will have to restart the container after initial launch is complete, otherwise you will have to wait for the scheduled run to fetch the lists.**
-_You could also execute `/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf` in the container instead if you prefer to not restart the container._
-
 ### Using custom image
 
 Use [`jacklul/pihole:latest`](https://hub.docker.com/r/jacklul/pihole) image instead of `pihole/pihole:latest`. [Version-specific tags](https://hub.docker.com/r/jacklul/pihole/tags) are also available but keep in mind they will contain version of the script that was available at the time of that particular version.
@@ -155,7 +152,6 @@ _(for more up to date `docker-compose.yml` see [pi-hole/docker-pi-hole](https://
 
 If you already have existing `gravity.db` you should also check out [Migrating lists and domains](#migrating-lists-and-domains) section, keep in mind that you will have to adjust paths in the commands mentioned there.
 
-If you do not have existing `gravity.db` then first boot will not run `pihole-updatelists`, restart the container for it to run!
 
 ## Configuration
 
@@ -183,7 +179,7 @@ sudo nano /etc/pihole-updatelists.conf
 | UPDATE_GRAVITY | true | Update gravity after lists are updated? (runs `pihole updateGravity`) <br>When `false` invokes lists reload instead <br>Set to `null` to do nothing |
 | VERBOSE | false | Show more information while the script is running |
 | DEBUG | false | Show debug messages for troubleshooting purposes <br>**If you're having issues - this might help tracking it down** |
-| DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout | 
+| DOWNLOAD_TIMEOUT | 60 | Maximum time in seconds one list download can take before giving up <br>You should increase this when downloads fail because of timeout |
 | IGNORE_DOWNLOAD_FAILURE | false | Ignore download failures when using multiple lists <br> **This will cause entries from the lists that failed to download to be disabled** |
 | GRAVITY_DB | "/etc/pihole/gravity.db" | Path to `gravity.db` in case you need to change it |
 | LOCK_FILE | "/var/lock/pihole-updatelists.lock" | Process lockfile to prevent multiple instances of the script from running <br>**You shouldn't change it - unless `/var/lock` is unavailable** |
@@ -299,7 +295,7 @@ These can be used when executing `pihole-updatelists`.
 ### Changing the schedule
 
 By default, the script runs at random time (between 03:00 and 04:00) on Saturday, to change it you'll have to override [timer unit](https://www.freedesktop.org/software/systemd/man/systemd.timer.html) file:
- 
+
 ```bash
 sudo systemctl edit pihole-updatelists.timer
 ```
