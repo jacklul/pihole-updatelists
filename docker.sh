@@ -38,12 +38,32 @@ else
 	if [ ! -f "/etc/pihole/gravity.db" ]; then
 		echo "Gravity database not found - running 'pihole -g' command..."
 		pihole -g
+	else
+		if [ -z "$PHUL_SKIPDNSCHECK" ]; then
+			[ -n "$PHUL_DNSCHECK_DOMAIN" ] && _DNSCHECK_DOMAIN="$PHUL_DNSCHECK_DOMAIN" || _DNSCHECK_DOMAIN="pi-hole.net"
+			[ -n "$PHUL_DNSCHECK_TIMELIMIT" ] && _DNSCHECK_TIMELIMIT="$PHUL_DNSCHECK_TIMELIMIT" || _DNSCHECK_TIMELIMIT=300
+
+			_DNSCHECK_COUNTER=0
+			while [ -z "$_DNSCHECK_IP" ] && [ "$_DNSCHECK_COUNTER" -lt "$_DNSCHECK_TIMELIMIT" ]; do
+				_DNSCHECK_IP="$(nslookup "$_DNSCHECK_DOMAIN" | awk '/^Address: / { print $2 }')"
+
+				if [ -z "$_DNSCHECK_IP" ]; then
+					[ "$_DNSCHECK_COUNTER" = 0 ] && echo "Waiting for DNS resolution to be available..."
+
+					sleep 1
+				fi
+
+				((_DNSCHECK_COUNTER++))
+			done
+
+			[ -z "$_DNSCHECK_IP" ] && echo "Timed out while waiting for DNS resolution to be available"
+		fi
 	fi
 
-	if [ -z "$(printenv PHUL_LOG_FILE)" ]; then
+	if [ -z "$PHUL_LOG_FILE" ]; then
 		export PHUL_LOG_FILE="-/var/log/pihole-updatelists-boot.log"
 	fi
 
 	# shellcheck disable=SC2086
-	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env --no-gravity --no-reload ${SCRIPT_ARGS}
+	/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env --no-gravity --no-reload $SCRIPT_ARGS
 fi

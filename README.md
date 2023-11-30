@@ -152,6 +152,9 @@ _(for more up to date `docker-compose.yml` see [pi-hole/docker-pi-hole](https://
 
 If you already have existing `gravity.db` you should also check out [Migrating lists and domains](#migrating-lists-and-domains) section, keep in mind that you will have to adjust paths in the commands mentioned there.
 
+Docker start script uses these extra environment variables:
+- `PHUL_DNSCHECK_DOMAIN` - the domain to `nslookup` to check whenever DNS resolution is available (`pi.hole` by default)
+- `PHUL_DNSCHECK_TIMELIMIT` - maximum time to wait for the DNS resolution to become available (`300` seconds by default)
 
 ## Configuration
 
