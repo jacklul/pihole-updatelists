@@ -229,7 +229,7 @@ function requireRoot()
             $isRoot = shell_exec('whoami') === 'root';
         }
     }
-    
+
     if (!$isRoot && strpos(basename($_SERVER['argv'][0]), '.php') === false) {
         print 'root privileges required' . PHP_EOL;
         exit(1);
@@ -867,7 +867,7 @@ function updateScript(array $options = [], array $config = [])
 
         if (isset($options['yes']) || isset($options['force']) || expectUserInput('Update now? [Y/N]', ['y', 'yes'])) {
             $script_md5 = md5_file(__FILE__);
-            
+
             print 'Downloading and running install script from "' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh"...' . PHP_EOL . PHP_EOL;
             passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash /dev/stdin ' . $branch, $return);
 
@@ -1114,7 +1114,7 @@ function loadConfig(array $options = [])
  * Load supported environment config variables
  *
  * @param array $config
- * 
+ *
  * @return array
  */
 function loadConfigFromEnvironment(array $config)
@@ -1516,7 +1516,7 @@ function textToArray($text)
 /**
  * Checks if a given entry is a single adlist by checking if the first entry in the given $content is a domain
  * instead of an URL
- * 
+ *
  * @param string $content
  *
  * @return boolean
@@ -1526,7 +1526,7 @@ function isSingleAdlist($content) {
 
     if (!empty($list)) {
         $row_content = explode(' ', $list[0]);
-        
+
         return filter_var($row_content[sizeof($row_content) - 1], FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME);
     }
 
@@ -1936,7 +1936,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         $foreignGroups[] = $groupId;
                     }
                 }
-    
+
                 if (checkIfTouchable($adlistsAll[$id], $configSectionData['COMMENT'], $config['REQUIRE_COMMENT'])) {
                     $removed = 0;
 
@@ -1963,7 +1963,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         incrementStat('disabled');
                     }
                 }
-                
+
                 // Disable entry when it's touchable and no user groups are assigned
                 if (count($foreignGroups) === 0) {
                     foreach ($configSections as $testConfigSectionName => $testConfigSectionData) {
@@ -2493,7 +2493,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                         $isTouchable                 = checkIfTouchable($domainlistDomain, $configSectionData['COMMENT'], $config['REQUIRE_COMMENT']);
                         $domainlistDomain['enabled'] = (bool) $domainlistDomain['enabled'] === true;
                         $domainlistDomain['type']    = (int) $domainlistDomain['type'];
-                        
+
                         // Check if entry has any groups assigned
                         $hasGroups = true;
                         if ($configSectionData['PERSISTENT_GROUP'] === false) {
@@ -2548,7 +2548,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                                     } else {
                                         throw new RuntimeException('Invalid migration mode specified');
                                     }
-                                    
+
                                     $sth = $dbh->prepare('UPDATE `domainlist` SET `enabled` = 1, `comment` = :comment WHERE `id` = :id');
                                     $sth->bindParam(':id', $domainlistDomain['id'], PDO::PARAM_INT);
                                     $sth->bindParam(':comment', $newComment, PDO::PARAM_STR);
