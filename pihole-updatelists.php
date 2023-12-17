@@ -2568,6 +2568,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                                             unset($domainsGroupsAll[$domainlistDomain['id']][$key]);
                                         }
 
+                                        $isTouchable = true;
                                         $config['VERBOSE'] === true && printAndLog('Migrated: ' . $domain . PHP_EOL);
                                         incrementStat('migrated');
                                     } else {
@@ -2583,7 +2584,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
                             }
                         }
 
-                        if ($configSectionData['PERSISTENT_GROUP'] === true || $hasGroups === false) {
+                        if ($isTouchable === true && ($configSectionData['PERSISTENT_GROUP'] === true || $hasGroups === false)) {
                             // (Re)Add to the specified group when not added
                             if (
                                 $absoluteGroupId > 0 &&
