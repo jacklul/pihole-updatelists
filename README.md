@@ -4,7 +4,8 @@ When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=t
 
 User-created entries will not be touched and those removed from the remote list will be disabled instead.
 
-__If you're not using remote lists like the ones mentioned above then this script will be useless to you - Pi-hole already updates the lists weekly automatically.__
+> [!WARNING]
+> If you're not using remote lists like the ones mentioned above then this script will be useless to you - Pi-hole already updates the lists weekly automatically.
 
 ## Requirements
 
@@ -14,7 +15,8 @@ __If you're not using remote lists like the ones mentioned above then this scrip
 
 ## Install
 
-_Docker users - [look below](#install-with-docker)._
+> [!NOTE]
+> Docker users - [look below](#install-with-docker).
 
 This command will install this script to `/usr/local/sbin`:
 
@@ -26,17 +28,21 @@ _Alternatively you can clone this repo and `sudo bash install.sh`._
 
 If **systemd** is available this script will also add service and timer unit files to the system, otherwise a crontab entry in `/etc/cron.d/pihole-updatelists` will be created.
 
-If for some reasons the install script does not copy service and timer files while your distro has systemd scheduler available you can force the installation by passing `systemd` as a parameter to the install script - modifying the install command above with `sudo bash -s systemd` instead.
+> [!NOTE]
+> If for some reason the install script does not copy service and timer files while your distro has systemd scheduler available you can force the installation by passing `systemd` as a parameter to the install script - modifying the install command above with `sudo bash -s systemd` instead.
 
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
-__This script does nothing by default (except running `pihole updateGravity`), you have to [configure it](#configuration).__
+> [!IMPORTANT]
+>__This script does nothing by default (except running `pihole updateGravity`), - you have to [configure it](#configuration).__
 
-**You can quickly update the script with `sudo pihole-updatelists --update` which checks for script difference and re-runs the install script when needed.**
+> [!TIP]
+> To quickly update the script run `sudo pihole-updatelists --update` which will check for script differences and re-run the install script when needed.
 
 ### Disable default gravity update schedule
 
-_If you don't plan on updating adlists or want to keep Pi-hole's gravity update schedule you should skip this section and set `UPDATE_GRAVITY=false` in the configuration file._
+> [!TIP]
+> If you don't plan on updating adlists or want to keep Pi-hole's gravity update schedule you should skip this section and set `UPDATE_GRAVITY=false` in the configuration file.
 
 You should disable entry with `pihole updateGravity` command in `/etc/cron.d/pihole` as this script already runs it:
 
@@ -52,17 +58,18 @@ Alternatively, the following `sed` command will disable the same entry:
 sudo sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
 ```
 
-**You might have to do this after each Pi-hole update.**
+**You might have to do this manually after each Pi-hole update.**
 
-You can override `pihole-FTL.service` to disable the cron entry automatically after each update:
-
-```bash
-sudo systemctl edit pihole-FTL.service
-```
-```
-[Service]
-ExecStartPre=-/bin/sh -c "[ -w /etc/cron.d/pihole ] && /bin/sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole"
-```
+> [!TIP]
+> You can override `pihole-FTL.service` to disable the cron entry automatically after each update:
+> 
+> ```bash
+> sudo systemctl edit pihole-FTL.service
+> ```
+> ```
+> [Service]
+> ExecStartPre=-/bin/sh -c "[ -w /etc/cron.d/pihole ] && /bin/sed -e '/pihole > updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole"
+> ```
 
 ### Migrating lists and domains
 
@@ -81,12 +88,9 @@ Alternatively, some manual work is required - pick one:
 - Manually delete all imported domains/adlists from the web interface (might be a lot of work)
 - Wipe all adlists and domains (not recommended but fast - use this if you want to start fresh)
   - backup your lists and custom entries (write them down somewhere, do not use the Teleporter)
-  - run the following commands:
+  - run the following command:
 	```bash
-	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM adlist"
-	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM adlist_by_group"
-	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist"
-	sudo sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist_by_group"
+	sudo pihole -g -r recreate
 	```
   - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
   - (only when `UPDATE_GRAVITY=false`) run `pihole updateGravity`
@@ -190,18 +194,21 @@ sudo nano /etc/pihole-updatelists.conf
 | PIHOLE_CMD | "/usr/local/bin/pihole" | Path to `pihole` script, <br>Change this only if it isn't in the default location |
 | GIT_BRANCH | "master" | Branch to pull remote checksum and update from |
 
-String values should be put between `" "`, otherwise weird things might happen.
+> [!NOTE]
+> String values should be put between `" "`, otherwise weird things might happen.
 
-You can also give paths to the local files instead of URLs, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
+> [!TIP]
+> You can also give paths to the local files instead of URLs, for example setting `WHITELIST_URL` to `/home/pi/whitelist.txt` will fetch this file from filesystem.
 
 ### Environment variables
 
 It is also possible to load configuration variables from the environment by using `--env` parameter - this will overwrite values in default section of the config file.
 
-**Some variables will have to be prefixed with `PHUL_` for compatibility:**
-```
-CONFIG_FILE, GRAVITY_DB, LOCK_FILE, PIHOLE_CMD, LOG_FILE, VERBOSE, DEBUG, GIT_BRANCH
-```
+> [!IMPORTANT]
+> Some variables will have to be prefixed with `PHUL_` for compatibility:
+> ```
+> CONFIG_FILE, GRAVITY_DB, LOCK_FILE, PIHOLE_CMD, LOG_FILE, VERBOSE, DEBUG, > GIT_BRANCH
+> ```
 
 ### Multiple configurations
 
@@ -209,7 +216,8 @@ You can specify alternative config file by passing the path to the script throug
 
 **A more advanced way is to use sections in the configuration file:**
 
-_**Warning: this method can sometimes be buggy or have weird behaviors!**_
+> [!WARNING]
+> This method can sometimes be buggy or have weird behaviors when using lists that have shared entries!
 
 ```
 (bottom of the file)
@@ -244,14 +252,16 @@ GROUP_ID=-2
 COMMENT="pihole-updatelists - firebog (nocross)"
 ```
 
-**You will want to have a different `COMMENT` value in each section, they have to be unique and one must not match the other!**
+> [!IMPORTANT]
+> You will want to have a different `COMMENT` value in each section, they have to be unique and one must not match the other!
 
 Main configuration (the one without section header) is processed first, then the sections in the order of their appearance.
 
-**IMPORTANT:** You can only use selected variables in sections:
-```
-ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, GROUP_EXCLUSIVE, IGNORE_DOWNLOAD_FAILURE
-```
+> [!IMPORTANT]
+> You can only use selected variables in sections:
+> ```
+> ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, > REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, GROUP_EXCLUSIVE, > IGNORE_DOWNLOAD_FAILURE
+> ```
 
 ### Multiple list URLs
 
@@ -335,7 +345,8 @@ If systemd is not available you just modify the crontab entry in `/etc/cron.d/pi
 30 3 * * 6   root   /home/pi/before.sh && /usr/local/sbin/pihole-updatelists && /home/pi/after.sh
 ```
 
-_You can use `;` instead of `&&` if you don't want the execution to stop on previous command failure._
+> [!TIP]
+> You can use `;` instead of `&&` if you don't want the execution to stop on previous command failure.
 
 ### Changing comment value after running the script
 
