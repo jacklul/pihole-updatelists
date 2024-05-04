@@ -18,14 +18,14 @@ SYSTEMD_INSTALLED=$([ -f "/etc/systemd/system/pihole-updatelists.timer" ] && ech
 DOCKER=$([ "$(grep "docker" < /proc/1/cgroup)" == "" ] && echo "0" || echo "1") # Is this a Docker installation?
 
 if [ "$1" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
-	rm -v /usr/local/sbin/pihole-updatelists
-	rm -v /etc/bash_completion.d/pihole-updatelists
+	rm -vf /usr/local/sbin/pihole-updatelists
+	rm -vf /etc/bash_completion.d/pihole-updatelists
 	rm -vf /etc/cron.d/pihole-updatelists
 	rm -vf /etc/systemd/system/pihole-updatelists.service
 	rm -vf /etc/systemd/system/pihole-updatelists.timer
-	
+
 	if [ -f "/var/tmp/pihole-updatelists.old" ]; then
-		rm -v /var/tmp/pihole-updatelists.old
+		rm -vf /var/tmp/pihole-updatelists.old
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
@@ -80,7 +80,7 @@ if \
 
 	cp -v "$SPATH/pihole-updatelists.php" /usr/local/sbin/pihole-updatelists && \
 	chmod -v +x /usr/local/sbin/pihole-updatelists
-	
+
 	if [ ! -f "/etc/pihole-updatelists.conf" ]; then
 		cp -v "$SPATH/pihole-updatelists.conf" /etc/pihole-updatelists.conf
 	fi
@@ -89,7 +89,7 @@ if \
 		cp -v "$SPATH/pihole-updatelists.service" /etc/systemd/system
 		cp -v "$SPATH/pihole-updatelists.timer" /etc/systemd/system
 	fi
-	
+
 	if [ ! -d "/etc/bash_completion.d" ]; then
 		mkdir -vp /etc/bash_completion.d
 	fi
@@ -102,7 +102,7 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 	if [ ! -d "/usr/local/sbin" ]; then
 		mkdir -vp /usr/local/sbin && chmod -v 0755 /usr/local/sbin
 	fi
-	
+
 	if [ -f "/usr/local/sbin/pihole-updatelists" ]; then
 		wget -nv -O /tmp/pihole-updatelists.php "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php"
 
@@ -172,9 +172,9 @@ fi
 if [ "$DOCKER" == 1 ]; then
 	[ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ] && { echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL directory!"; exit 1; }
 	[ ! -f "/usr/local/bin/_postFTL.sh" ] && { echo "Missing /usr/local/bin/_postFTL.sh file!"; exit 1; }
-	
+
 	mkdir -v /etc/pihole-updatelists
-	
+
 	if [ -f "$SPATH/docker.sh" ]; then
 		cp -v "$SPATH/docker.sh" /usr/local/bin/_updatelists.sh
 	elif [ "$REMOTE_URL" != "" ]; then

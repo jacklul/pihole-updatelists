@@ -4,7 +4,7 @@
 _pihole_updatelists()
 {
     local cur prev opts
-	
+
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -44,7 +44,7 @@ _pihole_updatelists()
     if [[ ${#COMPREPLY[@]} == 1 && ${COMPREPLY[0]} != "--"*"=" ]] ; then
         compopt +o nospace
     fi
-	
+
     return 0
 }
 
