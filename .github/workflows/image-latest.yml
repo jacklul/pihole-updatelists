@@ -58,11 +58,14 @@ jobs:
         run: |
           if [ -n "${{ github.event.inputs.tag }}" ]; then
             TAG="${{ github.event.inputs.tag }}"
+            LATEST=${{ github.event.inputs.latest == true && 'yes' || ''}}
           else
             TAG="${{ steps.remote-tag.outputs.release }}"
+            LATEST=yes
           fi
           echo "TAG=$TAG (latest = ${{ github.event.inputs.latest }})"
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "LATEST=$LATEST" >> $GITHUB_OUTPUT
           sed -i "s/:latest/:$TAG/g" Dockerfile
 
       - name: Login to DockerHub
@@ -78,5 +81,5 @@ jobs:
           platforms: linux/amd64,linux/arm64/v8,linux/arm/v6,linux/arm/v7,linux/386
           push: true
           tags: |
-            ${{ github.event.inputs.latest == true && 'jacklul/pihole:latest' || '' }}
+            ${{ steps.latest-tag.outputs.LATEST != '' && 'jacklul/pihole:latest' || '' }}
             jacklul/pihole:${{ steps.latest-tag.outputs.TAG }}
