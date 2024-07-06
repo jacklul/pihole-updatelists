@@ -5,8 +5,17 @@ on:
     branches:
       - 'master'
   schedule:
-      - cron:  '0 * * * *'
+      - cron: '0 0 * * *'
   workflow_dispatch:
+    inputs:
+      tag:
+        required: false
+        type: string 
+        default: ''
+      latest:
+        required: true
+        type: boolean 
+        default: true
 
 jobs:
   check:
@@ -39,11 +48,26 @@ jobs:
 
       - name: Fetch latest release tag
         uses: pozetroninc/github-action-get-latest-release@v0.6.0
-        id: latest-tag
+        id: remote-tag
         with:
           repository: pi-hole/docker-pi-hole
           excludes: prerelease, draft
-          
+
+      - name: Set latest release tag
+        id: latest-tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+            LATEST=${{ github.event.inputs.latest == true && 'yes' || ''}}
+          else
+            TAG="${{ steps.remote-tag.outputs.release }}"
+            LATEST=yes
+          fi
+          echo "TAG=$TAG (latest = ${{ github.event.inputs.latest }})"
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "LATEST=$LATEST" >> $GITHUB_OUTPUT
+          sed -i "s/:latest/:$TAG/g" Dockerfile
+
       - name: Login to DockerHub
         uses: docker/login-action@v1 
         with:
@@ -57,5 +81,5 @@ jobs:
           platforms: linux/amd64,linux/arm64/v8,linux/arm/v6,linux/arm/v7,linux/386
           push: true
           tags: |
-            jacklul/pihole:latest
-            jacklul/pihole:${{ steps.latest-tag.outputs.release }}
+            ${{ steps.latest-tag.outputs.LATEST != '' && 'jacklul/pihole:latest' || '' }}
+            jacklul/pihole:${{ steps.latest-tag.outputs.TAG }}
