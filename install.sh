@@ -24,6 +24,12 @@ BIN_PATH=/usr/local/sbin
 ETC_PATH=/etc
 VAR_TMP_PATH=/var/tmp
 
+# Map old Pi-hole versions to branches
+declare -A OLD_VERSION_BRANCH_MAP=(
+    [5]="pihole-v5"
+    #[6]="pihole-v6"
+)
+
 if [ "$1" == "docker" ]; then # Force Docker install
 	DOCKER=1
 elif [ "$1" == "entware" ]; then # Force Entware install
@@ -81,8 +87,26 @@ command -v $PHP_CMD >/dev/null 2>&1 || { echo "This script requires PHP CLI to r
 [[ $($PHP_CMD -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
 command -v pihole >/dev/null 2>&1 || { echo "'pihole' command not found, is the Pi-hole even installed?"; exit 1; }
 
-if ! pihole version | grep -q "version is v5"; then
-    echo "Unsupported Pi-hole version detected, you're continuing at your own risk."
+PIHOLE_VERSION="$(pihole version | grep -oP "version is v\K[0-9.]" | head -n 1)"
+
+if [[ -n "${OLD_VERSION_BRANCH_MAP[$PIHOLE_VERSION]}" ]]; then
+	NEW_BRANCH="${OLD_VERSION_BRANCH_MAP[$PIHOLE_VERSION]}"
+
+    echo "You are running Pi-hole V$PIHOLE_VERSION which is not supported on this branch."
+    echo "This script can automatically fetch and execute the correct install script from '$NEW_BRANCH' branch."
+
+	#shellcheck disable=SC2162
+    read -p "Do you want to proceed? (y/N): " response
+
+    if [[ $response =~ ^[Yy](es)?$ ]]; then
+        exec wget -O - "$REMOTE_URL/$NEW_BRANCH/install.sh" | bash -s "$NEW_BRANCH"
+    fi
+
+	exit 1
+fi
+
+if [ "$PIHOLE_VERSION" -ne 6 ]; then
+    echo "Unsupported Pi-hole version (V$PIHOLE_VERSION) detected, you're continuing at your own risk."
     read -rp "Press Enter to continue..."
 fi
 

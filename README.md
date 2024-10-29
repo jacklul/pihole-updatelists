@@ -42,7 +42,7 @@ Note that in most cases you will be able to execute this script globally as `pih
 ### Disable default gravity update schedule
 
 > [!TIP]
-> If you don't plan on updating adlists or want to keep Pi-hole's gravity update schedule you should skip this section and set `UPDATE_GRAVITY=false` in the configuration file.
+> If you don't plan on updating blocklists or want to keep Pi-hole's gravity update schedule you should skip this section and set `UPDATE_GRAVITY=false` in the configuration file.
 
 You should disable entry with `pihole updateGravity` command in `/etc/cron.d/pihole` as this script already runs it:
 
@@ -138,8 +138,9 @@ services:
       - "80:80/tcp"
     environment:
       TZ: 'America/Chicago'
-      ADLISTS_URL: 'https://v.firebog.net/hosts/lists.php?type=tick'
-      WHITELIST_URL: 'https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt'
+      BLOCKLISTS_URL: 'https://v.firebog.net/hosts/lists.php?type=tick'
+      ALLOWLISTS_URL: 'https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt'
+      #WHITELIST_URL: ''
       #REGEX_WHITELIST_URL: ''
       #BLACKLIST_URL: ''
       REGEX_BLACKLIST_URL: 'https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list'
@@ -158,9 +159,9 @@ If you already have existing `gravity.db` you should also check out [Migrating l
 
 Docker start script uses these extra environment variables:
 
+- `PHUL_CRONTAB_STRING` - to override crontab schedule for gravity update, accepts a valid crontab string (`30 3 * * 6` for example)
 - `PHUL_DNSCHECK_DOMAIN` - the domain to `nslookup` to check whenever DNS resolution is available (`pi.hole` by default)
 - `PHUL_DNSCHECK_TIMELIMIT` - maximum time to wait for the DNS resolution to become available (`300` seconds by default)
-- `PHUL_CRONTAB` - to override crontab schedule for gravity update, needs valid crontab string (`30 3 * * 6` for example)
 
 ## Configuration
 
@@ -174,7 +175,8 @@ sudo nano /etc/pihole-updatelists.conf
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| ADLISTS_URL | " " | Remote list URL containing list of adlists to import <br>**URLs to single adlists are supported but it might be better if you add them manually** |
+| BLOCKLISTS_URL | " " | Remote list URL containing list of blocklists to import <br>**URLs to single lists are supported but it might be better if you add them manually** |
+| ALLOWLISTS_URL | " " | Remote list URL containing list of allowlists to import <br>**URLs to single lists are supported but it might be better if you add them manually** |
 | WHITELIST_URL | " " | Remote list URL containing exact domains to whitelist |
 | REGEX_WHITELIST_URL | " " | Remote list URL containing regex rules for whitelisting |
 | BLACKLIST_URL | " " | Remote list URL containing exact domains to blacklist <br>**This is specifically for handcrafted lists only, do not use regular blocklists here!** |
@@ -243,13 +245,13 @@ Configurations where one of the lists contains entries from the other are not of
 
 ; Group with ID=1 will use 'tick' list of adlists
 [GroupA_adlists]
-ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick"
+BLOCKLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick"
 GROUP_ID=-1
 COMMENT="pihole-updatelists - firebog (tick)"
 
 ; Group with ID=2 will use 'nocross' list of adlists
 [GroupB_adlists]
-ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=nocross"
+BLOCKLISTS_URL="https://v.firebog.net/hosts/lists.php?type=nocross"
 GROUP_ID=-2
 COMMENT="pihole-updatelists - firebog (nocross)"
 ```
@@ -262,7 +264,7 @@ Main configuration (the one without section header) is processed first, then the
 > [!IMPORTANT]
 > You can only use selected variables in sections:
 > ```
-> ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, GROUP_EXCLUSIVE, IGNORE_DOWNLOAD_FAILURE
+> BLOCKLISTS_URL, ALLOWLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, GROUP_EXCLUSIVE, IGNORE_DOWNLOAD_FAILURE
 > ```
 
 ### Multiple list URLs
@@ -270,20 +272,20 @@ Main configuration (the one without section header) is processed first, then the
 You can pass multiple URLs to the list variables by separating them with whitespace (space or new line):
 
 ```bash
-ADLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick  https://raw.githubusercontent.com/you/adlists/master/my_adlists.txt"
+BLOCKLISTS_URL="https://v.firebog.net/hosts/lists.php?type=tick https://raw.githubusercontent.com/you/adlists/master/my_adlists.txt"
 ```
 
 If one of the lists fails to download nothing will be affected for that list type.
 
-### Recommended lists
+### My recommended lists
 
 | List | URL/Variable value | Description |
 |----------|-------------|-------------|
-| Adlist<br>(ADLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
-| Whitelist<br>(WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
+| Blocklist<br>(BLOCKLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
+| Whitelist<br>(ALLOWLISTS_URL or WHITELIST_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
 | Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
-Please note that [mmotti/pihole-regex](https://github.com/mmotti/pihole-regex) list can sometimes block domains that should not be blocked - any false positives should be [reported to the repository](https://github.com/mmotti/pihole-regex/issues) to be included in the [whitelist](https://github.com/mmotti/pihole-regex/blob/master/whitelist.list) (in that case you might consider adding that list to the `WHITELIST_URL` too).
+Please note that [mmotti/pihole-regex](https://github.com/mmotti/pihole-regex) list can sometimes block domains that should not be blocked - any false positives should be [reported to the repository](https://github.com/mmotti/pihole-regex/issues) to be included in the [whitelist](https://github.com/mmotti/pihole-regex/blob/master/whitelist.list) (in that case you might consider adding that list to the `ALLOWLISTS_URL`/`WHITELIST_URL` too).
 
 ## Extra information
 
@@ -327,7 +329,7 @@ If systemd is not available you just modify the crontab entry in `/etc/cron.d/pi
 14 6 * * 6   root   /usr/local/sbin/pihole-updatelists
 ```
 
-When using Docker - either set `PHUL_CRONTAB` environment variable to desired crontab string or copy `/etc/cron.d/pihole-updatelists` into `/etc/pihole-updatelists/pihole-updatelists.cron` (assuming `/etc/pihole-updatelists` is mounted as volume) then modify it and restart the container.
+When using Docker - either set `PHUL_CRONTAB_STRING` environment variable to desired crontab string or copy `/etc/cron.d/pihole-updatelists` into `/etc/pihole-updatelists/pihole-updatelists.cron` (assuming `/etc/pihole-updatelists` is mounted as volume) then modify it and restart the container.
 
 ### Running custom commands before/after scheduled run
 

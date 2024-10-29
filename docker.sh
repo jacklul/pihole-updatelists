@@ -24,7 +24,7 @@ if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ];
 	echo "Disabled default gravity update schedule in /etc/cron.d/pihole"
 fi
 
-if [ -e /etc/pihole-updatelists/pihole-updatelists.cron ] && [ -z "$PHUL_CRONTAB" ]; then
+if [ -e /etc/pihole-updatelists/pihole-updatelists.cron ] && [ -z "$PHUL_CRONTAB_STRING" ]; then
 	# Use /etc/pihole-updatelists/pihole-updatelists.cron as the crontab file
 	if [ ! -L /etc/cron.d/pihole-updatelists ]; then
 		rm -f /etc/cron.d/pihole-updatelists
@@ -35,8 +35,8 @@ if [ -e /etc/pihole-updatelists/pihole-updatelists.cron ] && [ -z "$PHUL_CRONTAB
 else # Create new crontab file
 	echo "#30 3 * * 6   root   /usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf" > /etc/cron.d/pihole-updatelists
 
-	if [ -n "$PHUL_CRONTAB" ]; then # use user-provided crontab string
-		sed -E 's|^#.*root\s+|'"$PHUL_CRONTAB"'   root   |' -i /etc/cron.d/pihole-updatelists
+	if [ -n "$PHUL_CRONTAB_STRING" ]; then # use user-provided crontab string
+		sed -E 's|^#.*root\s+|'"$PHUL_CRONTAB_STRING"'   root   |' -i /etc/cron.d/pihole-updatelists
 		echo "Created user schedule in /etc/cron.d/pihole-updatelists"
 	else # randomize the schedule
 		sed "s/#30 /$((1 + RANDOM % 58)) /" -i /etc/cron.d/pihole-updatelists
