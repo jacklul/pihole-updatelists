@@ -53,9 +53,20 @@ if [ "$DOCKER" == 1 ]; then
 	SYSTEMD=0
 fi
 
-# We require some stuff before continuing
-command -v php >/dev/null 2>&1 || { echo "This script requires PHP-CLI to run, install it with 'sudo apt install php-cli'."; exit 1; }
+# We check some stuff before continuing
+command -v php >/dev/null 2>&1 || { echo "This script requires PHP CLI to run - install 'php-cli' package."; exit 1; }
 [[ $(php -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
+command -v pihole >/dev/null 2>&1 || { echo "'pihole' command not found, is the Pi-hole even installed?"; exit 1; }
+
+PIHOLE_VERSION="$(pihole version)"
+if echo "$PIHOLE_VERSION" | grep -q "version is v5"; then
+    PIHOLE_V5=1
+fi
+
+if [ "$PIHOLE_V5" != 1 ]; then
+    echo "Unsupported Pi-hole version detected, expected V5."
+    exit 1
+fi
 
 # Use local files when possible, otherwise install from remote repository
 if \
