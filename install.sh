@@ -24,6 +24,12 @@ BIN_PATH=/usr/local/sbin
 ETC_PATH=/etc
 VAR_TMP_PATH=/var/tmp
 
+# Map old Pi-hole versions to branches
+declare -A OLD_VERSION_BRANCH_MAP=(
+    [5]="pihole-v5"
+    #[6]="pihole-v6"
+)
+
 if [ "$1" == "docker" ]; then # Force Docker install
 	DOCKER=1
 elif [ "$1" == "entware" ]; then # Force Entware install
@@ -81,8 +87,26 @@ command -v $PHP_CMD >/dev/null 2>&1 || { echo "This script requires PHP CLI to r
 [[ $($PHP_CMD -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
 command -v pihole >/dev/null 2>&1 || { echo "'pihole' command not found, is the Pi-hole even installed?"; exit 1; }
 
-if ! pihole version | grep -q "version is v5"; then
-    echo "Unsupported Pi-hole version detected, you're continuing at your own risk."
+PIHOLE_VERSION="$(pihole version | grep -oP "version is v\K[0-9.]" | head -n 1)"
+
+if [[ -n "${OLD_VERSION_BRANCH_MAP[$PIHOLE_VERSION]}" ]]; then
+	NEW_BRANCH="${OLD_VERSION_BRANCH_MAP[$PIHOLE_VERSION]}"
+
+    echo "You are running Pi-hole V$PIHOLE_VERSION which is not supported on this branch."
+    echo "This script can automatically fetch and execute the correct install script from '$NEW_BRANCH' branch."
+
+	#shellcheck disable=SC2162
+    read -p "Do you want to proceed? (y/N): " response
+
+    if [[ $response =~ ^[Yy](es)?$ ]]; then
+        exec wget -O - "$REMOTE_URL/$NEW_BRANCH/install.sh" | bash -s "$NEW_BRANCH"
+    fi
+
+	exit 1
+fi
+
+if [ "$PIHOLE_VERSION" -ne 6 ]; then
+    echo "Unsupported Pi-hole version (V$PIHOLE_VERSION) detected, you're continuing at your own risk."
     read -rp "Press Enter to continue..."
 fi
 
@@ -184,7 +208,7 @@ if [ "$SYSTEMD" == 1 ]; then
 	else
 		reloadSystemd
 	fi
-else
+elif [ "$DOCKER" == 0 ]; then
 	if [ -d "$ETC_PATH/cron.d" ]; then
 		if [ ! -f "$ETC_PATH/cron.d/pihole-updatelists" ]; then
 			echo "# Pi-hole's Lists Updater by Jack'lul
@@ -203,26 +227,42 @@ fi
 
 # Docker-related tasks
 if [ "$DOCKER" == 1 ]; then
-	[ ! -d "/etc/s6-overlay/s6-rc.d/_postFTL" ] && { echo "Missing /etc/s6-overlay/s6-rc.d/_postFTL directory!"; exit 1; }
-	[ ! -f "/usr/local/bin/_postFTL.sh" ] && { echo "Missing /usr/local/bin/_postFTL.sh file!"; exit 1; }
+	[ ! -f /usr/bin/start.sh ] && { echo "Missing /usr/bin/start.sh script!"; exit 1; }
 
 	mkdir -v /etc/pihole-updatelists
 
 	if [ -f "$SPATH/docker.sh" ]; then
-		cp -v "$SPATH/docker.sh" /usr/local/bin/_updatelists.sh
+		cp -v "$SPATH/docker.sh" /usr/bin/pihole-updatelists.sh
 	elif [ "$REMOTE_URL" != "" ]; then
-		wget -nv -O /usr/local/bin/_updatelists.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
+		wget -nv -O /usr/bin/pihole-updatelists.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
 	else
 		echo "Missing required file (docker.sh) for installation!"
 		exit 1
 	fi
 
-	chmod -v +x /usr/local/bin/_updatelists.sh
+	chmod -v +x /usr/bin/pihole-updatelists.sh
 
-	echo "#!/command/execlineb" > /etc/s6-overlay/s6-rc.d/_postFTL/up
-	echo "background { bash -ec \"/usr/local/bin/_updatelists.sh && /usr/local/bin/_postFTL.sh\" }" >> /etc/s6-overlay/s6-rc.d/_postFTL/up
-	echo "Modified /etc/s6-overlay/s6-rc.d/_postFTL/up to launch pihole-updatelists first!"
+	if ! grep -q "pihole-updatelists" /crontab.txt; then
+		# Use the same schedule string to have it randomized on each launch
+		CRONTAB=$(sed -n '/pihole updateGravity/s/\(.*\) PATH=.*/\1/p' /crontab.txt)
 
-	echo "alias pihole-updatelists='/usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env'" >> /root/.bashrc
-	echo "Created alias for pihole-updatelists command in /root/.bashrc"
+		#shellcheck disable=SC2140
+		echo "$CRONTAB PATH="\$PATH:/usr/sbin:/usr/local/bin/" pihole-updatelists.sh" >> /crontab.txt
+		echo "Created crontab entry in /crontab.txt"
+	fi
+
+	if grep "^.*pihole updateGravity" crontab.txt | grep -v "^#"; then
+		sed -e '/pihole updateGravity/ s/^#*/#/' -i /crontab.txt
+		echo "Disabled default gravity update entry in /crontab.txt"
+	fi
+
+	echo "Modifying /start.sh script..."
+	sed '/^\s\+ftl_config/a pihole-updatelists.sh config' -i /usr/bin/start.sh
+	sed '/^\s\+start_cron/i pihole-updatelists.sh cron' -i /usr/bin/start.sh
+
+	echo "Modifying /bash_functions.sh script..."
+	sed '/^\s\+pihole -g/a pihole-updatelists.sh run' -i /usr/bin/bash_functions.sh
+
+	echo "alias pihole-updatelists='/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env'" >> /etc/bash.bashrc
+	echo "Created alias for pihole-updatelists command in /etc/bash.bashrc"
 fi
