@@ -24,7 +24,7 @@ if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ];
 	echo "Disabled default gravity update schedule in /etc/cron.d/pihole"
 fi
 
-if [ -f /etc/pihole-updatelists/pihole-updatelists.cron ]; then
+if [ -e /etc/pihole-updatelists/pihole-updatelists.cron ]; then
 	# Use /etc/pihole-updatelists/pihole-updatelists.cron as the crontab file
 	if [ ! -L /etc/cron.d/pihole-updatelists ]; then
 		rm -f /etc/cron.d/pihole-updatelists
