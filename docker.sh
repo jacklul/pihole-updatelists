@@ -18,20 +18,31 @@ if [ ! -f "/etc/pihole-updatelists/pihole-updatelists.conf" ]; then
 	echo "Created /etc/pihole-updatelists/pihole-updatelists.conf"
 fi
 
-# Fix permissions (when config directory is mounted as a volume)
-chown root:root /etc/pihole-updatelists/*
-chmod 644 /etc/pihole-updatelists/*
-
 # Disable default gravity update schedule
 if [ "$(grep 'pihole updateGravity' < /etc/cron.d/pihole | cut -c1-1)" != "#" ]; then
 	sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
 	echo "Disabled default gravity update schedule in /etc/cron.d/pihole"
 fi
 
-# Create new schedule with random time
-echo "#30 3 * * 6   root   /usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf" > /etc/cron.d/pihole-updatelists
-sed "s/#30 /$((1 + RANDOM % 58)) /" -i /etc/cron.d/pihole-updatelists
+if [ -f /etc/pihole-updatelists/pihole-updatelists.cron ]; then
+	# Use /etc/pihole-updatelists/pihole-updatelists.cron as the crontab file
+	if [ ! -L /etc/cron.d/pihole-updatelists ]; then
+		rm -f /etc/cron.d/pihole-updatelists
+		ln -s /etc/pihole-updatelists/pihole-updatelists.cron /etc/cron.d/pihole-updatelists
+	fi
 
+	echo "Using schedule in /etc/pihole-updatelists/pihole-updatelists.cron"
+else # Create new schedule with random time
+	echo "#30 3 * * 6   root   /usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf" > /etc/cron.d/pihole-updatelists
+	sed "s/#30 /$((1 + RANDOM % 58)) /" -i /etc/cron.d/pihole-updatelists
+	echo "Created schedule in /etc/cron.d/pihole-updatelists"
+fi
+
+# Fix permissions (when config directory is mounted as a volume)
+chown root:root /etc/pihole-updatelists/*
+chmod 644 /etc/pihole-updatelists/*
+
+# Actual startup
 if [ -n "$SKIPGRAVITYONBOOT" ]; then
 	echo "Lists update skipped - SKIPGRAVITYONBOOT=true"
 else
