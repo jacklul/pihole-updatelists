@@ -1119,7 +1119,7 @@ function loadConfig(array $options = [])
  */
 function loadConfigFromEnvironment(array $config)
 {
-    $renamedVariables = [ // These variables with be prefixed with "PHUL_"
+    $renamedVariables = [ // These variables will be prefixed with "PHUL_"
         'CONFIG_FILE',
         'GRAVITY_DB',
         'LOCK_FILE',
