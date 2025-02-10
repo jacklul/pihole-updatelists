@@ -325,6 +325,8 @@ If systemd is not available you just modify the crontab entry in `/etc/cron.d/pi
 14 6 * * 6   root   /usr/local/sbin/pihole-updatelists
 ```
 
+When using Docker - copy `/etc/cron.d/pihole-updatelists` into `/etc/pihole-updatelists/pihole-updatelists.cron`, modify it then restart the container.
+
 ### Running custom commands before/after scheduled run
 
 Override [service unit](https://www.freedesktop.org/software/systemd/man/systemd.service.html) file:
