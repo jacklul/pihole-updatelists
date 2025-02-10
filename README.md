@@ -157,8 +157,10 @@ _(for more up to date `docker-compose.yml` see [pi-hole/docker-pi-hole](https://
 If you already have existing `gravity.db` you should also check out [Migrating lists and domains](#migrating-lists-and-domains) section, keep in mind that you will have to adjust paths in the commands mentioned there.
 
 Docker start script uses these extra environment variables:
+
 - `PHUL_DNSCHECK_DOMAIN` - the domain to `nslookup` to check whenever DNS resolution is available (`pi.hole` by default)
 - `PHUL_DNSCHECK_TIMELIMIT` - maximum time to wait for the DNS resolution to become available (`300` seconds by default)
+- `PHUL_CRONTAB` - to override crontab schedule for gravity update, needs valid crontab string (`30 3 * * 6` for example)
 
 ## Configuration
 
@@ -325,7 +327,7 @@ If systemd is not available you just modify the crontab entry in `/etc/cron.d/pi
 14 6 * * 6   root   /usr/local/sbin/pihole-updatelists
 ```
 
-When using Docker - copy `/etc/cron.d/pihole-updatelists` into `/etc/pihole-updatelists/pihole-updatelists.cron`, modify it then restart the container.
+When using Docker - either set `PHUL_CRONTAB` environment variable to desired crontab string or copy `/etc/cron.d/pihole-updatelists` into `/etc/pihole-updatelists/pihole-updatelists.cron` then modify it and restart the container.
 
 ### Running custom commands before/after scheduled run
 
