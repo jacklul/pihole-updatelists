@@ -348,6 +348,7 @@ function parseOptions()
     // Remove recognized options from argv[]
     foreach ($options as $option => $data) {
         $result = array_filter($argv, function ($el) use ($option) {
+            /** @var mixed $option */
             return strpos($el, $option) !== false;
         });
 
@@ -822,7 +823,7 @@ function printHelp(array $options = [], array $config = [])
  * CLI interactive question
  *
  * @param string $question
- * @param string $validAnswers
+ * @param array  $validAnswers
  *
  * @return bool
  */
