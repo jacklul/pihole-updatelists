@@ -1045,6 +1045,16 @@ function loadConfig(array $options = [])
         'GIT_BRANCH'              => 'master',
     ];
 
+    // Default paths overrides when Entware is detected
+    if (file_exists('/opt/etc/opkg.conf')) {
+        $config = [
+            'CONFIG_FILE' => '/opt/etc/pihole-updatelists.conf',
+            'GRAVITY_DB'  => '/opt/etc/pihole/gravity.db',
+            'LOCK_FILE'   => '/opt/var/lock/pihole-updatelists.lock',
+            'PIHOLE_CMD'  => '/opt/bin/pihole',
+        ] + $config;
+    }
+
     if (isset($options['config'])) {
         if (!file_exists($options['config']) && !isset($options['env'])) {
             printAndLog('Invalid file: ' . $options['config'] . PHP_EOL, 'ERROR');
