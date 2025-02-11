@@ -262,7 +262,7 @@ Main configuration (the one without section header) is processed first, then the
 > [!IMPORTANT]
 > You can only use selected variables in sections:
 > ```
-> ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, > REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, GROUP_EXCLUSIVE, > IGNORE_DOWNLOAD_FAILURE
+> ADLISTS_URL, WHITELIST_URL, REGEX_WHITELIST_URL, BLACKLIST_URL, REGEX_BLACKLIST_URL, COMMENT, GROUP_ID, PERSISTENT_GROUP, GROUP_EXCLUSIVE, IGNORE_DOWNLOAD_FAILURE
 > ```
 
 ### Multiple list URLs
@@ -327,7 +327,7 @@ If systemd is not available you just modify the crontab entry in `/etc/cron.d/pi
 14 6 * * 6   root   /usr/local/sbin/pihole-updatelists
 ```
 
-When using Docker - either set `PHUL_CRONTAB` environment variable to desired crontab string or copy `/etc/cron.d/pihole-updatelists` into `/etc/pihole-updatelists/pihole-updatelists.cron` then modify it and restart the container.
+When using Docker - either set `PHUL_CRONTAB` environment variable to desired crontab string or copy `/etc/cron.d/pihole-updatelists` into `/etc/pihole-updatelists/pihole-updatelists.cron` (assuming `/etc/pihole-updatelists` is mounted as volume) then modify it and restart the container.
 
 ### Running custom commands before/after scheduled run
 
