@@ -73,9 +73,12 @@ if [ "$1" == "uninstall" ] || [ "$2" == "uninstall" ]; then	# Simply remove the 
 	exit 0
 fi
 
+PHP_CMD=php
+command -v php-cli >/dev/null 2>&1 && PHP_CMD=php-cli
+
 # We check some stuff before continuing
-command -v php >/dev/null 2>&1 || { echo "This script requires PHP CLI to run - install 'php-cli' package."; exit 1; }
-[[ $(php -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
+command -v $PHP_CMD >/dev/null 2>&1 || { echo "This script requires PHP CLI to run - install 'php-cli' package."; exit 1; }
+[[ $($PHP_CMD -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
 command -v pihole >/dev/null 2>&1 || { echo "'pihole' command not found, is the Pi-hole even installed?"; exit 1; }
 
 PIHOLE_VERSION="$(pihole version)"
