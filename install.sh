@@ -17,7 +17,7 @@ GIT_BRANCH=master # Git branch to use, user can specify custom branch as first a
 # Install environments detection
 SYSTEMD=$(pidof systemd >/dev/null && echo "1" || echo "0") # Is systemd available?
 SYSTEMD_INSTALLED=$([ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0") # Is systemd timer installed already?
-DOCKER=$([ "$(grep "docker" < /proc/1/cgroup)" == "" ] && echo "0" || echo "1") # Is this a Docker installation?
+DOCKER=$([ "$(grep "docker" < /proc/1/cgroup 2> /dev/null)" == "" ] && echo "0" || echo "1") # Is this a Docker installation?
 ENTWARE=$([ -f /opt/etc/opkg.conf ] && echo "1" || echo "0") # Entware is detected?
 
 # Install paths
