@@ -17,8 +17,8 @@ GIT_BRANCH=master # Git branch to use, user can specify custom branch as first a
 # Install environments detection
 SYSTEMD=$(pidof systemd >/dev/null && echo "1" || echo "0") # Is systemd available?
 SYSTEMD_INSTALLED=$([ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0") # Is systemd timer installed already?
-DOCKER=$([ "$(grep "docker" < /proc/1/cgroup 2> /dev/null)" == "" ] && echo "0" || echo "1") # Is this a Docker installation?
-ENTWARE=$([ -f /opt/etc/opkg.conf ] && echo "1" || echo "0") # Entware is detected?
+DOCKER=$([ "$(grep "docker" < /proc/1/cgroup 2> /dev/null)" == "" ] && echo "0" || echo "1") # Is this a Docker container?
+ENTWARE=$([ -f /opt/etc/opkg.conf ] && echo "1" || echo "0") # Is this an Entware installation?
 
 # Install paths
 BIN_PATH=/usr/local/sbin
@@ -73,6 +73,7 @@ if [ "$1" == "uninstall" ] || [ "$2" == "uninstall" ]; then	# Simply remove the 
 	exit 0
 fi
 
+# Some systems might use php-cli instead of php
 PHP_CMD=php
 command -v php-cli >/dev/null 2>&1 && PHP_CMD=php-cli
 
@@ -190,15 +191,19 @@ if [ "$SYSTEMD" == 1 ]; then
 		reloadSystemd
 	fi
 else
-	if [ ! -f "$ETC_PATH/cron.d/pihole-updatelists" ]; then
-		echo "# Pi-hole's Lists Updater by Jack'lul
+	if [ -d "$ETC_PATH/cron.d" ]; then
+		if [ ! -f "$ETC_PATH/cron.d/pihole-updatelists" ]; then
+			echo "# Pi-hole's Lists Updater by Jack'lul
 # https://github.com/jacklul/pihole-updatelists
 
 #30 3 * * 6   root   $BIN_PATH/pihole-updatelists
 " > "$ETC_PATH/cron.d/pihole-updatelists"
-		sed "s/#30 /$((1 + RANDOM % 58)) /" -i "$ETC_PATH/cron.d/pihole-updatelists"
+			sed "s/#30 /$((1 + RANDOM % 58)) /" -i "$ETC_PATH/cron.d/pihole-updatelists"
 
-		echo "Created crontab ($ETC_PATH/cron.d/pihole-updatelists)"
+			echo "Created crontab ($ETC_PATH/cron.d/pihole-updatelists)"
+		fi
+	else
+		echo "Missing $ETC_PATH/cron.d directory - crontab will not be installed!"
 	fi
 fi
 
@@ -215,6 +220,7 @@ if [ "$DOCKER" == 1 ]; then
 		wget -nv -O /usr/local/bin/_updatelists.sh "$REMOTE_URL/$GIT_BRANCH/docker.sh"
 	else
 		echo "Missing required file (docker.sh) for installation!"
+		exit 1
 	fi
 
 	chmod -v +x /usr/local/bin/_updatelists.sh
