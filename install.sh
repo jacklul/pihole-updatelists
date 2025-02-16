@@ -14,10 +14,9 @@ SPATH=$(dirname "$0") # Path to the script
 REMOTE_URL=https://raw.githubusercontent.com/jacklul/pihole-updatelists # Remote URL that serves raw files from the repository
 GIT_BRANCH=master # Git branch to use, user can specify custom branch as first argument
 
-# Install environments detection
-SYSTEMD=$(pidof systemd >/dev/null && echo "1" || echo "0") # Is systemd available?
-SYSTEMD_INSTALLED=$([ -f "/etc/systemd/system/pihole-updatelists.timer" ] && echo "1" || echo "0") # Is systemd timer installed already?
-DOCKER=$([ "$(grep "docker" < /proc/1/cgroup 2> /dev/null)" == "" ] && echo "0" || echo "1") # Is this a Docker container?
+# Install environment detection
+SYSTEMD=$({ [ -n "$(pidof systemd)" ] || [ "$(readlink -f /sbin/init)" = "/usr/lib/systemd/systemd" ]; } && echo "1" || echo "0") # Is systemd available?
+DOCKER=$({ [ -f /proc/1/cgroup ] && [ "$(grep "docker" < /proc/1/cgroup 2> /dev/null)" == "" ]; } && echo "0" || echo "1") # Is this a Docker container?
 ENTWARE=$([ -f /opt/etc/opkg.conf ] && echo "1" || echo "0") # Is this an Entware installation?
 
 # Install paths
@@ -184,7 +183,7 @@ if [ "$SYSTEMD" == 1 ]; then
 		sed "s/^#*/#/" -i "$ETC_PATH/cron.d/pihole-updatelists"
 	fi
 
-	if [ "$SYSTEMD_INSTALLED" == 0 ]; then
+	if ! systemctl -q is-active pihole-updatelists.timer; then
 		echo "Enabling and starting pihole-updatelists.timer..."
 		systemctl enable pihole-updatelists.timer && systemctl start pihole-updatelists.timer
 	else
