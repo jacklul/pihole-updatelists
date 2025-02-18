@@ -900,7 +900,7 @@ function updateScript(array $options = [], array $config = [])
             $script_md5 = md5_file(__FILE__);
 
             print 'Downloading and running install script from "' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh"...' . PHP_EOL . PHP_EOL;
-            passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash /dev/stdin ' . $branch, $return);
+            passthru('wget -nv -O - ' . GITHUB_LINK_RAW . '/' . $branch . '/install.sh | sudo bash -s ' . $branch, $return);
 
             clearstatcache();
 
