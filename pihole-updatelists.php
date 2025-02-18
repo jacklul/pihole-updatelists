@@ -99,6 +99,36 @@ function checkDependencies()
 }
 
 /**
+ * Check Pi-hole version
+ * 
+ * Setting config or environment variable IGNORE_PIHOLE_VERSION_CHECK allows to run this script on unsupported versions
+ */
+function checkPiholeVersion(array $config = [])
+{
+    if (file_exists('/etc/pihole/versions') && empty(getenv('IGNORE_PIHOLE_VERSION_CHECK')) && empty($config['IGNORE_PIHOLE_VERSION_CHECK'])) {
+        $versions = file_get_contents('/etc/pihole/versions');
+        $versions = parse_ini_string($versions);
+
+        if (isset($versions['CORE_VERSION'])) {
+            if (stripos($versions['CORE_VERSION'], 'v') === 0) {
+                $versions['CORE_VERSION'] = substr($versions['CORE_VERSION'], 1);
+            }
+
+            if ((float)$versions['CORE_VERSION'] < 5.0) {
+                printAndLog('Pi-hole V5.0 is required to run this script!' . PHP_EOL, 'ERROR');
+                exit(1);
+            }
+
+            if ((float)$versions['CORE_VERSION'] >= 6.0) {
+                printAndLog('Pi-hole V6.0 is not officially supported by this script version!' . PHP_EOL, 'ERROR');
+                printAndLog('Setting "IGNORE_PIHOLE_VERSION_CHECK=1" in the config or environment will allow to bypass this message.' . PHP_EOL, 'NOTICE');
+                exit(1);
+            }
+        }
+    }
+}
+
+/**
  * Check for optional stuff
  */
 function checkOptionalDependencies()
@@ -1674,6 +1704,7 @@ $customError = '';
 checkDependencies(); // Check script requirements
 $options        = parseOptions(); // Parse options
 $config         = loadConfig($options); // Load config and process variables
+checkPiholeVersion($config); // Check Pi-hole version requirements
 $configSections = processConfigSections($config); // Process sections
 
 // Make sure we have at least one remote URL set
