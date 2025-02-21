@@ -115,12 +115,12 @@ function checkPiholeVersion(array $config = [])
             }
 
             if ((float)$versions['CORE_VERSION'] < 5.0) {
-                printAndLog('Pi-hole V5.0 is required to run this script!' . PHP_EOL, 'ERROR');
+                printAndLog('Pi-hole V5 is required to run this script!' . PHP_EOL, 'ERROR');
                 exit(1);
             }
 
             if ((float)$versions['CORE_VERSION'] >= 6.0) {
-                printAndLog('Pi-hole V6.0 is not officially supported by this script version!' . PHP_EOL, 'ERROR');
+                printAndLog('This Pi-hole version is not officially supported by this script version!' . PHP_EOL, 'WARNING');
                 printAndLog('Setting "IGNORE_PIHOLE_VERSION_CHECK=1" in the config or environment will allow to bypass this message.' . PHP_EOL, 'NOTICE');
                 exit(1);
             }
