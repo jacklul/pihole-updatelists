@@ -34,7 +34,7 @@ If **systemd** is available this script will also add service and timer unit fil
 Note that in most cases you will be able to execute this script globally as `pihole-updatelists` command but some will require you to add `/usr/local/sbin` to `$PATH` or execute it via `/usr/local/sbin/pihole-updatelists`.
 
 > [!IMPORTANT]
->__This script does nothing by default (except running `pihole updateGravity`), - you have to [configure it](#configuration).__
+>**This script does nothing by default (except running `pihole updateGravity`) - you have to [configure it](#configuration).**
 
 > [!TIP]
 > To quickly update the script run `sudo pihole-updatelists --update` which will check for script differences and re-run the install script when needed.
