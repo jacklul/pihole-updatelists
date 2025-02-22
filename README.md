@@ -209,7 +209,7 @@ It is also possible to load configuration variables from the environment by usin
 > [!IMPORTANT]
 > Some variables will have to be prefixed with `PHUL_` for compatibility:
 > ```
-> CONFIG_FILE, GRAVITY_DB, LOCK_FILE, PIHOLE_CMD, LOG_FILE, VERBOSE, DEBUG, > GIT_BRANCH
+> CONFIG_FILE, GRAVITY_DB, LOCK_FILE, PIHOLE_CMD, LOG_FILE, VERBOSE, DEBUG, GIT_BRANCH
 > ```
 
 ### Multiple configurations
