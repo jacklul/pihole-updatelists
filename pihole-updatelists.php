@@ -1798,7 +1798,7 @@ $config['DEBUG'] === true && printDebugHeader($options, $config);
 $deprecatedAndRemovedOptions = ['VACUUM_DATABASE', 'ADLISTS_URL'];
 $deprecatedAndRemovedOptionsFound = false;
 foreach ($config as $option => $value) {
-    if (in_array($option, $deprecatedAndRemovedOptions)) {
+    if (!empty($value) && in_array($option, $deprecatedAndRemovedOptions)) {
         printAndLog('Configuration option ' . $option . ' is deprecated and has been removed.' . PHP_EOL, 'WARNING');
         incrementStat('warnings');
         $deprecatedAndRemovedOptionsFound = true;
