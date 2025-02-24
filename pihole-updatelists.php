@@ -67,18 +67,18 @@ function printAndLog($str, $severity = 'INFO', $logOnly = false)
 /**
  * Check for required stuff
  *
- * Setting environment variable IGNORE_OS_CHECK allows to run this script on Windows
+ * Setting environment variable PHUL_SKIP_OS_CHECK allows to run this script on Windows
  */
 function checkDependencies()
 {
-    // Do not run on PHP lower than 7.0
+    // Do not run on PHP lower than 7.0, if we ever get this far without any error
     if ((float) PHP_VERSION < 7.0) {
         printAndLog('Minimum PHP 7.0 is required to run this script!' . PHP_EOL, 'ERROR');
         exit(1);
     }
 
-    // Windows is obviously not supported (invironment variable IGNORE_OS_CHECK overrides this)
-    if (stripos(PHP_OS, 'WIN') === 0 && empty(getenv('IGNORE_OS_CHECK'))) {
+    // Windows is obviously not supported (invironment variable PHUL_SKIP_OS_CHECK overrides this)
+    if (stripos(PHP_OS, 'WIN') === 0 && empty(getenv('PHUL_SKIP_OS_CHECK'))) {
         printAndLog('Windows is not supported!' . PHP_EOL, 'ERROR');
         exit(1);
     }
@@ -90,10 +90,12 @@ function checkDependencies()
         'pdo_posix',
     ];
 
-    foreach ($extensions as $extension) {
-        if (!extension_loaded($extension)) {
-            printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
-            exit(1);
+    if (empty(getenv('PHUL_SKIP_PHP_CHECK'))) {
+        foreach ($extensions as $extension) {
+            if (!extension_loaded($extension)) {
+                printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
+                exit(1);
+            }
         }
     }
 }
@@ -101,11 +103,11 @@ function checkDependencies()
 /**
  * Check Pi-hole version
  * 
- * Setting config or environment variable IGNORE_PIHOLE_VERSION_CHECK allows to run this script on unsupported versions
+ * Setting PHUL_SKIP_PIHOLE_CHECK in environment or SKIP_PIHOLE_CHECK in config allows to run this script on unsupported versions
  */
 function checkPiholeVersion(array $config = [])
 {
-    if (file_exists('/etc/pihole/versions') && empty(getenv('IGNORE_PIHOLE_VERSION_CHECK')) && empty($config['IGNORE_PIHOLE_VERSION_CHECK'])) {
+    if (file_exists('/etc/pihole/versions') && empty(getenv('PHUL_SKIP_PIHOLE_CHECK')) && empty($config['SKIP_PIHOLE_CHECK'])) {
         $versions = file_get_contents('/etc/pihole/versions');
         $versions = parse_ini_string($versions);
 
@@ -120,8 +122,8 @@ function checkPiholeVersion(array $config = [])
             }
 
             if ((float)$versions['CORE_VERSION'] >= 7.0) {
-                printAndLog('This Pi-hole version is not officially supported by this script version!' . PHP_EOL, 'WARNING');
-                printAndLog('Setting "IGNORE_PIHOLE_VERSION_CHECK=1" in the config or environment will allow to bypass this message.' . PHP_EOL, 'WARNING');
+                printAndLog('This Pi-hole version is not officially supported by this script version!' . PHP_EOL, 'ERROR');
+                printAndLog('Setting "PHUL_SKIP_PIHOLE_CHECK=1" in the environment or "SKIP_PIHOLE_CHECK=1" in the config will allow to bypass this message, at your own risk.' . PHP_EOL, 'ERROR');
                 exit(1);
             }
         }
@@ -142,16 +144,14 @@ function checkOptionalDependencies()
         'posix',
     ];
 
-    foreach ($extensions as $extension) {
-        if (!extension_loaded($extension)) {
-            printAndLog('Missing recommended PHP extension: php-' . $extension . PHP_EOL, 'WARNING');
-            incrementStat('warnings');
-            $missingExtensions[] = 'php-' . str_replace('_', '-', $extension);
+    if (empty(getenv('PHUL_SKIP_PHP_CHECK'))) {
+        foreach ($extensions as $extension) {
+            if (!extension_loaded($extension)) {
+                printAndLog('Missing recommended PHP extension: php-' . $extension . PHP_EOL, 'WARNING');
+                incrementStat('warnings');
+                $missingExtensions[] = 'php-' . str_replace('_', '-', $extension);
+            }
         }
-    }
-
-    if (count($missingExtensions) > 0) {
-        print 'You can install missing extensions using `apt-get install ' . implode(' ', $missingExtensions) . '`' . PHP_EOL . PHP_EOL;
     }
 }
 
