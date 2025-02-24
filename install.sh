@@ -227,9 +227,8 @@ fi
 
 # Docker-related tasks
 if [ "$DOCKER" == 1 ]; then
-	[ ! -f /usr/bin/start.sh ] && { echo "Missing /usr/bin/start.sh script!"; exit 1; }
-
-	mkdir -v /etc/pihole-updatelists
+    [ ! -f /usr/bin/php ] && { echo "Missing /usr/bin/php binary - was the 'php' package installed?"; exit 1; }
+	[ ! -f /usr/bin/start.sh ] && { echo "Missing /usr/bin/start.sh script - not a Pi-hole container?"; exit 1; }
 
 	if [ -f "$SPATH/docker.sh" ]; then
 		cp -v "$SPATH/docker.sh" /usr/bin/pihole-updatelists.sh
@@ -241,6 +240,7 @@ if [ "$DOCKER" == 1 ]; then
 	fi
 
 	chmod -v +x /usr/bin/pihole-updatelists.sh
+	mkdir -vp /etc/pihole-updatelists
 
 	if ! grep -q "pihole-updatelists" /crontab.txt; then
 		# Use the same schedule string to have it randomized on each launch
@@ -256,13 +256,13 @@ if [ "$DOCKER" == 1 ]; then
 		echo "Disabled default gravity update entry in /crontab.txt"
 	fi
 
-	echo "Modifying /start.sh script..."
+	echo "Modifying /usr/bin/start.sh script..."
 	sed '/^\s\+ftl_config/a pihole-updatelists.sh config' -i /usr/bin/start.sh
 	sed '/^\s\+start_cron/i pihole-updatelists.sh cron' -i /usr/bin/start.sh
 
-	echo "Modifying /bash_functions.sh script..."
+	echo "Modifying /usr/bin/bash_functions.sh script..."
 	sed '/^\s\+pihole -g/a pihole-updatelists.sh run' -i /usr/bin/bash_functions.sh
 
-	echo "alias pihole-updatelists='/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env'" >> /etc/bash.bashrc
+	echo "alias pihole-updatelists='/usr/bin/pihole-updatelists.sh run'" >> /etc/bash.bashrc
 	echo "Created alias for pihole-updatelists command in /etc/bash.bashrc"
 fi

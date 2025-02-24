@@ -25,7 +25,12 @@ case $1 in
 		fi
 	;;
 	"run")
-		# shellcheck disable=SC2086
-		/usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env $SCRIPT_ARGS
+        shift # Skip 'run' argument
+		# shellcheck disable=SC2086,SC2068
+		echo /usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env $SCRIPT_ARGS $@
 	;;
+    *)
+        echo "Usage: $0 run"
+        exit 1
+    ;;
 esac
