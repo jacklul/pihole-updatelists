@@ -87,12 +87,12 @@ function checkDependencies()
     $extensions = [
         'pdo',
         'pdo_sqlite',
+        'pdo_posix',
     ];
 
     foreach ($extensions as $extension) {
         if (!extension_loaded($extension)) {
             printAndLog('Missing required PHP extension: ' . $extension . PHP_EOL, 'ERROR');
-            print 'You can install it using `apt-get install php-' . str_replace('_', '-', $extension) . '`' . PHP_EOL;
             exit(1);
         }
     }
@@ -136,8 +136,10 @@ function checkOptionalDependencies()
     // Check for recommended PHP extensions
     $missingExtensions = [];
     $extensions        = [
-        'intl',
         'curl',
+        'intl',
+        'pcntl',
+        'posix',
     ];
 
     foreach ($extensions as $extension) {
