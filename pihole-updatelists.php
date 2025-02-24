@@ -258,7 +258,7 @@ function requireRoot()
         if (function_exists('posix_getuid')) {
             $isRoot = posix_getuid() === 0;
         } else {
-            $isRoot = shell_exec('whoami') === 'root';
+            $isRoot = exec('id -u') == 0;
         }
     }
 
@@ -795,11 +795,8 @@ function getBranch(array $options = [], array $config = [])
 
 /**
  * Print help
- *
- * @param array $options
- * @param array $config
  */
-function printHelp(array $options = [], array $config = [])
+function printHelp()
 {
     $definedOptions = getDefinedOptions();
     $help           = [];
@@ -1081,7 +1078,7 @@ function loadConfig(array $options = [])
     ];
 
     // Default paths overrides when Entware is detected
-    if (file_exists('/opt/etc/opkg.conf')) {
+    if (file_exists('/opt/etc/opkg.conf') && file_exists('/opt/etc/entware_release')) {
         $config = [
             'CONFIG_FILE' => '/opt/etc/pihole-updatelists.conf',
             'GRAVITY_DB'  => '/opt/etc/pihole/gravity.db',
@@ -1731,7 +1728,7 @@ foreach ($configSections as $configSectionName => $configSectionData) {
     }
 
     if ($sectionHasList === false) {
-        $configSections[$configSectionName]['SECTION_IGNORED'] = true;
+        $configSections[$configSectionName]['_SECTION_IGNORED'] = true;
     }
 }
 
@@ -1822,7 +1819,7 @@ $httpClient = createHttpClient($httpOptions);
 
 // Iterate config sections
 foreach ($configSections as $configSectionName => $configSectionData) {
-    if (isset($configSectionData['SECTION_IGNORED']) && $configSectionData['SECTION_IGNORED'] === true) {
+    if (isset($configSectionData['_SECTION_IGNORED']) && $configSectionData['_SECTION_IGNORED'] === true) {
         continue;
     }
 
