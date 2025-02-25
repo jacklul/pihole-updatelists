@@ -251,7 +251,7 @@ if [ "$DOCKER" == 1 ]; then
 		echo "Created crontab entry in /crontab.txt"
 	fi
 
-	if grep "^.*pihole updateGravity" crontab.txt | grep -v "^#"; then
+	if ! grep -q "^#.*pihole updateGravity" crontab.txt; then
 		sed -e '/pihole updateGravity/ s/^#*/#/' -i /crontab.txt
 		echo "Disabled default gravity update entry in /crontab.txt"
 	fi
@@ -260,8 +260,21 @@ if [ "$DOCKER" == 1 ]; then
 	sed '/^\s\+ftl_config/a pihole-updatelists.sh config' -i /usr/bin/start.sh
 	sed '/^\s\+start_cron/i pihole-updatelists.sh cron' -i /usr/bin/start.sh
 
+	if
+		! grep -q "pihole-updatelists.sh config" /usr/bin/start.sh ||
+		! grep -q "pihole-updatelists.sh cron" /usr/bin/start.sh
+	then
+		echo "Modification of /usr/bin/start.sh script failed!"
+		exit 1
+	fi
+
 	echo "Modifying /usr/bin/bash_functions.sh script..."
 	sed '/^\s\+pihole -g/a pihole-updatelists.sh run' -i /usr/bin/bash_functions.sh
+
+	if ! grep -q "pihole-updatelists.sh run" /usr/bin/bash_functions.sh; then
+		echo "Modification of /usr/bin/bash_functions.sh script failed!"
+		exit 1
+	fi
 
 	echo "alias pihole-updatelists='/usr/bin/pihole-updatelists.sh run'" >> /etc/bash.bashrc
 	echo "Created alias for pihole-updatelists command in /etc/bash.bashrc"
