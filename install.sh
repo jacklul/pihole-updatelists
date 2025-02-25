@@ -275,7 +275,4 @@ if [ "$DOCKER" == 1 ]; then
 		echo "Modification of /usr/bin/bash_functions.sh script failed!"
 		exit 1
 	fi
-
-	echo "alias pihole-updatelists='/usr/bin/pihole-updatelists.sh run'" >> /etc/bash.bashrc
-	echo "Created alias for pihole-updatelists command in /etc/bash.bashrc"
 fi
