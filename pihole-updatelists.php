@@ -87,7 +87,6 @@ function checkDependencies()
     $extensions = [
         'pdo',
         'pdo_sqlite',
-        'pdo_posix',
     ];
 
     if (empty(getenv('PHUL_SKIP_PHP_CHECK'))) {
@@ -137,7 +136,7 @@ function checkOptionalDependencies()
 {
     // Check for recommended PHP extensions
     $missingExtensions = [];
-    $extensions        = [
+    $extensions = [
         'curl',
         'intl',
         'pcntl',
