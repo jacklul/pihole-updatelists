@@ -16,7 +16,7 @@ GIT_BRANCH=master # Git branch to use, user can specify custom branch as first a
 
 # Install environment detection
 SYSTEMD=$({ [ -n "$(pidof systemd)" ] || [ "$(readlink -f /sbin/init)" = "/usr/lib/systemd/systemd" ]; } && echo "1" || echo "0") # Is systemd available?
-DOCKER=$({ [ -f /proc/1/cgroup ] && [ "$(grep "docker" < /proc/1/cgroup 2> /dev/null)" == "" ]; } && echo "0" || echo "1") # Is this a Docker container?
+DOCKER=$({ [ -f /proc/1/cgroup ] || [ "$(grep "docker" /proc/1/cgroup 2> /dev/null)" == "" ]; } && echo "0" || echo "1") # Is this a Docker container?
 ENTWARE=$([ -f /opt/etc/opkg.conf ] && echo "1" || echo "0") # Is this an Entware installation?
 
 # Install paths
@@ -87,9 +87,14 @@ command -v $PHP_CMD >/dev/null 2>&1 || { echo "This script requires PHP CLI to r
 [[ $($PHP_CMD -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
 command -v pihole >/dev/null 2>&1 || { echo "'pihole' command not found, is the Pi-hole even installed?"; exit 1; }
 
-PIHOLE_VERSION="$(pihole version | grep -oP "version is v\K[0-9.]" | head -n 1)"
+PIHOLE_VERSION="$(pihole version | grep -oP "[vV]ersion is v\K[0-9.]" | head -n 1)"
 
-if [[ -n "${OLD_VERSION_BRANCH_MAP[$PIHOLE_VERSION]}" ]]; then
+if [ -z "$PIHOLE_VERSION" ]; then
+	echo "Failed to detect Pi-hole version, you're continuing at your own risk."
+    read -rp "Press Enter to continue..."
+fi
+
+if [ -n "$PIHOLE_VERSION" ] && [[ -n "${OLD_VERSION_BRANCH_MAP[$PIHOLE_VERSION]}" ]]; then
 	NEW_BRANCH="${OLD_VERSION_BRANCH_MAP[$PIHOLE_VERSION]}"
 
     echo "You are running Pi-hole V$PIHOLE_VERSION which is not supported on this branch."
