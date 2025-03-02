@@ -52,23 +52,43 @@ if [ "$DOCKER" == 1 ]; then
 	SYSTEMD=0
 fi
 
+RM_CMD="rm -vf"
+MKDIR_CMD="mkdir -vp"
+CP_CMD="cp -v"
+MV_CMD="mv -v"
+CHMOD_CMD="chmod -v"
+
 # Overrides for Entware environment
 if [ "$ENTWARE" == 1 ]; then
+	if [ -z "$BASH_VERSION" ]; then
+		echo "This script requires Bash shell to run."
+		exit 1
+	fi
+
 	SYSTEMD=0
+
+	# Override paths
     BIN_PATH=/opt/sbin
     ETC_PATH=/opt/etc
     VAR_TMP_PATH=/opt/tmp
+
+	# No -v flags on most Busybox implementations!
+	RM_CMD="rm -f"
+	MKDIR_CMD="mkdir -p"
+	CP_CMD="cp"
+	MV_CMD="mv"
+	CHMOD_CMD="chmod"
 fi
 
 if [ "$1" == "uninstall" ] || [ "$2" == "uninstall" ]; then	# Simply remove the files and reload systemd (if available)
-	rm -vf "$BIN_PATH/pihole-updatelists"
-	rm -vf "$ETC_PATH/bash_completion.d/pihole-updatelists"
-	rm -vf "$ETC_PATH/cron.d/pihole-updatelists"
-	rm -vf "$ETC_PATH/systemd/system/pihole-updatelists.service"
-	rm -vf "$ETC_PATH/systemd/system/pihole-updatelists.timer"
+	$RM_CMD "$BIN_PATH/pihole-updatelists"
+	$RM_CMD "$ETC_PATH/bash_completion.d/pihole-updatelists"
+	$RM_CMD "$ETC_PATH/cron.d/pihole-updatelists"
+	$RM_CMD "$ETC_PATH/systemd/system/pihole-updatelists.service"
+	$RM_CMD "$ETC_PATH/systemd/system/pihole-updatelists.timer"
 
 	if [ -f "$VAR_TMP_PATH/pihole-updatelists.old" ]; then
-		rm -vf "$VAR_TMP_PATH/pihole-updatelists.old"
+		$RM_CMD "$VAR_TMP_PATH/pihole-updatelists.old"
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
@@ -125,40 +145,40 @@ if \
 	[ -f "$SPATH/pihole-updatelists.bash" ] \
 ; then
 	if [ ! -d "$BIN_PATH" ]; then
-		mkdir -vp "$BIN_PATH" && chmod -v 0755 "$BIN_PATH"
+		$MKDIR_CMD "$BIN_PATH" && $CHMOD_CMD 0755 "$BIN_PATH"
 	fi
 
 	if [ -f "$BIN_PATH/pihole-updatelists" ]; then
 		if ! cmp -s "$SPATH/pihole-updatelists.php" "$BIN_PATH/pihole-updatelists"; then
 			echo "Backing up previous version..."
-			cp -v "$BIN_PATH/pihole-updatelists" "$VAR_TMP_PATH/pihole-updatelists.old" && \
-			chmod -v -x "$VAR_TMP_PATH/pihole-updatelists.old"
+			$CP_CMD "$BIN_PATH/pihole-updatelists" "$VAR_TMP_PATH/pihole-updatelists.old" && \
+			$CHMOD_CMD -x "$VAR_TMP_PATH/pihole-updatelists.old"
 		fi
 	fi
 
-	cp -v "$SPATH/pihole-updatelists.php" "$BIN_PATH/pihole-updatelists" && \
-	chmod -v +x "$BIN_PATH/pihole-updatelists"
+	$CP_CMD "$SPATH/pihole-updatelists.php" "$BIN_PATH/pihole-updatelists" && \
+	$CHMOD_CMD +x "$BIN_PATH/pihole-updatelists"
 
 	if [ ! -f "$ETC_PATH/pihole-updatelists.conf" ]; then
-		cp -v "$SPATH/pihole-updatelists.conf" "$ETC_PATH/pihole-updatelists.conf"
+		$CP_CMD "$SPATH/pihole-updatelists.conf" "$ETC_PATH/pihole-updatelists.conf"
 	fi
 
 	if [ "$SYSTEMD" == 1 ]; then
-		cp -v "$SPATH/pihole-updatelists.service" "$ETC_PATH/systemd/system"
-		cp -v "$SPATH/pihole-updatelists.timer" "$ETC_PATH/systemd/system"
+		$CP_CMD "$SPATH/pihole-updatelists.service" "$ETC_PATH/systemd/system"
+		$CP_CMD "$SPATH/pihole-updatelists.timer" "$ETC_PATH/systemd/system"
 	fi
 
 	if [ ! -d "$ETC_PATH/bash_completion.d" ]; then
-		mkdir -vp "$ETC_PATH/bash_completion.d"
+		$MKDIR_CMD "$ETC_PATH/bash_completion.d"
 	fi
 
-	cp -v "$SPATH/pihole-updatelists.bash" "$ETC_PATH/bash_completion.d/pihole-updatelists"
+	$CP_CMD "$SPATH/pihole-updatelists.bash" "$ETC_PATH/bash_completion.d/pihole-updatelists"
 
 	# Convert line endings when dos2unix command is available
 	command -v dos2unix >/dev/null 2>&1 && dos2unix "$BIN_PATH/pihole-updatelists" "$ETC_PATH/bash_completion.d/pihole-updatelists"
 elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 	if [ ! -d "$BIN_PATH" ]; then
-		mkdir -vp "$BIN_PATH" && chmod -v 0755 "$BIN_PATH"
+		$MKDIR_CMD "$BIN_PATH" && $CHMOD_CMD 0755 "$BIN_PATH"
 	fi
 
 	if [ -f "$BIN_PATH/pihole-updatelists" ]; then
@@ -166,15 +186,15 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 
 		if ! cmp -s "/tmp/pihole-updatelists.php" "$BIN_PATH/pihole-updatelists"; then
 			echo "Backing up previous version..."
-			cp -v "$BIN_PATH/pihole-updatelists" "$VAR_TMP_PATH/pihole-updatelists.old" && \
-			chmod -v -x "$VAR_TMP_PATH/pihole-updatelists.old"
+			$CP_CMD "$BIN_PATH/pihole-updatelists" "$VAR_TMP_PATH/pihole-updatelists.old" && \
+			$CHMOD_CMD -x "$VAR_TMP_PATH/pihole-updatelists.old"
 		fi
 
-		mv -v /tmp/pihole-updatelists.php "$BIN_PATH/pihole-updatelists" && \
-		chmod -v +x "$BIN_PATH/pihole-updatelists"
+		$MV_CMD /tmp/pihole-updatelists.php "$BIN_PATH/pihole-updatelists" && \
+		$CHMOD_CMD +x "$BIN_PATH/pihole-updatelists"
 	else
 		wget -nv -O "$BIN_PATH/pihole-updatelists" "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.php" && \
-		chmod -v +x "$BIN_PATH/pihole-updatelists"
+		$CHMOD_CMD +x "$BIN_PATH/pihole-updatelists"
 	fi
 
 	if [ ! -f "$ETC_PATH/pihole-updatelists.conf" ]; then
@@ -187,7 +207,7 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
 	fi
 
 	if [ ! -d "$ETC_PATH/bash_completion.d" ]; then
-		mkdir -vp "$ETC_PATH/bash_completion.d"
+		$MKDIR_CMD "$ETC_PATH/bash_completion.d"
 	fi
 
 	wget -nv -O "$ETC_PATH/bash_completion.d/pihole-updatelists" "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.bash"
@@ -197,7 +217,7 @@ else
 fi
 
 if [ -f "$BIN_PATH/pihole-updatelists.old" ]; then
-	rm -v "$BIN_PATH/pihole-updatelists.old"
+	$RM_CMD "$BIN_PATH/pihole-updatelists.old"
 fi
 
 # Install schedule related files
