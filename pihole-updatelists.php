@@ -85,6 +85,7 @@ function checkDependencies()
 
     // Check for required PHP extensions
     $extensions = [
+        'filter',
         'pdo',
         'pdo_sqlite',
     ];
