@@ -68,7 +68,7 @@ if [ "$ENTWARE" == 1 ]; then
 	SYSTEMD=0
 
 	# Override paths
-    BIN_PATH=/opt/sbin
+    BIN_PATH=/opt/usr/sbin
     ETC_PATH=/opt/etc
     VAR_TMP_PATH=/opt/tmp
 
