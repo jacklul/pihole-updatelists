@@ -16,18 +16,25 @@ GIT_BRANCH=master # Git branch to use, user can specify custom branch as first a
 
 # Install environment detection
 SYSTEMD=$({ [ -n "$(pidof systemd)" ] || [ "$(readlink -f /sbin/init)" = "/usr/lib/systemd/systemd" ]; } && echo "1" || echo "0") # Is systemd available?
-DOCKER=$({ [ -f /proc/1/cgroup ] || [ "$(grep "docker" /proc/1/cgroup 2> /dev/null)" == "" ]; } && echo "0" || echo "1") # Is this a Docker container?
-ENTWARE=$([ -f /opt/etc/opkg.conf ] && echo "1" || echo "0") # Is this an Entware installation?
+DOCKER=$(grep -q "docker" /proc/1/cgroup 2> /dev/null && echo "1" || echo "0") # Is this a Docker container?
+ENTWARE=$( [ -f /opt/etc/opkg.conf ] && echo "1" || echo "0") # Is this an Entware installation?
 
 # Install paths
 BIN_PATH=/usr/local/sbin
 ETC_PATH=/etc
 VAR_TMP_PATH=/var/tmp
 
+# Install commands (with args)
+RM_CMD="rm -vf"
+MKDIR_CMD="mkdir -vp"
+CP_CMD="cp -v"
+MV_CMD="mv -v"
+CHMOD_CMD="chmod -v"
+
 # Map old Pi-hole versions to branches
 declare -A OLD_VERSION_BRANCH_MAP=(
     [5]="pihole-v5"
-    #[6]="pihole-v6"
+    #[6]="pihole-v6" # when V7 release
 )
 
 if [ "$1" == "docker" ]; then # Force Docker install
@@ -52,12 +59,6 @@ if [ "$DOCKER" == 1 ]; then
 	SYSTEMD=0
 fi
 
-RM_CMD="rm -vf"
-MKDIR_CMD="mkdir -vp"
-CP_CMD="cp -v"
-MV_CMD="mv -v"
-CHMOD_CMD="chmod -v"
-
 # Overrides for Entware environment
 if [ "$ENTWARE" == 1 ]; then
 	if [ -z "$BASH_VERSION" ]; then
@@ -65,6 +66,10 @@ if [ "$ENTWARE" == 1 ]; then
 		exit 1
 	fi
 
+    # Update PATH
+    PATH=/opt/bin:/opt/sbin:$PATH
+
+    # Make sure it will be crontab installation
 	SYSTEMD=0
 
 	# Override paths
@@ -105,7 +110,7 @@ command -v php-cli >/dev/null 2>&1 && PHP_CMD=php-cli
 # We check some stuff before continuing
 command -v $PHP_CMD >/dev/null 2>&1 || { echo "This script requires PHP CLI to run - install 'php-cli' package."; exit 1; }
 [[ $($PHP_CMD -v | head -n 1 | cut -d " " -f 2 | cut -f1 -d".") -lt 7 ]] && { echo "Detected PHP version lower than 7.0, make sure php-cli package is up to date!"; exit 1; }
-command -v pihole >/dev/null 2>&1 || { echo "'pihole' command not found, is the Pi-hole even installed?"; exit 1; }
+command -v pihole >/dev/null 2>&1 || { echo "Unable to find 'pihole' command, is the Pi-hole even installed?"; exit 1; }
 
 PIHOLE_VERSION="$(pihole version | grep -oP "[vV]ersion is v\K[0-9.]" | head -n 1)"
 
@@ -216,6 +221,7 @@ else
 	exit 1
 fi
 
+# Remove old backups in bin directory
 if [ -f "$BIN_PATH/pihole-updatelists.old" ]; then
 	$RM_CMD "$BIN_PATH/pihole-updatelists.old"
 fi
@@ -250,7 +256,20 @@ elif [ "$DOCKER" == 0 ]; then
 	fi
 fi
 
-# Docker-related tasks
+# Entware related tasks
+if [ "$ENTWARE" == 1 ]; then
+    if command -v id >/dev/null 2>&1; then
+        ROOT_USER="$(id -nu 0 2> /dev/null)"
+
+        if [ "$ROOT_USER" != "root" ]; then
+		    echo "Warning: Root user is not called root ($ROOT_USER) - Entware's cron will be unable to execute entries in /opt/etc/cron.d!"
+            echo "You will have to manually copy the entry from '$ETC_PATH/cron.d/pihole-updatelists' to your crontab (crontab -e)."
+            echo "You should disable Pi-hole's 'pihole updateGravity' entry in your crontab - otherwise you will run it twice a week."
+        fi
+    fi
+fi
+
+# Docker related tasks
 if [ "$DOCKER" == 1 ]; then
     [ ! -f /usr/bin/php ] && { echo "Missing /usr/bin/php binary - was the 'php' package installed?"; exit 1; }
 	[ ! -f /usr/bin/start.sh ] && { echo "Missing /usr/bin/start.sh script - not a Pi-hole container?"; exit 1; }
