@@ -1,6 +1,6 @@
 # Update Pi-hole's lists from remote sources
 
-When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) or [this](https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt) it's a hassle to manually check for changes and update - this script will do that for you!
+When using remote lists like [this](https://v.firebog.net/hosts/lists.php?type=tick) it's a hassle to manually check for changes and update - this script will do that for you!
 
 User-created entries will not be touched and those removed from the remote list will be disabled instead.
 
@@ -141,7 +141,7 @@ services:
       # ... https://docs.pi-hole.net/docker/
       #CRONTAB_STRING: '25 2  * * 6'
       BLOCKLISTS_URL: 'https://v.firebog.net/hosts/lists.php?type=tick'
-      ALLOWLISTS_URL: 'https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt'
+      #ALLOWLISTS_URL: ''
       #WHITELIST_URL: ''
       #REGEX_WHITELIST_URL: ''
       #BLACKLIST_URL: ''
@@ -278,10 +278,9 @@ If one of the lists fails to download nothing will be affected for that list typ
 | List | URL/Variable value | Description |
 |----------|-------------|-------------|
 | Blocklists<br>(BLOCKLISTS_URL) | https://v.firebog.net/hosts/lists.php?type=tick | https://firebog.net - safe lists only |
-| Allowlists<br>(ALLOWLISTS_URL) | https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt | https://github.com/anudeepND/whitelist - commonly whitelisted |
 | Regex blacklist<br>(REGEX_BLACKLIST_URL) | https://raw.githubusercontent.com/mmotti/pihole-regex/master/regex.list | https://github.com/mmotti/pihole-regex - basic regex rules |
 
-Please note that [mmotti/pihole-regex](https://github.com/mmotti/pihole-regex) list can sometimes block domains that should not be blocked - any false positives should be [reported to the repository](https://github.com/mmotti/pihole-regex/issues) to be included in the [whitelist](https://github.com/mmotti/pihole-regex/blob/master/whitelist.list) (in that case you might consider adding that list to the `ALLOWLISTS_URL` too).
+Please note that [mmotti/pihole-regex](https://github.com/mmotti/pihole-regex) list can sometimes block domains that should not be blocked - any false positives should be [reported to the repository](https://github.com/mmotti/pihole-regex/issues) to be included in the [whitelist](https://github.com/mmotti/pihole-regex/blob/master/whitelist.list) - in that case you might consider adding that list to allowlists through Pi-hole's interface.
 
 ## Extra information
 
