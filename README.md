@@ -89,9 +89,9 @@ Alternatively, some manual work is required - pick one:
 - Wipe all adlists and domains (not recommended but fast - use this if you want to start fresh)
   - backup your lists and custom entries (write them down somewhere, do not use the Teleporter)
   - run the following command:
-	```bash
-	sudo pihole -g -r recreate
-	```
+    ```bash
+    sudo pihole -g -r recreate
+    ```
   - keep reading and configure the script then run `sudo pihole-updatelists` to finish up
   - (only when `UPDATE_GRAVITY=false`) run `pihole updateGravity`
 
