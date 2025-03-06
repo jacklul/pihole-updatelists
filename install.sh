@@ -249,6 +249,8 @@ elif [ "$DOCKER" == 0 ]; then
 " > "$ETC_PATH/cron.d/pihole-updatelists"
             sed "s/#30 /$((1 + RANDOM % 58)) /" -i "$ETC_PATH/cron.d/pihole-updatelists"
 
+            chmod 644 "$ETC_PATH/cron.d/pihole-updatelists"
+
             echo "Created crontab ($ETC_PATH/cron.d/pihole-updatelists)"
         fi
     else
