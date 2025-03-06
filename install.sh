@@ -266,7 +266,7 @@ if [ "$ENTWARE" == 1 ]; then
     if command -v id >/dev/null 2>&1; then
         ROOT_USER="$(id -nu 0 2> /dev/null)"
 
-        if [ "$ROOT_USER" != "root" ]; then
+        if [ "$ROOT_USER" != "root" ] && grep -Fq "  root  " /opt/etc/cron.d/pihole-updatelists; then
             echo "Warning: Root user is not called root ($ROOT_USER) - correcting username in crontab..."
 
             sed "s/  root  /  $ROOT_USER  /g" -i /opt/etc/cron.d/pihole-updatelists
