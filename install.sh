@@ -260,13 +260,16 @@ fi
 
 # Entware related tasks
 if [ "$ENTWARE" == 1 ]; then
+    # While on most systems crontab will accept 644 here, cron in Entware requires 600
+    chmod 600 "$ETC_PATH/cron.d/pihole-updatelists"
+
     if command -v id >/dev/null 2>&1; then
         ROOT_USER="$(id -nu 0 2> /dev/null)"
 
         if [ "$ROOT_USER" != "root" ]; then
-            echo "Warning: Root user is not called root ($ROOT_USER) - Entware's cron will be unable to execute entries in /opt/etc/cron.d!"
-            echo "You will have to manually copy the entry from '$ETC_PATH/cron.d/pihole-updatelists' to your crontab (crontab -e)."
-            echo "You should disable Pi-hole's 'pihole updateGravity' entry in your crontab - otherwise you will run it twice a week."
+            echo "Warning: Root user is not called root ($ROOT_USER) - correcting username in crontab..."
+
+            sed "s/  root  /  $ROOT_USER  /g" -i /opt/etc/cron.d/pihole-updatelists
         fi
     fi
 fi
