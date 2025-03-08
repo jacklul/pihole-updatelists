@@ -296,7 +296,7 @@ if [ "$DOCKER" == 1 ]; then
         CRONTAB=$(sed -n '/pihole updateGravity/s/\(.*\) PATH=.*/\1/p' /crontab.txt)
 
         #shellcheck disable=SC2140
-        echo "$CRONTAB PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:\$PATH" pihole-updatelists.sh run" >> /crontab.txt
+        echo "$CRONTAB PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:\$PATH\" pihole-updatelists.sh run" >> /crontab.txt
         echo "# DO NOT MODIFY THIS FILE - USE 'CRONTAB_STRING' ENVIRONMENT VARIABLE INSTEAD!" >> /crontab.txt
         echo "Created crontab entry in /crontab.txt"
     fi

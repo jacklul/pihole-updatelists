@@ -22,7 +22,7 @@ case $1 in
         if [ -n "$CRONTAB_STRING" ]; then
             echo "  [i] Changing pihole-updatelists schedule to: $CRONTAB_STRING"
         else # Otherwise, use the default one
-            CRONTAB_STRING=$(sed -n '/pihole updateGravity/s/#\(.*\) PATH=.*/\1/p' /crontab.txt)
+            CRONTAB_STRING="$(sed -n '/pihole updateGravity/s/#\(.*\) PATH=.*/\1/p' /crontab.txt)"
         fi
 
         sed "/pihole-updatelists/ s|^.*PATH=|$CRONTAB_STRING PATH=|" -i /crontab.txt
