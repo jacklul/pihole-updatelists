@@ -30,7 +30,7 @@ case $1 in
         /usr/bin/php /usr/local/sbin/pihole-updatelists --config=/etc/pihole-updatelists/pihole-updatelists.conf --env $SCRIPT_ARGS $@
     ;;
     *)
-        echo "Usage: $0 run"
+        echo "Usage: $0 run [ARGS]"
         exit 1
     ;;
 esac
