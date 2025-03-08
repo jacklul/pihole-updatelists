@@ -20,9 +20,12 @@ case $1 in
     "cron")
         # Check if the user provided a custom crontab string
         if [ -n "$CRONTAB_STRING" ]; then
-            sed "/pihole-updatelists/ s|^.*PATH=|$CRONTAB_STRING PATH=|" /crontab.txt
-            echo "  [i] Changed pihole-updatelists schedule to '$CRONTAB_STRING'"
+            echo "  [i] Changing pihole-updatelists schedule to: $CRONTAB_STRING"
+        else # Otherwise, use the default one
+            CRONTAB_STRING=$(sed -n '/pihole updateGravity/s/#\(.*\) PATH=.*/\1/p' /crontab.txt)
         fi
+
+        sed "/pihole-updatelists/ s|^.*PATH=|$CRONTAB_STRING PATH=|" /crontab.txt
     ;;
     "run")
         shift # Skip 'run' argument

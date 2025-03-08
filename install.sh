@@ -297,6 +297,7 @@ if [ "$DOCKER" == 1 ]; then
 
         #shellcheck disable=SC2140
         echo "$CRONTAB PATH="\$PATH:/usr/sbin:/usr/local/bin/" pihole-updatelists.sh" >> /crontab.txt
+        echo "# DO NOT MODIFY THIS FILE - USE 'CRONTAB_STRING' ENVIRONMENT VARIABLE INSTEAD!" >> /crontab.txt
         echo "Created crontab entry in /crontab.txt"
     fi
 
