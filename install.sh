@@ -292,7 +292,7 @@ if [ "$DOCKER" == 1 ]; then
     mkdir -vp /etc/pihole-updatelists
 
     if ! grep -q "pihole-updatelists" /crontab.txt; then
-        # Use the same schedule string to have it randomized on each launch
+        # Use the same schedule string to also have it randomized
         CRONTAB=$(sed -n '/pihole updateGravity/s/\(.*\) PATH=.*/\1/p' /crontab.txt)
 
         #shellcheck disable=SC2140
