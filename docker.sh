@@ -25,7 +25,7 @@ case $1 in
             CRONTAB_STRING=$(sed -n '/pihole updateGravity/s/#\(.*\) PATH=.*/\1/p' /crontab.txt)
         fi
 
-        sed "/pihole-updatelists/ s|^.*PATH=|$CRONTAB_STRING PATH=|" /crontab.txt
+        sed "/pihole-updatelists/ s|^.*PATH=|$CRONTAB_STRING PATH=|" -i /crontab.txt
     ;;
     "run")
         shift # Skip 'run' argument
