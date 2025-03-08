@@ -10,8 +10,10 @@ User-created entries will not be touched and those removed from the remote list 
 ## Requirements
 
 - **Pi-hole V6** installed (fresh install preferred)
-- **php-cli >=7.0** and **a few extensions** (`pdo pdo_sqlite curl intl pcntl posix`)
+- **php-cli >=7.0** and **a few extensions** (`filter pdo pdo_sqlite curl intl pcntl posix`)
 - **systemd** is optional but recommended
+
+_Sometimes the base PHP package may already include certain extensions._
 
 ## Install
 
