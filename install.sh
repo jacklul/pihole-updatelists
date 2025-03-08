@@ -173,14 +173,20 @@ if \
         $CP_CMD "$SPATH/pihole-updatelists.timer" "$ETC_PATH/systemd/system"
     fi
 
-    if [ ! -d "$ETC_PATH/bash_completion.d" ]; then
-        $MKDIR_CMD "$ETC_PATH/bash_completion.d"
+    if type _init_completion >/dev/null 2>&1; then
+        if [ ! -d "$ETC_PATH/bash_completion.d" ]; then
+            $MKDIR_CMD "$ETC_PATH/bash_completion.d"
+        fi
+
+        $CP_CMD "$SPATH/pihole-updatelists.bash" "$ETC_PATH/bash_completion.d/pihole-updatelists"
     fi
 
-    $CP_CMD "$SPATH/pihole-updatelists.bash" "$ETC_PATH/bash_completion.d/pihole-updatelists"
-
     # Convert line endings when dos2unix command is available
-    command -v dos2unix >/dev/null 2>&1 && dos2unix "$BIN_PATH/pihole-updatelists" "$ETC_PATH/bash_completion.d/pihole-updatelists"
+    if command -v dos2unix >/dev/null 2>&1; then
+        for file in "$BIN_PATH/pihole-updatelists" "$ETC_PATH/bash_completion.d/pihole-updatelists"; do
+            [ -f "$file" ] && dos2unix "$file"
+        done
+    fi
 elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
     if [ ! -d "$BIN_PATH" ]; then
         $MKDIR_CMD "$BIN_PATH" && $CHMOD_CMD 0755 "$BIN_PATH"
@@ -211,11 +217,13 @@ elif [ "$REMOTE_URL" != "" ] && [ "$GIT_BRANCH" != "" ]; then
         wget -nv -O "$ETC_PATH/systemd/system/pihole-updatelists.timer" "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.timer"
     fi
 
-    if [ ! -d "$ETC_PATH/bash_completion.d" ]; then
-        $MKDIR_CMD "$ETC_PATH/bash_completion.d"
-    fi
+    if type _init_completion >/dev/null 2>&1; then
+        if [ ! -d "$ETC_PATH/bash_completion.d" ]; then
+            $MKDIR_CMD "$ETC_PATH/bash_completion.d"
+        fi
 
-    wget -nv -O "$ETC_PATH/bash_completion.d/pihole-updatelists" "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.bash"
+        wget -nv -O "$ETC_PATH/bash_completion.d/pihole-updatelists" "$REMOTE_URL/$GIT_BRANCH/pihole-updatelists.bash"
+    fi
 else
     echo "Missing required files for installation!"
     exit 1
