@@ -10,7 +10,7 @@ User-created entries will not be touched and those removed from the remote list 
 ## Requirements
 
 - **Pi-hole V6** installed (fresh install preferred)
-- **php-cli >=7.0** and **a few extensions** (`filter pdo pdo_sqlite curl intl pcntl posix`)
+- **php-cli >=7.0** and **a few extensions** (`filter pdo pdo_sqlite curl openssl intl pcntl posix`)
 - **systemd** is optional but recommended
 
 _Sometimes the base PHP package may already include certain extensions._
@@ -114,7 +114,7 @@ If you don't want to use my image you can write custom `Dockerfile` based on the
 ```
 FROM pihole/pihole:latest
 
-RUN apk add --no-cache php php-sqlite3 php-intl php-curl
+RUN apk add --no-cache php php-pdo_sqlite php-curl php-openssl php-intl php-pcntl php-posix
 
 RUN wget -O - https://raw.githubusercontent.com/jacklul/pihole-updatelists/master/install.sh | bash -s docker
 ```

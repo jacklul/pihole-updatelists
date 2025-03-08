@@ -139,6 +139,7 @@ function checkOptionalDependencies()
     $missingExtensions = [];
     $extensions = [
         'curl',
+        'openssl',
         'intl',
         'pcntl',
         'posix',
@@ -661,7 +662,7 @@ function createHttpClient(array $config = null)
  */
 function fetchFileContents($url)
 {
-    if (file_exists($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+    if (!filter_var($url, FILTER_VALIDATE_URL) || file_exists($url)) {
         return file_get_contents($url);
     }
 
