@@ -13,7 +13,16 @@ User-created entries will not be touched and those removed from the remote list 
 - **php-cli >=7.0** and **a few extensions** (`filter pdo pdo_sqlite curl openssl intl pcntl posix`)
 - **systemd** is optional but recommended
 
-_Sometimes the base PHP package may already include certain extensions._
+Sometimes the base PHP package may already include certain extensions because each distribution package it differently.
+
+**PHP install commands for known distros/environments:**
+
+Debian: `apt install php-cli php-sqlite3 php-curl php-intl`  
+Alpine: `apk add php php-pdo_sqlite php-curl php-openssl php-intl php-pcntl php-posix`  
+Arch: `pacman -S php php-sqlite`  
+Fedora: `dnf install php-cli php-pdo php-intl php-process`  
+CentOS: `yum install php-cli php-pdo php-intl php-process`  
+Entware: `opkg install php8-cli php8-mod-filter php8-mod-pdo-sqlite php8-mod-curl php8-mod-openssl php8-mod-intl php8-mod-pcntl`  
 
 ## Install
 
@@ -141,7 +150,7 @@ services:
     environment:
       TZ: 'Europe/London'
       # ... https://docs.pi-hole.net/docker/
-      #CRONTAB_STRING: '25 2  * * 6'
+      #CRONTAB_STRING: '25 2 * * 6'
       BLOCKLISTS_URL: 'https://v.firebog.net/hosts/lists.php?type=tick'
       #ALLOWLISTS_URL: ''
       #WHITELIST_URL: ''
