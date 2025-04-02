@@ -54,7 +54,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Fetch latest release tag
-        uses: pozetroninc/github-action-get-latest-release@v0.6.0
+        uses: pozetroninc/github-action-get-latest-release@v0.8.0
         id: remote-tag
         with:
           repository: pi-hole/docker-pi-hole
