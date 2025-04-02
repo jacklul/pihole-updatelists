@@ -85,7 +85,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64/v8,linux/arm/v6,linux/arm/v7,linux/386,linux/riscv64
+          platforms: linux/amd64,linux/arm64/v8,linux/arm/v6,linux/arm/v7,linux/386
           push: true
           tags: |
             ${{ steps.latest-tag.outputs.LATEST != '' && 'jacklul/pihole:latest' || '' }}
