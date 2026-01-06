@@ -79,7 +79,7 @@ sudo sed -e '/pihole updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole
 > ```
 > ```
 > [Service]
-> ExecStartPre=-/bin/sh -c "[ -w /etc/cron.d/pihole ] && /bin/sed -e '/pihole > updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole"
+> ExecStartPre=-+/bin/sh -c "[ -w /etc/cron.d/pihole ] && /bin/sed -e '/pihole[[:space:]]updateGravity/ s/^#*/#/' -i /etc/cron.d/pihole"
 > ```
 
 ### Migrating lists and domains
