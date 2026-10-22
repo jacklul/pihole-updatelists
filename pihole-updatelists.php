@@ -248,7 +248,7 @@ function getDefinedOptions()
  * Fail if not running as root
  * This check is ignored if script is not installed
  */
-function requireRoot()
+function requireRootUser()
 {
     if (stripos(PHP_OS, 'WIN') === 0) {
         return; // don't need to check for root privileges on Windows
@@ -270,6 +270,40 @@ function requireRoot()
         print 'root privileges required' . PHP_EOL;
         exit(1);
     }
+}
+
+/**
+ * Fail if not running as 'pihole' user
+ */
+function isPiholeUser(): bool
+{
+    if (stripos(PHP_OS, 'WIN') === 0) {
+        return true; // skip on Windows
+    }
+
+    global $isPiholeUser;
+
+    if (!isset($isPiholeUser) || $isPiholeUser === null) {
+        $isPiholeUser = null;
+
+        if (function_exists('posix_getuid')) {
+            $posix_user = posix_getpwnam('pihole');
+
+            if ($posix_user === false) {
+                $isPiholeUser = false;
+            } else {
+                $isPiholeUser = posix_getuid() === $posix_user['uid'];
+            }
+        } else {
+            $isPiholeUser = exec('id -u') == exec('id -u pihole');
+        }
+    }
+
+    if (!$isPiholeUser) {
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -425,7 +459,9 @@ function parseOptions()
         exit;
     }
 
-    requireRoot(); // Require root privileges
+    if (!isPiholeUser()) {
+        requireRootUser();
+    }
 
     return $options;
 }
@@ -886,7 +922,7 @@ function updateScript(array $options = [], array $config = [])
         exit(1);
     }
 
-    requireRoot(); // Only root should be able to run this command
+    requireRootUser(); // Only root should be able to run this command
 
     if (!isset($options['force'])) {
         $status = printVersion($options, $config, true);
@@ -936,7 +972,7 @@ function rollbackScript(array $options = [], array $config = [])
         exit(1);
     }
 
-    requireRoot(); // Only root should be able to run this command
+    requireRootUser(); // Only root should be able to run this command
 
     if (isset($options['yes']) || expectUserInput('Are you sure you want to rollback? [Y/N]', ['y', 'yes'])) {
         if (rename('/var/tmp/pihole-updatelists.old', '/usr/local/sbin/pihole-updatelists') && chmod('/usr/local/sbin/pihole-updatelists', 0755)) {
@@ -1077,6 +1113,10 @@ function loadConfig(array $options = [])
         'GIT_BRANCH'              => 'master',
     ];
 
+    if (isPiholeUser()) {
+        $config['LOCK_FILE'] = '/tmp/pihole-updatelists.lock';
+    }
+
     $hasDockerFiles = file_exists('/usr/bin/start.sh') && file_exists('/usr/bin/pihole-updatelists.sh');
 
     // Default paths overrides when Entware is detected
@@ -1084,7 +1124,7 @@ function loadConfig(array $options = [])
         $config = [
             'CONFIG_FILE' => '/opt/etc/pihole-updatelists.conf',
             'GRAVITY_DB'  => '/opt/etc/pihole/gravity.db',
-            'LOCK_FILE'   => '/opt/var/lock/pihole-updatelists.lock',
+            'LOCK_FILE'   => isPiholeUser() ? '/opt/tmp/pihole-updatelists.lock' : '/opt/var/lock/pihole-updatelists.lock',
             'PIHOLE_CMD'  => '/opt/bin/pihole',
         ] + $config;
     }
